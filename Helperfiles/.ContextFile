@@ -1,0 +1,216 @@
+<DATABASE INSTRUCTIONS>
+# Prisma Database Guidelines for Next.js 15 Project
+
+## 1. Database Connection Management
+```typescript
+// ALWAYS use this singleton pattern in lib/prisma.ts
+import { PrismaClient } from '@prisma/client'
+
+const prismaClientSingleton = () => {
+  return new PrismaClient()
+}
+
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>
+}
+
+const prisma = globalThis.prisma ?? prismaClientSingleton()
+
+export default prisma
+
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
+```
+
+## 2. Schema Rules
+- Always use meaningful and clear model names in PascalCase
+- Include comprehensive field comments for documentation
+- Define appropriate field types and constraints
+- Use explicit relations with referential actions
+- Include timestamps (createdAt, updatedAt) on all models
+- Use enums for fixed sets of values
+
+Example Schema Pattern:
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  posts     Post[]
+  
+  @@map("users") // Use snake_case for table names
+}
+```
+
+## 3. Security Requirements
+- NEVER expose Prisma Client in client components
+- ALWAYS validate input data before queries
+- Use parameter binding, NEVER string interpolation
+- Implement proper error handling
+- Use appropriate access modifiers
+- Handle sensitive data with care
+
+## 4. Query Patterns
+### DO:
+```typescript
+// Use select to specify needed fields
+const user = await prisma.user.findUnique({
+  where: { id },
+  select: {
+    id: true,
+    name: true,
+    email: true
+  }
+})
+
+// Use include for relations when needed
+const post = await prisma.post.findUnique({
+  where: { id },
+  include: {
+    author: {
+      select: {
+        name: true
+      }
+    }
+  }
+})
+```
+
+### DON'T:
+```typescript
+// ❌ Never use string interpolation
+const users = await prisma.user.findMany({
+  where: {
+    email: `${userInput}` // SECURITY RISK
+  }
+})
+
+// ❌ Avoid fetching unnecessary data
+const user = await prisma.user.findMany({
+  include: {
+    posts: true,
+    comments: true,
+    likes: true
+  }
+})
+```
+
+## 5. Error Handling Pattern
+```typescript
+try {
+  const result = await prisma.user.create({
+    data: userData
+  })
+  return result
+} catch (error) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    // Handle known Prisma errors
+    if (error.code === 'P2002') {
+      throw new Error('Unique constraint violation')
+    }
+  }
+  throw error
+}
+```
+
+## 6. Server Component Integration
+```typescript
+// Use in Server Components only
+async function UserProfile({ userId }: { userId: string }) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  })
+  
+  if (!user) {
+    throw new Error('User not found')
+  }
+  
+  return <div>{user.name}</div>
+}
+```
+
+## 7. API Route Integration
+```typescript
+// pages/api/users.ts
+import { NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
+
+export async function GET() {
+  try {
+    const users = await prisma.user.findMany()
+    return NextResponse.json(users)
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch users' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+## 8. Performance Guidelines
+- Use appropriate indexes in schema
+- Implement pagination for large datasets
+- Use cursor-based pagination for real-time data
+- Batch operations when possible
+- Optimize includes and selects
+- Use transactions for related operations
+
+## 9. Migration Rules
+- Never edit the migration files directly
+- Always review migration files before applying
+- Use descriptive names for migrations
+- Test migrations in development first
+- Backup database before production migrations
+- Document breaking changes
+
+## 10. Type Safety Requirements
+- Always use generated types from Prisma Client
+- Maintain strict TypeScript configuration
+- Define proper input validation schemas (e.g., with Zod)
+- Use type inference where possible
+
+## 11. Environment Setup
+```env
+# Required in .env
+DATABASE_URL="postgresql://..."
+
+# Required in .env.local for development
+SHADOW_DATABASE_URL="postgresql://..."
+```
+
+## 12. Testing Guidelines
+- Use a separate test database
+- Reset database state between tests
+- Mock Prisma Client in unit tests
+- Use transactions in integration tests
+- Test error conditions and edge cases
+
+## 13. Maintenance Rules
+- Regular schema updates and migrations
+- Monitor query performance
+- Update Prisma dependencies regularly
+- Maintain documentation
+- Review and optimize indexes
+- Regular database backups
+
+## 14. Code Organization
+```plaintext
+project/
+├── prisma/
+│   ├── schema.prisma
+│   ├── migrations/
+│   └── seed.ts
+├── lib/
+│   └── prisma.ts
+├── types/
+│   └── prisma.d.ts
+└── app/
+    └── api/
+        └── prisma-routes/
+```
+</DATABASE_INSTRUCTIONS>
+
