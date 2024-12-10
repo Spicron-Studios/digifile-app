@@ -31,6 +31,31 @@ interface CalendarProps {
   events: CalendarEvent[]
 }
 
+interface EventDisplayProps {
+  event: CalendarEvent
+  className?: string
+}
+
+const EventDisplay = ({ event, className }: EventDisplayProps) => {
+  console.log('Rendering event:', event); // Debug event rendering
+  console.log('Applied color class:', event.color); // Debug color class
+  
+  return (
+    <div
+      className={cn(
+        event.color,
+        "px-2 py-1 rounded-md text-white truncate",
+        "text-xs font-medium",
+        "hover:opacity-90 cursor-pointer",
+        className
+      )}
+      title={`${event.accountName}: ${event.title}`}
+    >
+      {event.title}
+    </div>
+  );
+}
+
 export function Calendar({ accounts, events }: CalendarProps) {
   const today = startOfToday()
   const [selectedDay, setSelectedDay] = React.useState(today)
@@ -187,16 +212,15 @@ export function Calendar({ accounts, events }: CalendarProps) {
                       index === self.findIndex((e) => e.id === event.id)
                     )
                     .map((event) => (
-                      <div
+                      <EventDisplay
                         key={event.id}
+                        event={event}
                         className={cn(
                           "mt-1 px-1 py-0.5 text-xs rounded truncate",
                           event.color,
                           "text-white"
                         )}
-                      >
-                        {event.title}
-                      </div>
+                      />
                     ))}
                 </div>
               ))}
@@ -238,8 +262,9 @@ export function Calendar({ accounts, events }: CalendarProps) {
                       return (
                         <div key={day.toString()} className="relative h-12 border-t">
                           {uniqueEvents.map((event) => (
-                            <div
+                            <EventDisplay
                               key={event.id}
+                              event={event}
                               className={cn(
                                 "absolute left-0 right-0 rounded px-1 py-0.5 text-xs truncate",
                                 event.color,
@@ -249,9 +274,7 @@ export function Calendar({ accounts, events }: CalendarProps) {
                                 top: `${((event.start.getTime() - start) / (60 * 60 * 1000)) * 100}%`,
                                 height: `${((event.end.getTime() - event.start.getTime()) / (60 * 60 * 1000)) * 100}%`,
                               }}
-                            >
-                              {event.title}
-                            </div>
+                            />
                           ))}
                         </div>
                       )

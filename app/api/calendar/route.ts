@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
-    const events = transformEntriesToEvents(accounts)
+    const events = await transformEntriesToEvents(accounts)
     return NextResponse.json({ accounts, events })
   } catch (err) {
     console.error('Calendar API Error:', err)

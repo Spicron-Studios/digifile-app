@@ -3,7 +3,8 @@
 import { Calendar } from "@/components/ui/calendar"
 import { Account, CalendarEvent } from "@/types/calendar"
 import { useEffect, useState } from "react"
-import{ Suspense } from "react"
+import { Suspense } from "react"
+import { transformEntriesToEvents } from "@/utils/calendar"
 
 function CalendarContent() {
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -16,7 +17,8 @@ function CalendarContent() {
         const response = await fetch('/api/calendar')
         const data = await response.json()
         setAccounts(data.accounts)
-        setEvents(data.events)
+        const transformedEvents = await transformEntriesToEvents(data.accounts)
+        setEvents(transformedEvents)
       } catch (error) {
         console.error('Failed to fetch calendar data:', error)
       } finally {

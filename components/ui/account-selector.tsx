@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { getAccountColor } from "@/utils/calendar"
 
 interface AccountSelectorProps {
   accounts: Account[]
@@ -21,57 +20,35 @@ export function AccountSelector({
   accounts,
   selectedAccounts,
   onToggleAccount,
-  onAddAccount,
+  onAddAccount
 }: AccountSelectorProps) {
-  const availableAccounts = accounts.filter(
-    (account) => !selectedAccounts.includes(account.AccountID)
-  )
-
   return (
-    <div className="flex flex-wrap items-center gap-2 p-2 border rounded-lg">
-      {accounts
-        .filter((account) => selectedAccounts.includes(account.AccountID))
-        .map((account, index) => (
-          <div
-            key={account.AccountID}
-            className={`flex items-center gap-2 px-3 py-1 text-sm ${getAccountColor(index)} text-white rounded-full`}
-          >
-            {account.Name}
-            <button
-              onClick={() => onToggleAccount(account.AccountID)}
-              className="p-0.5 hover:bg-black/20 rounded-full"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
-      
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm">
-            Add Account
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Account</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-2">
-            {availableAccounts.map((account) => (
-              <Button
-                key={account.AccountID}
-                variant="outline"
-                onClick={() => {
-                  onAddAccount(account)
-                }}
-              >
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Add Account</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Select Accounts</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          {accounts.map((account) => (
+            <div key={account.AccountID} className="flex items-center gap-4">
+              <input
+                type="checkbox"
+                id={account.AccountID}
+                checked={selectedAccounts.includes(account.AccountID)}
+                onChange={() => onToggleAccount(account.AccountID)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <label htmlFor={account.AccountID} className="text-sm font-medium">
                 {account.Name}
-              </Button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+              </label>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
