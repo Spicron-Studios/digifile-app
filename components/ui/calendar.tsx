@@ -39,12 +39,12 @@ interface EventDisplayProps {
 const EventDisplay = ({ event, className }: EventDisplayProps) => {
   console.log('Rendering event:', event); // Debug event rendering
   console.log('Applied color class:', event.color); // Debug color class
-  
+  debugger;
   return (
     <div
       className={cn(
-        event.color,
-        "px-2 py-1 rounded-md text-white truncate",
+        `${event.color}`, // Ensure color class is properly interpolated
+        "px-2 py-1 rounded-md truncate",
         "text-xs font-medium",
         "hover:opacity-90 cursor-pointer",
         className
