@@ -15,7 +15,8 @@ export default function CalendarPage() {
       try {
         const response = await fetch('/api/calendar')
         if (!response.ok) {
-          throw new Error('Failed to fetch calendar data')
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch calendar data')
         }
         const data = await response.json()
         setAccounts(data.accounts)
