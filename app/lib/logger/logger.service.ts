@@ -3,8 +3,10 @@
  * const logger = Logger.getInstance();
  * await logger.init();
  * await logger.info('myFile.ts', 'This is an info message');
+ * 
+ * Note: This logger only works in server-side components.
+ * It will silently ignore any logging attempts from client components.
  */
-
 
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -12,23 +14,26 @@ import { LogLevel, LoggerConfig, LogEntry } from './types';
 
 export class Logger {
   private static instance: Logger;
-  private config: LoggerConfig;
+  private config!: LoggerConfig;
   private initialized: boolean = false;
-  private readonly LOG_DIR: string;
+  private readonly LOG_DIR!: string;
 
   private constructor() {
-    this.config = {
-      logLevels: {
-        ERROR: true,
-        WARNING: true,
-        INFO: true,
-        DEBUG: true
-      },
-      maxFileSize: 104857600, // 100MB
-      maxLogFiles: 10,
-      logDirectory: 'logs'
-    };
-    this.LOG_DIR = path.join(process.cwd(), this.config.logDirectory);
+    // Only initialize if we're on the server side
+    if (typeof window === 'undefined') {
+      this.config = {
+        logLevels: {
+          ERROR: true,
+          WARNING: true,
+          INFO: true,
+          DEBUG: true
+        },
+        maxFileSize: 104857600, // 100MB
+        maxLogFiles: 10,
+        logDirectory: 'logs'
+      };
+      this.LOG_DIR = path.join(process.cwd(), this.config.logDirectory);
+    }
   }
 
   public static getInstance(): Logger {
@@ -39,16 +44,12 @@ export class Logger {
   }
 
   public async init(): Promise<void> {
+    // Only initialize on server side
+    if (typeof window !== 'undefined') return;
+    
     if (this.initialized) return;
     
-    console.log('Initializing logger...');
-    if (typeof window === 'undefined') {
-      // Server-side initialization
-      await this.writeToFile('Logger initialized');
-      console.log('Logger initialized on server side');
-    } else {
-      console.log('Logger initialized on client side');
-    }
+    await this.writeToFile('Logger initialized');
     this.initialized = true;
   }
 
@@ -58,16 +59,14 @@ export class Logger {
   }
  
   private async writeToFile(message: string): Promise<void> {
-    try {
-      // Ensure log directory exists
-      await fs.mkdir(this.LOG_DIR, { recursive: true });
+    // Skip if we're on the client side
+    if (typeof window !== 'undefined') return;
 
+    try {
+      await fs.mkdir(this.LOG_DIR, { recursive: true });
       const date = new Date().toISOString().split('T')[0];
       const logFile = path.join(this.LOG_DIR, `app-${date}.log`);
-
-      // Append message to log file
       await fs.appendFile(logFile, message + '\n');
-      console.log('Successfully wrote to log file:', logFile);
     } catch (error) {
       console.error('Failed to write to log file:', error);
       throw error;
@@ -75,20 +74,18 @@ export class Logger {
   }
 
   private async writeLog(entry: LogEntry): Promise<void> {
+    // Skip if we're on the client side
+    if (typeof window !== 'undefined') return;
+
     const logMessage = this.formatLogEntry(entry.level, entry.fileName, entry.message);
-    
-    if (typeof window === 'undefined') {
-      // Server-side logging
-      console.log('Attempting server-side log:', logMessage);
-      await this.writeToFile(logMessage);
-    } else {
-      // Client-side logging
-      console.log(logMessage);
-    }
+    await this.writeToFile(logMessage);
   }
 
   public async log(level: LogLevel, fileName: string, message: string): Promise<void> {
-    if (!this.config.logLevels[level]) return;
+    // Skip if we're on the client side
+    if (typeof window !== 'undefined') return;
+    
+    if (!this.config?.logLevels[level]) return;
 
     await this.writeLog({
       timestamp: new Date().toISOString(),
@@ -99,18 +96,22 @@ export class Logger {
   }
 
   public async error(fileName: string, message: string): Promise<void> {
+    if (typeof window !== 'undefined') return;
     await this.log('ERROR', fileName, message);
   }
 
   public async warning(fileName: string, message: string): Promise<void> {
+    if (typeof window !== 'undefined') return;
     await this.log('WARNING', fileName, message);
   }
 
   public async info(fileName: string, message: string): Promise<void> {
+    if (typeof window !== 'undefined') return;
     await this.log('INFO', fileName, message);
   }
 
   public async debug(fileName: string, message: string): Promise<void> {
+    if (typeof window !== 'undefined') return;
     await this.log('DEBUG', fileName, message);
   }
 }

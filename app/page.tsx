@@ -1,11 +1,14 @@
 'use client'
 
-import { Logger } from './lib/logger'
+import { useEffect } from 'react';
 
-export default async function Home() {
-  const logger = Logger.getInstance()
-  await logger.init()
-  await logger.info('page.tsx', 'Hello World from Home Page')
+export default function Home() {
+  useEffect(() => {
+    fetch('/api/test')
+      .then(res => res.json())
+      .then(data => console.log(data))
+      .catch(err => console.error(err));
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

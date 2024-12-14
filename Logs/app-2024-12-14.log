@@ -1,2 +1,56 @@
 Logger initialized
-[2024-12-14 09:18:21.117] (INFO) - page.tsx - Hello World from Home Page
+[2024-12-14 17:20:18.916] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-14 17:20:21.310] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-14 17:20:21.311] (DEBUG) - api/calendar/route.ts - Fetching users and calendar entries
+[2024-12-14 17:20:21.335] (ERROR) - api/calendar/route.ts - Prisma query failed: PrismaClientValidationError: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].users.findMany()` invocation in
+C:\Projects\Jan_Personal\digifile\digifile-app\.next\server\chunks\[root of the server]__743b55._.js:280:165
+
+  277 }
+  278 // Fetch users with their calendar entries
+  279 await logger.debug(FILE_NAME, 'Fetching users and calendar entries');
+→ 280 const users = await __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].users.findMany({
+        where: {
+          active: true
+        },
+        include: {
+          user_calendar_entries: {
+          ~~~~~~~~~~~~~~~~~~~~~
+            where: {
+              active: true
+            }
+          }
+        }
+      })
+
+Unknown field `user_calendar_entries` for include statement on model `users`. Available options are marked with ?.
+[2024-12-14 17:20:21.337] (ERROR) - api/calendar/route.ts - Failed to fetch calendar data: Database query failed
+[2024-12-14 17:20:21.352] (DEBUG) - api/calendar/route.ts - Database connection closed
+Logger initialized
+[2024-12-14 17:36:45.946] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-14 17:36:48.043] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-14 17:36:48.044] (DEBUG) - api/calendar/route.ts - Fetching users and calendar entries
+[2024-12-14 17:36:48.053] (ERROR) - api/calendar/route.ts - Prisma query failed: PrismaClientValidationError: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].users.findMany()` invocation in
+C:\Projects\Jan_Personal\digifile\digifile-app\.next\server\chunks\[root of the server]__743b55._.js:280:165
+
+  277 }
+  278 // Fetch users with their calendar entries
+  279 await logger.debug(FILE_NAME, 'Fetching users and calendar entries');
+→ 280 const users = await __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].users.findMany({
+        where: {
+          active: true
+        },
+        include: {
+          user_calendar_entries: {
+          ~~~~~~~~~~~~~~~~~~~~~
+            where: {
+              active: true
+            }
+          }
+        }
+      })
+
+Unknown field `user_calendar_entries` for include statement on model `users`. Available options are marked with ?.
+[2024-12-14 17:36:48.054] (ERROR) - api/calendar/route.ts - Failed to fetch calendar data: Database query failed
+[2024-12-14 17:36:48.076] (DEBUG) - api/calendar/route.ts - Database connection closed

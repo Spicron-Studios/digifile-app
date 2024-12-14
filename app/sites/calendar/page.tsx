@@ -13,19 +13,22 @@ export default function CalendarPage() {
   useEffect(() => {
     async function fetchCalendarData() {
       try {
+        console.log('Fetching calendar data...')
         const response = await fetch('/api/calendar')
-        const contentType = response.headers.get("content-type")
         
-        if (!contentType?.includes("application/json")) {
-          throw new Error('Received non-JSON response from server')
-        }
-
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to fetch calendar data')
+          console.error('Server response not OK:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData
+          })
+          throw new Error(`Failed to fetch calendar data: ${response.statusText}`)
         }
 
         const data = await response.json()
+        console.log('Calendar data received:', data)
+        
         setAccounts(data.accounts)
         setEvents(data.events)
       } catch (error) {
