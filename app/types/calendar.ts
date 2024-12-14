@@ -7,7 +7,7 @@ export interface CalendarEntry {
 export interface Account {
   AccountID: string
   Name: string
-  "Calender-Entries": CalendarEntry[]
+  "Calendar-Entries": CalendarEntry[]
 }
 
 export type ViewType = "day" | "week" | "month" 

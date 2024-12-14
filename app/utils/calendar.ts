@@ -1,5 +1,5 @@
-import { Account, CalendarEvent } from "@/types/calendar"
-import { Logger } from "@/lib/logger"
+import { Account, CalendarEvent } from "@/app/types/calendar"
+import { Logger } from "@/app/lib/logger"
 
 const COLORS = [
   "bg-blue-500",

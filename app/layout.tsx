@@ -1,7 +1,7 @@
 
 import type { Metadata } from "next";
 import "./globals.css";
-import { CollapsibleSidebar } from "@/components/ui/collapsible-sidebar";
+import { CollapsibleSidebar } from "@/app/components/ui/collapsible-sidebar";
 
 export const metadata: Metadata = {
   title: "Under Construction",

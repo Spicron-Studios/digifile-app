@@ -21,10 +21,10 @@ import {
   startOfToday,
   startOfWeek,
 } from "date-fns"
-import { Account, CalendarEvent, ViewType } from "@/types/calendar"
-import { Button } from "@/components/ui/button"
+import { Account, CalendarEvent, ViewType } from "@/app/types/calendar"
+import { Button } from "@/app/components/ui/button"
 import { AccountSelector } from "./account-selector"
-import { cn } from "@/lib/utils"
+import { cn } from "@/app/lib/utils"
 
 interface CalendarProps {
   accounts: Account[]
@@ -72,6 +72,8 @@ export function Calendar({ accounts, events }: CalendarProps) {
           return add(prev, { weeks: -1 })
         case "month":
           return add(prev, { months: -1 })
+        default:
+          return prev
       }
     })
   }
@@ -85,6 +87,8 @@ export function Calendar({ accounts, events }: CalendarProps) {
           return add(prev, { weeks: 1 })
         case "month":
           return add(prev, { months: 1 })
+        default:
+          return prev
       }
     })
   }
@@ -103,6 +107,8 @@ export function Calendar({ accounts, events }: CalendarProps) {
           start: startOfWeek(startOfMonth(currentDate)),
           end: endOfWeek(endOfMonth(currentDate)),
         })
+      default:
+        return []
     }
   }, [currentDate, view])
 

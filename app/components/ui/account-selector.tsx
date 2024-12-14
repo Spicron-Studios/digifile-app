@@ -1,13 +1,13 @@
 import { X } from 'lucide-react'
-import { Account } from "@/types/calendar"
-import { Button } from "@/components/ui/button"
+import { Account } from "@/app/types/calendar"
+import { Button } from "@/app/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/app/components/ui/dialog"
 
 interface AccountSelectorProps {
   accounts: Account[]

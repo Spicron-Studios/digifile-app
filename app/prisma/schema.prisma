@@ -270,7 +270,7 @@ model users {
 
 model user_calendar_entries {
   uid          String    @id @db.Uuid
-  user_uid     String?   @db.Uuid
+  user         users?    @db.Uuid
   date         DateTime? @db.Timestamp(6)
   length       Int?      // Length in minutes
   description  String?   @db.VarChar(255)
