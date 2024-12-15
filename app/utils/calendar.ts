@@ -1,25 +1,8 @@
 import { Account, CalendarEvent } from "@/app/types/calendar"
 import { Logger } from "@/app/lib/logger"
 
-const COLORS = [
-  "bg-blue-500",
-  "bg-green-500",
-  "bg-purple-500",
-  "bg-orange-500",
-  "bg-pink-500",
-  "bg-cyan-500",
-  "bg-yellow-500",
-  "bg-red-500",
-]
-
 const logger = Logger.getInstance();
 logger.init().catch(console.error);
-
-export function getAccountColor(index: number): string {
-  const color = COLORS[index % COLORS.length];
-  console.log(`Assigning color ${color} for account index ${index}`);
-  return color;
-}
 
 export async function transformEntriesToEvents(accounts: Account[]): Promise<CalendarEvent[]> {
   if (typeof window === 'undefined') {
@@ -32,9 +15,8 @@ export async function transformEntriesToEvents(accounts: Account[]): Promise<Cal
     const events = [];
     for (let i = 0; i < accounts.length; i++) {
       const account = accounts[i];
-      const accountColor = getAccountColor(i);
       
-      console.log(`Account ${account.Name} (${account.AccountID}) assigned color: ${accountColor}`);
+      console.log(`Account ${account.Name} (${account.AccountID}) assigned color: ${account.color}`);
 
       for (const entry of account["Calender-Entries"]) {
         const start = new Date(entry.Date);
@@ -56,7 +38,7 @@ export async function transformEntriesToEvents(accounts: Account[]): Promise<Cal
           end,
           accountId: account.AccountID,
           accountName: account.Name,
-          color: accountColor,
+          color: account.color,
         });
       }
     }

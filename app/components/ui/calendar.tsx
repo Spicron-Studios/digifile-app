@@ -23,7 +23,7 @@ import {
 } from "date-fns"
 import { Account, CalendarEvent, ViewType } from "@/app/types/calendar"
 import { Button } from "@/app/components/ui/button"
-import { AccountSelector } from "./account-selector"
+import { AccountSelector } from "./account-selector/account-selector"
 import { cn } from "@/app/lib/utils"
 
 interface CalendarProps {
@@ -127,7 +127,7 @@ export function Calendar({ accounts, events }: CalendarProps) {
   const timeSlots = Array.from({ length: 24 }, (_, i) => i)
 
   return (
-    <div className="p-4">
+    <div className="p-4 h-[800px] flex flex-col">
       <div className="space-y-4">
         <AccountSelector
           accounts={accounts}
@@ -177,8 +177,8 @@ export function Calendar({ accounts, events }: CalendarProps) {
           </div>
         </div>
         {view === "month" ? (
-          <>
-            <div className="grid grid-cols-7 gap-px mt-2 text-xs leading-6 text-center text-gray-500">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="grid grid-cols-7 gap-px text-xs leading-6 text-center text-gray-500">
               <div>S</div>
               <div>M</div>
               <div>T</div>
@@ -187,16 +187,15 @@ export function Calendar({ accounts, events }: CalendarProps) {
               <div>F</div>
               <div>S</div>
             </div>
-            <div className="grid grid-cols-7 gap-px mt-2 text-sm">
+            <div className="grid grid-cols-7 gap-px flex-1 overflow-y-auto">
               {days.map((day, dayIdx) => (
                 <div
                   key={day.toString()}
                   className={cn(
-                    "relative py-2 px-3 hover:bg-muted/50 cursor-pointer",
+                    "relative min-h-[120px] py-2 px-3 hover:bg-muted/50 cursor-pointer border-b border-r",
                     dayIdx === 0 && colStartClasses[getDay(day)],
                     !isSameMonth(day, currentDate) && "text-muted-foreground",
-                    (isEqual(day, selectedDay) || isToday(day)) &&
-                      "bg-muted/50"
+                    (isEqual(day, selectedDay) || isToday(day)) && "bg-muted/50"
                   )}
                   onClick={() => setSelectedDay(day)}
                 >
@@ -231,63 +230,82 @@ export function Calendar({ accounts, events }: CalendarProps) {
                 </div>
               ))}
             </div>
-          </>
+          </div>
         ) : (
-          <div className="mt-4">
-            <div className="grid grid-cols-[auto,1fr] gap-4">
-              <div className="w-16"></div>
-              <div className="grid grid-cols-7 gap-2">
-                {days.map((day) => (
-                  <div key={day.toString()} className="text-center font-semibold">
-                    {format(day, "EEE")}
-                    <br />
-                    {format(day, "d")}
+          <div className="flex-1 overflow-hidden">
+            <div className="grid grid-cols-[auto,1fr] gap-4 h-full">
+              <div className="w-16">
+                {timeSlots.map((hour) => (
+                  <div key={hour} className="text-right pr-2 h-12">
+                    {format(new Date().setHours(hour), "ha")}
                   </div>
                 ))}
               </div>
-              {timeSlots.map((hour) => (
-                <React.Fragment key={hour}>
-                  <div className="text-right pr-2 py-2">{format(new Date().setHours(hour), "ha")}</div>
-                  <div className="grid grid-cols-7 gap-2">
-                    {days.map((day) => {
-                      const start = new Date(day).setHours(hour)
-                      const end = add(new Date(start), { hours: 1 })
-                      // Get unique events for this time slot
-                      const uniqueEvents = Array.from(
-                        new Map(
-                          filteredEvents
-                            .filter((event) => {
-                              const eventStart = event.start
-                              const eventEnd = event.end
-                              return eventStart < new Date(end) && eventEnd > new Date(start)
-                            })
-                            .map(event => [event.id, event])
-                        ).values()
-                      )
+              <div className="relative">
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                  {days.map((day) => (
+                    <div key={day.toString()} className="text-center font-semibold">
+                      {format(day, "EEE")}
+                      <br />
+                      {format(day, "d")}
+                    </div>
+                  ))}
+                </div>
+                <div className="overflow-y-auto max-h-[650px]">
+                  {timeSlots.map((hour) => (
+                    <div key={hour} className="grid grid-cols-7 gap-2">
+                      {days.map((day) => {
+                        const dayStart = startOfDay(day);
+                        const slotStart = add(dayStart, { hours: hour });
+                        const slotEnd = add(slotStart, { hours: 1 });
 
-                      return (
-                        <div key={day.toString()} className="relative h-12 border-t">
-                          {uniqueEvents.map((event) => (
-                            <EventDisplay
-                              key={event.id}
-                              event={event}
-                              className={cn(
-                                "absolute left-0 right-0 rounded px-1 py-0.5 text-xs truncate",
-                                event.color,
-                                "text-white"
-                              )}
-                              style={{
-                                top: `${((event.start.getTime() - start) / (60 * 60 * 1000)) * 100}%`,
-                                height: `${((event.end.getTime() - event.start.getTime()) / (60 * 60 * 1000)) * 100}%`,
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </React.Fragment>
-              ))}
+                        const slotEvents = filteredEvents.filter((event) => {
+                          return (
+                            event.start < slotEnd &&
+                            event.end > slotStart &&
+                            isSameDay(event.start, day)
+                          );
+                        });
+
+                        return (
+                          <div
+                            key={`${day}-${hour}`}
+                            className="relative h-12 border-t"
+                          >
+                            {slotEvents.map((event) => {
+                              const eventStart = event.start;
+                              const eventEnd = event.end;
+                              const startOffset = Math.max(
+                                0,
+                                (eventStart.getTime() - slotStart.getTime()) / (60 * 60 * 1000)
+                              );
+                              const duration = (eventEnd.getTime() - eventStart.getTime()) / (60 * 60 * 1000);
+
+                              return (
+                                <EventDisplay
+                                  key={event.id}
+                                  event={event}
+                                  className={cn(
+                                    "absolute left-0 right-0 z-10",
+                                    "rounded px-1 py-0.5 text-xs truncate",
+                                    event.color,
+                                    "text-white"
+                                  )}
+                                  style={{
+                                    top: `${startOffset * 100}%`,
+                                    height: `${duration * 100}%`,
+                                    minHeight: '20px'
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
