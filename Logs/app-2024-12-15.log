@@ -1,0 +1,23 @@
+[2024-12-15 07:51:53.833] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-15 07:51:55.303] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-15 07:51:55.304] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-15 07:51:55.713] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-15 07:51:55.714] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-15 07:51:56.076] (DEBUG) - api/calendar/route.ts - Found 8 calendar entries
+[2024-12-15 07:51:56.079] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-15 07:51:56.080] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-15 07:51:56.081] (DEBUG) - api/calendar/route.ts - Transformed 0 calendar events
+[2024-12-15 07:51:56.082] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-15 07:51:56.091] (DEBUG) - api/calendar/route.ts - Database connection closed
+Logger initialized
+[2024-12-15 07:55:30.556] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-15 07:55:31.825] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-15 07:55:31.827] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-15 07:55:32.195] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-15 07:55:32.196] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-15 07:55:32.560] (DEBUG) - api/calendar/route.ts - Found 8 calendar entries
+[2024-12-15 07:55:32.563] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-15 07:55:32.565] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-15 07:55:32.568] (DEBUG) - api/calendar/route.ts - Transformed 8 calendar events
+[2024-12-15 07:55:32.570] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-15 07:55:32.586] (DEBUG) - api/calendar/route.ts - Database connection closed

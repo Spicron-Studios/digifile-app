@@ -30,33 +30,68 @@ export async function GET() {
     // First get all active users
     await logger.debug(FILE_NAME, 'Fetching active users')
     const users = await prisma.users.findMany({
-      where: { 
-        active: true 
-      }
+        where: {
+            AND: [
+              { active: true },
+              { orgid: 'd290f1ee-6c54-4b01-90e6-d701748f0851' }
+            ]
+          }
     })
+
+    // Check if no active users found
+    if (users.length === 0) {
+      await logger.info(FILE_NAME, 'No active users found')
+      return NextResponse.json(
+        { 
+          error: 'No active users found',
+          type: 'NO_USERS'
+        },
+        { 
+          status: 404,
+          headers 
+        }
+      )
+    }
+    
     await logger.debug(FILE_NAME, `Found ${users.length} active users`)
 
     // Then get all calendar entries for these users
     await logger.debug(FILE_NAME, 'Fetching calendar entries for users')
-    const calendarEntries = await prisma.user_calendar_entries.findMany({
+    const userCalendarEntries = await prisma.user_calendar_entries.findMany({
       where: {
         active: true,
-        user: {
+        user_uid: {
           in: users.map(user => user.uid)
         }
       }
     })
-    await logger.debug(FILE_NAME, `Found ${calendarEntries.length} calendar entries`)
+
+    // Check if no calendar entries found
+    if (userCalendarEntries.length === 0) {
+      await logger.info(FILE_NAME, 'No calendar entries found for active users')
+      return NextResponse.json(
+        { 
+          error: 'No calendar entries found',
+          type: 'NO_ENTRIES'
+        },
+        { 
+          status: 404,
+          headers 
+        }
+      )
+    }
+
+    await logger.debug(FILE_NAME, `Found ${userCalendarEntries.length} calendar entries`)
 
     // Group calendar entries by user
     await logger.debug(FILE_NAME, 'Grouping calendar entries by user')
-    const userCalendarMap = calendarEntries.reduce((acc, entry) => {
-      if (!acc[entry.user]) {
-        acc[entry.user] = [];
+    const userCalendarMap = userCalendarEntries.reduce((acc, entry) => {
+      if (!acc[entry.user_uid]) {
+        acc[entry.user_uid] = [];
       }
-      acc[entry.user].push(entry);
+      acc[entry.user_uid].push(entry);
       return acc;
-    }, {});
+    }, {} as Record<string, typeof userCalendarEntries>);
 
     // Transform to required format
     await logger.debug(FILE_NAME, 'Transforming data to required format')
@@ -100,7 +135,10 @@ export async function GET() {
     await logger.error(FILE_NAME, `Failed to fetch calendar data: ${errorMessage}`)
     
     return NextResponse.json(
-      { error: 'Failed to fetch calendar data' },
+      { 
+        error: 'Failed to fetch calendar data',
+        type: 'SYSTEM_ERROR'
+      },
       { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }

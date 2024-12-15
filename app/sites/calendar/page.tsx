@@ -16,19 +16,21 @@ export default function CalendarPage() {
         console.log('Fetching calendar data...')
         const response = await fetch('/api/calendar')
         
+        const data = await response.json()
+        
         if (!response.ok) {
-          const errorData = await response.json()
-          console.error('Server response not OK:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData
-          })
-          throw new Error(`Failed to fetch calendar data: ${response.statusText}`)
+          // Handle specific error types
+          switch(data.type) {
+            case 'NO_USERS':
+              throw new Error('No active users found in the system')
+            case 'NO_ENTRIES':
+              throw new Error('No calendar entries found for active users')
+            default:
+              throw new Error(data.error || 'Failed to fetch calendar data')
+          }
         }
 
-        const data = await response.json()
         console.log('Calendar data received:', data)
-        
         setAccounts(data.accounts)
         setEvents(data.events)
       } catch (error) {
