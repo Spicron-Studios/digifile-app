@@ -67,6 +67,8 @@ export function AppointmentModal({
   }
 
   const handleDelete = async () => {
+    console.log("handleDelete called");
+    debugger;
     if (!selectedEvent?.id) {
       setError("Cannot delete: Invalid appointment ID")
       return

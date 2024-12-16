@@ -129,14 +129,8 @@ export async function GET() {
         user_uid: true,
         startdate: true,
         enddate: true,
-        length: true,
         description: true,
-        title: true,
-        active: true,
-        orgid: true,
-        date_created: true,
-        last_edit: true,
-        locked: true
+        title: true
       }
     })
 
@@ -155,6 +149,7 @@ export async function GET() {
       )
     }
 
+
     await logger.debug(FILE_NAME, `Found ${userCalendarEntries.length} calendar entries`)
 
     // Group calendar entries by user
@@ -167,24 +162,31 @@ export async function GET() {
       return acc;
     }, {} as Record<string, typeof userCalendarEntries>);
 
+    await logger.debug(FILE_NAME, `User calendar map content: ${JSON.stringify(userCalendarMap, null, 2)}`)
+
     // Transform to required format
     await logger.debug(FILE_NAME, 'Transforming data to required format')
     const accounts: Account[] = users.map((user) => ({
       AccountID: user.uid,
       Name: user.username ?? `${user.first_name} ${user.surname}`,
       'Calendar-Entries': userCalendarMap[user.uid]?.map((entry) => ({
+        uid: entry.uid,
         startdate: entry.startdate?.toISOString() ?? '',
         enddate: entry.enddate?.toISOString() ?? '',
+        title: entry.title ?? '',
         Description: entry.description ?? '',
       })) ?? []
     }))
+
+    await logger.debug(FILE_NAME, `Accounts content: ${JSON.stringify(accounts, null, 2)}`)
 
     // Transform entries into events
     const events: CalendarEvent[] = accounts.flatMap((account, accountIndex) =>
       account['Calendar-Entries'].map((entry, index) => {
         return {
-          id: `${account.AccountID}-${index}`,
-          title: entry.Description,
+          id: entry.uid,
+          title: entry.title,
+          description: entry.Description,
           start: new Date(entry.startdate),
           end: new Date(entry.enddate),
           accountId: account.AccountID,

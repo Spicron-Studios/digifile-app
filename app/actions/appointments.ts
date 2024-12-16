@@ -86,11 +86,13 @@ export async function deleteAppointment(id: string) {
   await logger.info("appointments.ts", `Delete appointment called with ID: ${id}`);
 
   if (!id) {
+    await logger.error("appointments.ts", `Appointment ID is required`);
     throw new Error("Appointment ID is required")
   }
 
   try {
     // Verify the appointment exists first
+    await logger.info("appointments.ts", `Verifying appointment exists with ID: ${id}`);
     const appointment = await prisma.user_calendar_entries.findUnique({
       where: { uid: id }
     })

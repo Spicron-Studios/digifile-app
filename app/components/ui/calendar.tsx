@@ -27,6 +27,7 @@ import { AccountSelector } from "./account-selector/account-selector"
 import { cn } from "@/app/lib/utils"
 import { AppointmentModal } from "@/app/components/ui/appointment/appointment-modal"
 import { useState } from "react"
+import { toUTCDate, formatTimeToLocal } from "@/app/lib/utils";
 
 interface CalendarProps {
   accounts: Account[]
@@ -264,7 +265,7 @@ export function Calendar({ accounts, events, refreshData }: CalendarProps) {
               <div className="w-16">
                 {timeSlots.map((hour) => (
                   <div key={hour} className="text-right pr-2 h-12">
-                    {format(new Date().setHours(hour), "ha")}
+                    {formatTimeToLocal(new Date(Date.UTC(2024, 0, 1, hour)))}
                   </div>
                 ))}
               </div>
@@ -282,15 +283,35 @@ export function Calendar({ accounts, events, refreshData }: CalendarProps) {
                   {timeSlots.map((hour) => (
                     <div key={hour} className="grid grid-cols-7 gap-2">
                       {days.map((day) => {
-                        const dayStart = startOfDay(day);
-                        const slotStart = add(dayStart, { hours: hour });
+                        const localDayStart = startOfDay(day);
+                        const utcHour = (hour - new Date().getTimezoneOffset() / 60) % 24;
+                        
+                        const slotStart = new Date(Date.UTC(
+                          localDayStart.getFullYear(),
+                          localDayStart.getMonth(),
+                          localDayStart.getDate(),
+                          utcHour
+                        ));
                         const slotEnd = add(slotStart, { hours: 1 });
 
+                        console.log('Local Day:', localDayStart);
+                        console.log('UTC Slot Start:', slotStart);
+                        console.log('UTC Slot End:', slotEnd);
+
                         const slotEvents = filteredEvents.filter((event) => {
+                          const eventStart = new Date(event.start);
+                          const eventEnd = new Date(event.end);
+                          
+                          const isSameUTCDay = (date1: Date, date2: Date) => {
+                            return date1.getUTCDate() === date2.getUTCDate() &&
+                                   date1.getUTCMonth() === date2.getUTCMonth() &&
+                                   date1.getUTCFullYear() === date2.getUTCFullYear();
+                          };
+
                           return (
-                            event.start < slotEnd &&
-                            event.end > slotStart &&
-                            isSameDay(event.start, day)
+                            eventStart < slotEnd &&
+                            eventEnd > slotStart &&
+                            isSameUTCDay(eventStart, slotStart)
                           );
                         });
 
@@ -300,8 +321,9 @@ export function Calendar({ accounts, events, refreshData }: CalendarProps) {
                             className="relative h-12 border-t"
                           >
                             {slotEvents.map((event) => {
-                              const eventStart = event.start;
-                              const eventEnd = event.end;
+                              const eventStart = new Date(event.start);
+                              const eventEnd = new Date(event.end);
+                              
                               const startOffset = Math.max(
                                 0,
                                 (eventStart.getTime() - slotStart.getTime()) / (60 * 60 * 1000)
