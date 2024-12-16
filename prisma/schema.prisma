@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model diary {
+  uid              String    @id @db.Uuid
+  orgid            String?   @db.Uuid
+  userid           String?   @db.Uuid
+  appointment_type String?   @db.VarChar(255)
+  description      String?
+  start_time       DateTime? @db.Timestamp(6)
+  end_time         DateTime? @db.Timestamp(6)
+  title            String?   @db.VarChar(255)
+  colour           String?   @db.VarChar(255)
+  active           Boolean?
+  date_created     DateTime? @db.Timestamp(6)
+  last_edit        DateTime? @db.Timestamp(6)
+  locked           Boolean?
+}
+
+model file_info {
+  uid                 String    @id @db.Uuid
+  file_number         String?   @db.VarChar(255)
+  account_number      String?   @db.VarChar(255)
+  billing_account_no  String?   @db.VarChar(255)
+  referral_doc_name   String?   @db.VarChar(255)
+  referral_doc_number String?   @db.VarChar(255)
+  consent1            Boolean?
+  consent2            Boolean?
+  consent3            Boolean?
+  orgid               String?   @db.Uuid
+  active              Boolean?
+  date_created        DateTime? @db.Timestamp(6)
+  last_edit           DateTime? @db.Timestamp(6)
+  locked              Boolean?
+}
+
+model fileinfo_patient {
+  uid          String    @id @db.Uuid
+  patientid    String?   @db.Uuid
+  fileid       String?   @db.Uuid
+  orgid        String?   @db.Uuid
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  locked       Boolean?
+}
+
+model injury_on_duty {
+  uid            String    @id @db.Uuid
+  company_name   String?   @db.VarChar(255)
+  contact_person String?   @db.VarChar(255)
+  contact_number String?   @db.VarChar(255)
+  contact_email  String?   @db.VarChar(255)
+  created_date   DateTime? @db.Timestamp(6)
+  fileid         String?   @db.Uuid
+  active         Boolean?
+  date_created   DateTime? @db.Timestamp(6)
+  last_edit      DateTime? @db.Timestamp(6)
+  orgid          String?   @db.Uuid
+  locked         Boolean?
+}
+
+model logo_table {
+  uid           String    @id @db.Uuid
+  filename      String?   @db.VarChar(255)
+  file_location String?
+  active        Boolean?
+  date_created  DateTime? @db.Timestamp(6)
+  last_edit     DateTime? @db.Timestamp(6)
+  orgid         String?   @db.Uuid
+  locked        Boolean?
+}
+
+model medical_scheme {
+  uid          String    @id @db.Uuid
+  scheme_name  String?   @db.VarChar(255)
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  orgid        String?   @db.Uuid
+  locked       Boolean?
+}
+
+model notifications {
+  uid          String    @id @db.Uuid
+  orgid        String?   @db.Uuid
+  type         String?   @db.VarChar(255)
+  time_stamp   DateTime? @db.Timestamp(6)
+  destination  String?   @db.VarChar(255)
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  locked       Boolean?
+}
+
+model organization_info {
+  uid                                 String    @id @db.Uuid
+  practice_name                       String?   @db.VarChar(255)
+  bhf_number                          String?   @db.VarChar(255)
+  hpcsa                               String?   @db.VarChar(255)
+  practice_type                       String?   @db.VarChar(255)
+  vat_no                              String?   @db.VarChar(255)
+  address                             String?
+  postal                              String?
+  practice_telephone                  String?   @db.VarChar(255)
+  accounts_telephone                  String?   @db.VarChar(255)
+  cell                                String?   @db.VarChar(255)
+  fax                                 String?   @db.VarChar(255)
+  email                               String?   @db.VarChar(255)
+  consent_to_treatment                String?
+  consent_to_financial_responsibility String?
+  consent_to_release_of_information   String?
+  active                              Boolean?
+  date_created                        DateTime? @db.Timestamp(6)
+  last_edit                           DateTime? @db.Timestamp(6)
+  locked                              Boolean?
+}
+
+model organization_payment_details {
+  uid          String    @id @db.Uuid
+  orgid        String?   @db.Uuid
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  locked       Boolean?
+}
+
+model patient {
+  uid             String    @id @db.Uuid
+  orgid           String?   @db.Uuid
+  id              String?   @db.VarChar(255)
+  title           String?   @db.VarChar(255)
+  name            String?   @db.VarChar(255)
+  initials        String?   @db.VarChar(255)
+  surname         String?   @db.VarChar(255)
+  date_of_birth   DateTime? @db.Date
+  gender          String?   @db.VarChar(255)
+  cell_phone      String?   @db.VarChar(255)
+  additional_name String?   @db.VarChar(255)
+  additional_cell String?   @db.VarChar(255)
+  email           String?   @db.VarChar(255)
+  address         String?
+  active          Boolean?
+  date_created    DateTime? @db.Timestamp(6)
+  last_edit       DateTime? @db.Timestamp(6)
+  locked          Boolean?
+}
+
+model patient_medical_aid {
+  uid                    String    @id @db.Uuid
+  medical_scheme_id      String?   @db.Uuid
+  membership_number      String?   @db.VarChar(255)
+  patient_dependant_code String?   @db.VarChar(255)
+  patient_or_not         String?   @db.VarChar(255)
+  fileid                 String?   @db.Uuid
+  active                 Boolean?
+  date_created           DateTime? @db.Timestamp(6)
+  last_edit              DateTime? @db.Timestamp(6)
+  orgid                  String?   @db.Uuid
+  locked                 Boolean?
+}
+
+model patientmedicalaid_file_patient {
+  uid                    String    @id @db.Uuid
+  patient_medical_aid_id String?   @db.Uuid
+  fileid                 String?   @db.Uuid
+  patientid              String?   @db.Uuid
+  active                 Boolean?
+  date_created           DateTime? @db.Timestamp(6)
+  last_edit              DateTime? @db.Timestamp(6)
+  orgid                  String?   @db.Uuid
+  locked                 Boolean?
+}
+
+model person_responsible {
+  uid          String    @id @db.Uuid
+  orgid        String?   @db.Uuid
+  person_type  String?   @db.VarChar(255)
+  fileid       String?   @db.Uuid
+  personid     String?   @db.Uuid
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  locked       Boolean?
+}
+
+model roles {
+  uid          String    @id @db.Uuid
+  role_name    String?   @db.VarChar(255)
+  description  String?
+  orgid        String?   @db.Uuid
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  locked       Boolean?
+}
+
+model signature {
+  uid           String    @id @db.Uuid
+  userid        String?   @db.Uuid
+  filename      String?   @db.VarChar(255)
+  file_location String?
+  orgid         String?   @db.Uuid
+  active        Boolean?
+  date_created  DateTime? @db.Timestamp(6)
+  last_edit     DateTime? @db.Timestamp(6)
+  locked        Boolean?
+}
+
+model tab_files {
+  uid           String    @id @db.Uuid
+  orgid         String?   @db.Uuid
+  tab_notes_id  String?   @db.Uuid
+  file_name     String?   @db.VarChar(255)
+  file_type     String?   @db.VarChar(255)
+  file_location String?
+  active        Boolean?
+  date_created  DateTime? @db.Timestamp(6)
+  last_edit     DateTime? @db.Timestamp(6)
+  locked        Boolean?
+}
+
+model tab_notes {
+  uid                 String    @id @db.Uuid
+  orgid               String?   @db.Uuid
+  fileinfo_patient_id String?   @db.Uuid
+  personid            String?   @db.Uuid
+  time_stamp          DateTime? @db.Timestamp(6)
+  notes               String?
+  tab_type            String?   @db.VarChar(255)
+  active              Boolean?
+  date_created        DateTime? @db.Timestamp(6)
+  last_edit           DateTime? @db.Timestamp(6)
+  locked              Boolean?
+}
+
+model user_calendar_entries {
+  uid          String    @id @db.Uuid
+  user_uid     String?   @db.Uuid
+  startdate    DateTime? @db.Timestamp(6)
+  length       Int?
+  description  String?   @db.VarChar(255)
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  orgid        String?   @db.Uuid
+  locked       Boolean?
+  enddate      DateTime? @db.Timestamp(6)
+  title        String?   @db.VarChar(255)
+}
+
+model user_roles {
+  uid          String    @id @db.Uuid
+  userid       String?   @db.Uuid
+  roleid       String?   @db.Uuid
+  orgid        String?   @db.Uuid
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  locked       Boolean?
+}
+
+model users {
+  uid          String    @id @db.Uuid
+  title        String?   @db.VarChar(255)
+  first_name   String?   @db.VarChar(255)
+  surname      String?   @db.VarChar(255)
+  cell_no      String?   @db.VarChar(255)
+  secret_key   String?   @db.VarChar(255)
+  email        String?   @db.VarChar(255)
+  username     String?   @db.VarChar(255)
+  login_key    String?   @db.VarChar(255)
+  active       Boolean?
+  date_created DateTime? @db.Timestamp(6)
+  last_edit    DateTime? @db.Timestamp(6)
+  orgid        String?   @db.Uuid
+  locked       Boolean?
+}

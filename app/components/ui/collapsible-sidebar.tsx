@@ -2,9 +2,9 @@
 
 import * as React from 'react'
 import { Home, FileText, Settings, Menu, Calendar } from 'lucide-react'
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/app/lib/utils"
+import { Button } from "@/app/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip"
 import {
   Sidebar,
   SidebarContent,
@@ -13,13 +13,13 @@ import {
   SidebarFooter,
   SidebarProvider,
   useSidebar
-} from "@/components/ui/sidebar"
+} from "@/app/components/ui/sidebar"
 
 const navItems = [
   { name: 'Home', icon: Home, href: '/' },
-  { name: 'File Data', icon: FileText, href: '/file-data' },
-  { name: 'Calendar', icon: Calendar, href: '/calendar' },
-  { name: 'Settings', icon: Settings, href: '/settings' },
+  { name: 'File Data', icon: FileText, href: '/sites/file-data' },
+  { name: 'Calendar', icon: Calendar, href: '/sites/calendar' },
+  { name: 'Settings', icon: Settings, href: '/sites/settings' },
 ]
 
 function SidebarWrapper() {
