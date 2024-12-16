@@ -20,5 +20,6 @@ export interface CalendarEvent {
   accountId: string
   accountName: string
   color: string
+  description?: string
 }
 

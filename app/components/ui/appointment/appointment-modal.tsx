@@ -8,14 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
-import { Account } from "@/app/types/calendar"
-import { addAppointment } from "@/app/actions/appointments"
+import { Account, CalendarEvent } from "@/app/types/calendar"
+import { addAppointment, deleteAppointment, updateAppointment } from "@/app/actions/appointments"
 import { DateTimePicker } from "@/app/components/ui/date-time-picker"
 import { useRouter } from "next/navigation"
 
 interface AppointmentModalProps {
   accounts: Account[]
   onAppointmentAdded: () => void
+  selectedEvent?: CalendarEvent
+  onOpenChange?: (open: boolean) => void
+  defaultOpen?: boolean
 }
 
 const appointmentSchema = z.object({
@@ -31,73 +34,95 @@ const appointmentSchema = z.object({
 
 type AppointmentFormData = z.infer<typeof appointmentSchema>
 
-export function AppointmentModal({ accounts, onAppointmentAdded }: AppointmentModalProps) {
-  const [open, setOpen] = useState(false)
+export function AppointmentModal({ 
+  accounts, 
+  onAppointmentAdded, 
+  selectedEvent,
+  onOpenChange,
+  defaultOpen = false
+}: AppointmentModalProps) {
+  const [open, setOpen] = useState(defaultOpen)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
-      user_uid: '',
-      startdate: new Date(),
-      enddate: new Date(),
-      title: '',
-      description: '',
+      user_uid: selectedEvent?.accountId || '',
+      startdate: selectedEvent ? new Date(selectedEvent.start) : new Date(),
+      enddate: selectedEvent ? new Date(selectedEvent.end) : new Date(),
+      title: selectedEvent?.title || '',
+      description: selectedEvent?.description || '',
     }
   })
 
   const router = useRouter()
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen)
+    onOpenChange?.(newOpen)
+    if (!newOpen) {
+      form.reset()
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!selectedEvent?.id) {
+      setError("Cannot delete: Invalid appointment ID")
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        await deleteAppointment(selectedEvent.id)
+        onAppointmentAdded()
+        handleOpenChange(false)
+        router.refresh()
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Failed to delete appointment")
+      }
+    })
+  }
+
   const onSubmit = async (data: AppointmentFormData) => {
     setError(null)
     startTransition(async () => {
       try {
-        if (!data.user_uid || !data.startdate || !data.enddate || !data.title) {
-          throw new Error("Please fill in all required fields")
+        if (selectedEvent?.id) {
+          await updateAppointment(selectedEvent.id, data)
+        } else {
+          await addAppointment(data)
         }
-
-        if (data.enddate <= data.startdate) {
-          throw new Error("End date must be after start date")
-        }
-
-        await addAppointment(data)
         onAppointmentAdded()
-        form.reset()
-        setOpen(false)
+        handleOpenChange(false)
         router.refresh()
       } catch (error) {
-        setError(error instanceof Error ? error.message : "Failed to add appointment")
-        console.error("Failed to add appointment:", error)
+        setError(error instanceof Error ? error.message : "Failed to save appointment")
       }
     })
   }
 
   const handleDateChange = (field: 'startdate' | 'enddate') => (date: Date | null) => {
-    if (date) {
-      form.setValue(field, date, {
-        shouldValidate: true,
-        shouldDirty: true,
-      })
-    }
+    form.setValue(field, date || new Date(), { 
+      shouldValidate: true,
+      shouldDirty: true 
+    })
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">Add Appointment</Button>
+        <Button variant="outline">
+          {selectedEvent ? "Edit Appointment" : "Add Appointment"}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Appointment</DialogTitle>
+          <DialogTitle>
+            {selectedEvent ? "Edit Appointment" : "Add New Appointment"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {error && (
-            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
-              {error}
-            </div>
-          )}
-          
           {/* User Selection */}
           <div>
             <Label htmlFor="user_uid">User</Label>
@@ -149,10 +174,20 @@ export function AppointmentModal({ accounts, onAppointmentAdded }: AppointmentMo
           </div>
 
           <div className="flex justify-end gap-2">
+            {selectedEvent && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isPending}
+              >
+                Delete
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
@@ -160,7 +195,7 @@ export function AppointmentModal({ accounts, onAppointmentAdded }: AppointmentMo
               type="submit" 
               disabled={isPending}
             >
-              {isPending ? "Adding..." : "Add Appointment"}
+              {isPending ? "Saving..." : (selectedEvent ? "Update" : "Add")}
             </Button>
           </div>
         </form>

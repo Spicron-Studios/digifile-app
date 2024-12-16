@@ -26,6 +26,7 @@ import { Button } from "@/app/components/ui/button"
 import { AccountSelector } from "./account-selector/account-selector"
 import { cn } from "@/app/lib/utils"
 import { AppointmentModal } from "@/app/components/ui/appointment/appointment-modal"
+import { useState } from "react"
 
 interface CalendarProps {
   accounts: Account[]
@@ -36,26 +37,43 @@ interface CalendarProps {
 interface EventDisplayProps {
   event: CalendarEvent
   className?: string
+  accounts: Account[]
+  refreshData: () => void
 }
 
-const EventDisplay = ({ event, className }: EventDisplayProps) => {
-  console.log('Rendering event:', event); // Debug event rendering
-  console.log('Applied color class:', event.color); // Debug color class
-  debugger;
+const EventDisplay = ({ event, className, accounts, refreshData }: EventDisplayProps) => {
+  const [showModal, setShowModal] = useState(false)
+
   return (
-    <div
-      className={cn(
-        `${event.color}`, // Ensure color class is properly interpolated
-        "px-2 py-1 rounded-md truncate",
-        "text-xs font-medium",
-        "hover:opacity-90 cursor-pointer",
-        className
+    <>
+      <div
+        className={cn(
+          `${event.color}`,
+          "px-2 py-1 rounded-md truncate",
+          "text-xs font-medium",
+          "hover:opacity-90 cursor-pointer",
+          className
+        )}
+        title={`${event.accountName}: ${event.title}`}
+        onClick={(e) => {
+          e.stopPropagation()
+          setShowModal(true)
+        }}
+      >
+        {event.title}
+      </div>
+
+      {showModal && (
+        <AppointmentModal
+          accounts={accounts}
+          onAppointmentAdded={refreshData}
+          selectedEvent={event}
+          defaultOpen={true}
+          onOpenChange={setShowModal}
+        />
       )}
-      title={`${event.accountName}: ${event.title}`}
-    >
-      {event.title}
-    </div>
-  );
+    </>
+  )
 }
 
 export function Calendar({ accounts, events, refreshData }: CalendarProps) {
@@ -232,6 +250,8 @@ export function Calendar({ accounts, events, refreshData }: CalendarProps) {
                           event.color,
                           "text-white"
                         )}
+                        accounts={accounts}
+                        refreshData={refreshData}
                       />
                     ))}
                 </div>
@@ -303,6 +323,8 @@ export function Calendar({ accounts, events, refreshData }: CalendarProps) {
                                     height: `${duration * 100}%`,
                                     minHeight: '20px'
                                   }}
+                                  accounts={accounts}
+                                  refreshData={refreshData}
                                 />
                               );
                             })}
