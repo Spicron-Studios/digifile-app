@@ -1,7 +1,7 @@
 export interface CalendarEntry {
-  Date: string
-  Length: string
-  Description: string
+  startdate: string
+  length: string
+  description: string
 }
 
 export interface Account {

@@ -119,9 +119,24 @@ export async function GET() {
     const userCalendarEntries = await prisma.user_calendar_entries.findMany({
       where: {
         active: true,
+        orgid: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
         user_uid: {
           in: users.map(user => user.uid)
         }
+      },
+      select: {
+        uid: true,
+        user_uid: true,
+        startdate: true,
+        enddate: true,
+        length: true,
+        description: true,
+        title: true,
+        active: true,
+        orgid: true,
+        date_created: true,
+        last_edit: true,
+        locked: true
       }
     })
 
@@ -158,8 +173,8 @@ export async function GET() {
       AccountID: user.uid,
       Name: user.username ?? `${user.first_name} ${user.surname}`,
       'Calendar-Entries': userCalendarMap[user.uid]?.map((entry) => ({
-        Date: entry.date?.toISOString() ?? '',
-        Length: entry.length?.toString() ?? '',
+        startdate: entry.startdate?.toISOString() ?? '',
+        enddate: entry.enddate?.toISOString() ?? '',
         Description: entry.description ?? '',
       })) ?? []
     }))
@@ -167,13 +182,11 @@ export async function GET() {
     // Transform entries into events
     const events: CalendarEvent[] = accounts.flatMap((account, accountIndex) =>
       account['Calendar-Entries'].map((entry, index) => {
-        const start = new Date(entry.Date)
-        const end = new Date(start.getTime() + Number(entry.Length) * 60000)
         return {
           id: `${account.AccountID}-${index}`,
           title: entry.Description,
-          start,
-          end,
+          start: new Date(entry.startdate),
+          end: new Date(entry.enddate),
           accountId: account.AccountID,
           accountName: account.Name,
           color: COLORS[accountIndex % COLORS.length],
@@ -181,6 +194,7 @@ export async function GET() {
       })
     )
 
+    await logger.info(FILE_NAME, `Events content: ${JSON.stringify(events, null, 2)}`)
     await logger.debug(FILE_NAME, `Transformed ${events.length} calendar events`)
     await logger.info(FILE_NAME, 'Calendar data successfully retrieved')
 

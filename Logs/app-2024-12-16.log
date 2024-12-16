@@ -1,0 +1,632 @@
+[2024-12-16 11:19:53.105] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-16 11:19:55.215] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-16 11:19:55.219] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-16 11:19:55.609] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-16 11:19:55.612] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-16 11:19:55.988] (DEBUG) - api/calendar/route.ts - Found 8 calendar entries
+[2024-12-16 11:19:55.990] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-16 11:19:55.992] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-16 11:19:55.993] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-0",
+    "title": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-1",
+    "title": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-0",
+    "title": "Yoga Class",
+    "start": "2024-11-23T10:00:00.000Z",
+    "end": "2024-11-23T11:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-1",
+    "title": "Team Meeting",
+    "start": "2024-11-30T14:00:00.000Z",
+    "end": "2024-11-30T15:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-0",
+    "title": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-1",
+    "title": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-0",
+    "title": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-1",
+    "title": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-16 11:19:55.994] (DEBUG) - api/calendar/route.ts - Transformed 8 calendar events
+[2024-12-16 11:19:55.995] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-16 11:19:56.009] (DEBUG) - api/calendar/route.ts - Database connection closed
+Logger initialized
+[2024-12-16 11:33:34.733] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-16 11:33:36.674] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-16 11:33:36.675] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-16 11:33:37.069] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-16 11:33:37.070] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-16 11:33:37.441] (DEBUG) - api/calendar/route.ts - Found 8 calendar entries
+[2024-12-16 11:33:37.444] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-16 11:33:37.446] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-16 11:33:37.448] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-0",
+    "title": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-1",
+    "title": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-0",
+    "title": "Yoga Class",
+    "start": "2024-11-23T10:00:00.000Z",
+    "end": "2024-11-23T11:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-1",
+    "title": "Team Meeting",
+    "start": "2024-11-30T14:00:00.000Z",
+    "end": "2024-11-30T15:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-0",
+    "title": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-1",
+    "title": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-0",
+    "title": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-1",
+    "title": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-16 11:33:37.450] (DEBUG) - api/calendar/route.ts - Transformed 8 calendar events
+[2024-12-16 11:33:37.452] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-16 11:33:37.467] (DEBUG) - api/calendar/route.ts - Database connection closed
+[2024-12-16 11:34:22.748] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-16 11:34:22.749] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-16 11:34:22.750] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-16 11:34:23.164] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-16 11:34:23.165] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-16 11:34:23.525] (DEBUG) - api/calendar/route.ts - Found 8 calendar entries
+[2024-12-16 11:34:23.526] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-16 11:34:23.527] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-16 11:34:23.527] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-0",
+    "title": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-1",
+    "title": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-0",
+    "title": "Yoga Class",
+    "start": "2024-11-23T10:00:00.000Z",
+    "end": "2024-11-23T11:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-1",
+    "title": "Team Meeting",
+    "start": "2024-11-30T14:00:00.000Z",
+    "end": "2024-11-30T15:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-0",
+    "title": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-1",
+    "title": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-0",
+    "title": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-1",
+    "title": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-16 11:34:23.527] (DEBUG) - api/calendar/route.ts - Transformed 8 calendar events
+[2024-12-16 11:34:23.528] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-16 11:34:23.540] (DEBUG) - api/calendar/route.ts - Database connection closed
+[2024-12-16 11:34:40.657] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-16 11:34:42.148] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-16 11:34:42.151] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-16 11:34:42.522] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-16 11:34:42.523] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-16 11:34:42.886] (DEBUG) - api/calendar/route.ts - Found 8 calendar entries
+[2024-12-16 11:34:42.888] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-16 11:34:42.889] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-16 11:34:42.890] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-0",
+    "title": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-1",
+    "title": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-0",
+    "title": "Yoga Class",
+    "start": "2024-11-23T10:00:00.000Z",
+    "end": "2024-11-23T11:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-1",
+    "title": "Team Meeting",
+    "start": "2024-11-30T14:00:00.000Z",
+    "end": "2024-11-30T15:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-0",
+    "title": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-1",
+    "title": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-0",
+    "title": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-1",
+    "title": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-16 11:34:42.891] (DEBUG) - api/calendar/route.ts - Transformed 8 calendar events
+[2024-12-16 11:34:42.892] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-16 11:34:42.905] (DEBUG) - api/calendar/route.ts - Database connection closed
+[2024-12-16 11:35:51.694] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-16 11:35:53.173] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-16 11:35:53.175] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-16 11:35:53.543] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-16 11:35:53.544] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-16 11:35:53.902] (DEBUG) - api/calendar/route.ts - Found 9 calendar entries
+[2024-12-16 11:35:53.904] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-16 11:35:53.905] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-16 11:35:53.906] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-0",
+    "title": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-1",
+    "title": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-2",
+    "title": "This is Tests",
+    "start": "2024-12-16T11:00:00.000Z",
+    "end": "2024-12-16T11:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-0",
+    "title": "Yoga Class",
+    "start": "2024-11-23T10:00:00.000Z",
+    "end": "2024-11-23T11:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-1",
+    "title": "Team Meeting",
+    "start": "2024-11-30T14:00:00.000Z",
+    "end": "2024-11-30T15:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-0",
+    "title": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-1",
+    "title": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-0",
+    "title": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-1",
+    "title": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-16 11:35:53.907] (DEBUG) - api/calendar/route.ts - Transformed 9 calendar events
+[2024-12-16 11:35:53.907] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-16 11:35:53.924] (DEBUG) - api/calendar/route.ts - Database connection closed
+[2024-12-16 11:37:30.818] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-16 11:37:32.196] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-16 11:37:32.197] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-16 11:37:32.567] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-16 11:37:32.568] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-16 11:37:32.927] (DEBUG) - api/calendar/route.ts - Found 9 calendar entries
+[2024-12-16 11:37:32.928] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-16 11:37:32.930] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-16 11:37:32.932] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-0",
+    "title": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-1",
+    "title": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-2",
+    "title": "This is Tests",
+    "start": "2024-12-16T11:00:00.000Z",
+    "end": "2024-12-16T11:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-0",
+    "title": "Yoga Class",
+    "start": "2024-11-23T10:00:00.000Z",
+    "end": "2024-11-23T11:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-1",
+    "title": "Team Meeting",
+    "start": "2024-11-30T14:00:00.000Z",
+    "end": "2024-11-30T15:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-0",
+    "title": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-1",
+    "title": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-0",
+    "title": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-1",
+    "title": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-16 11:37:32.933] (DEBUG) - api/calendar/route.ts - Transformed 9 calendar events
+[2024-12-16 11:37:32.933] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-16 11:37:32.947] (DEBUG) - api/calendar/route.ts - Database connection closed
+[2024-12-16 11:38:44.691] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-16 11:38:44.692] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-16 11:38:44.693] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-16 11:38:45.108] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-16 11:38:45.109] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-16 11:38:45.468] (DEBUG) - api/calendar/route.ts - Found 10 calendar entries
+[2024-12-16 11:38:45.469] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-16 11:38:45.470] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-16 11:38:45.470] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-0",
+    "title": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-1",
+    "title": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-ab12-cdef34567890-2",
+    "title": "This is Tests",
+    "start": "2024-12-16T11:00:00.000Z",
+    "end": "2024-12-16T11:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-0",
+    "title": "Yoga Class",
+    "start": "2024-11-23T10:00:00.000Z",
+    "end": "2024-11-23T11:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-1",
+    "title": "Team Meeting",
+    "start": "2024-11-30T14:00:00.000Z",
+    "end": "2024-11-30T15:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "b1c2d3e4-f5a6-789b-ab12-cdef34567891-2",
+    "title": "wewe",
+    "start": "2024-12-17T11:30:00.000Z",
+    "end": "2024-12-17T12:30:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-0",
+    "title": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "c1d2e3f4-a5b6-789c-ab12-cdef34567892-1",
+    "title": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-0",
+    "title": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "d1e2f3a4-b5c6-789d-ab12-cdef34567893-1",
+    "title": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-16 11:38:45.471] (DEBUG) - api/calendar/route.ts - Transformed 10 calendar events
+[2024-12-16 11:38:45.473] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-16 11:38:45.494] (DEBUG) - api/calendar/route.ts - Database connection closed

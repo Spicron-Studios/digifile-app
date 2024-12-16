@@ -25,10 +25,12 @@ import { Account, CalendarEvent, ViewType } from "@/app/types/calendar"
 import { Button } from "@/app/components/ui/button"
 import { AccountSelector } from "./account-selector/account-selector"
 import { cn } from "@/app/lib/utils"
+import { AppointmentModal } from "@/app/components/ui/appointment/appointment-modal"
 
 interface CalendarProps {
   accounts: Account[]
   events: CalendarEvent[]
+  refreshData: () => void
 }
 
 interface EventDisplayProps {
@@ -56,7 +58,7 @@ const EventDisplay = ({ event, className }: EventDisplayProps) => {
   );
 }
 
-export function Calendar({ accounts, events }: CalendarProps) {
+export function Calendar({ accounts, events, refreshData }: CalendarProps) {
   const today = startOfToday()
   const [selectedDay, setSelectedDay] = React.useState(today)
   const [currentDate, setCurrentDate] = React.useState(today)
@@ -129,12 +131,17 @@ export function Calendar({ accounts, events }: CalendarProps) {
   return (
     <div className="p-4 h-[800px] flex flex-col">
       <div className="space-y-4">
-        <AccountSelector
-          accounts={accounts}
-          selectedAccounts={selectedAccounts}
-          onToggleAccount={toggleAccount}
-          onAddAccount={(account) => toggleAccount(account.AccountID)}
-        />
+        <div className="flex justify-between items-center">
+          <AccountSelector
+            accounts={accounts}
+            selectedAccounts={selectedAccounts}
+            onToggleAccount={toggleAccount}
+            onAddAccount={(account) => toggleAccount(account.AccountID)}
+          />
+          <div className="flex gap-2">
+            <AppointmentModal accounts={accounts} onAppointmentAdded={refreshData} />
+          </div>
+        </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button

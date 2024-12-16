@@ -243,7 +243,7 @@ model tab_notes {
 model user_calendar_entries {
   uid          String    @id @db.Uuid
   user_uid     String?   @db.Uuid
-  date         DateTime? @db.Timestamp(6)
+  startdate    DateTime? @db.Timestamp(6)
   length       Int?
   description  String?   @db.VarChar(255)
   active       Boolean?
@@ -251,6 +251,8 @@ model user_calendar_entries {
   last_edit    DateTime? @db.Timestamp(6)
   orgid        String?   @db.Uuid
   locked       Boolean?
+  enddate      DateTime? @db.Timestamp(6)
+  title        String?   @db.VarChar(255)
 }
 
 model user_roles {
