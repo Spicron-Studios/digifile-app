@@ -1,614 +1,12 @@
 Logger initialized
-[2024-12-16 21:25:59.616] (INFO) - api/calendar/route.ts - Calendar API request received
-[2024-12-16 21:25:59.618] (DEBUG) - api/calendar/route.ts - Database connection successful
-[2024-12-16 21:25:59.618] (DEBUG) - api/calendar/route.ts - Fetching active users
-[2024-12-16 21:26:00.004] (DEBUG) - api/calendar/route.ts - Found 4 active users
-[2024-12-16 21:26:00.006] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
-[2024-12-16 21:26:00.373] (DEBUG) - api/calendar/route.ts - Found 10 calendar entries
-[2024-12-16 21:26:00.375] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
-[2024-12-16 21:26:00.379] (DEBUG) - api/calendar/route.ts - User calendar map content: {
-  "a1b2c3d4-e5f6-7890-ab12-cdef34567890": [
-    {
-      "uid": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
-      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-      "startdate": "2024-12-01T15:30:00.000Z",
-      "enddate": "2024-12-01T16:30:00.000Z",
-      "description": "Buy Cake",
-      "title": "Work 1"
-    },
-    {
-      "uid": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
-      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-      "startdate": "2024-12-11T08:30:00.000Z",
-      "enddate": "2024-12-11T09:30:00.000Z",
-      "description": "Study",
-      "title": "Work 2"
-    },
-    {
-      "uid": "96da3088-fea8-4d13-a66a-b7f80eae348a",
-      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-      "startdate": "2024-12-16T11:00:00.000Z",
-      "enddate": "2024-12-16T11:30:00.000Z",
-      "description": "description",
-      "title": "Jan Test smart"
-    }
-  ],
-  "c1d2e3f4-a5b6-789c-ab12-cdef34567892": [
-    {
-      "uid": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
-      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-      "startdate": "2024-12-05T09:00:00.000Z",
-      "enddate": "2024-12-05T10:00:00.000Z",
-      "description": "Doctor's Appointment",
-      "title": "Work 5"
-    },
-    {
-      "uid": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
-      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-      "startdate": "2024-12-07T18:30:00.000Z",
-      "enddate": "2024-12-07T19:30:00.000Z",
-      "description": "Dinner with Family",
-      "title": "Work 6"
-    },
-    {
-      "uid": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
-      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-      "startdate": "2024-12-17T08:30:00.000Z",
-      "enddate": "2024-12-17T09:00:00.000Z",
-      "description": "Snake Bite",
-      "title": "Jeffersons"
-    }
-  ],
-  "d1e2f3a4-b5c6-789d-ab12-cdef34567893": [
-    {
-      "uid": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
-      "user_uid": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-      "startdate": "2024-12-15T13:00:00.000Z",
-      "enddate": "2024-12-15T14:00:00.000Z",
-      "description": "Lunch with Friends",
-      "title": "Work 7"
-    },
-    {
-      "uid": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
-      "user_uid": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-      "startdate": "2024-12-21T11:30:00.000Z",
-      "enddate": "2024-12-21T12:30:00.000Z",
-      "description": "Conference Call",
-      "title": "Work 8"
-    }
-  ],
-  "b1c2d3e4-f5a6-789b-ab12-cdef34567891": [
-    {
-      "uid": "d3313a5f-e688-4dc3-a024-3aa1d3c32206",
-      "user_uid": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-      "startdate": "2024-12-17T11:30:00.000Z",
-      "enddate": "2024-12-17T12:30:00.000Z",
-      "description": "wewe",
-      "title": "wewe"
-    },
-    {
-      "uid": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
-      "user_uid": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-      "startdate": "2024-12-26T17:00:00.000Z",
-      "enddate": "2024-12-26T18:00:00.000Z",
-      "description": "description",
-      "title": "Jeff Guy knee injury"
-    }
-  ]
-}
-[2024-12-16 21:26:00.380] (DEBUG) - api/calendar/route.ts - Transforming data to required format
-[2024-12-16 21:26:00.381] (DEBUG) - api/calendar/route.ts - Accounts content: [
-  {
-    "AccountID": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "Name": "Jan",
-    "Calendar-Entries": [
-      {
-        "uid": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
-        "startdate": "2024-12-01T15:30:00.000Z",
-        "enddate": "2024-12-01T16:30:00.000Z",
-        "title": "Work 1",
-        "Description": "Buy Cake"
-      },
-      {
-        "uid": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
-        "startdate": "2024-12-11T08:30:00.000Z",
-        "enddate": "2024-12-11T09:30:00.000Z",
-        "title": "Work 2",
-        "Description": "Study"
-      },
-      {
-        "uid": "96da3088-fea8-4d13-a66a-b7f80eae348a",
-        "startdate": "2024-12-16T11:00:00.000Z",
-        "enddate": "2024-12-16T11:30:00.000Z",
-        "title": "Jan Test smart",
-        "Description": "description"
-      }
-    ]
-  },
-  {
-    "AccountID": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-    "Name": "Sara",
-    "Calendar-Entries": [
-      {
-        "uid": "d3313a5f-e688-4dc3-a024-3aa1d3c32206",
-        "startdate": "2024-12-17T11:30:00.000Z",
-        "enddate": "2024-12-17T12:30:00.000Z",
-        "title": "wewe",
-        "Description": "wewe"
-      },
-      {
-        "uid": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
-        "startdate": "2024-12-26T17:00:00.000Z",
-        "enddate": "2024-12-26T18:00:00.000Z",
-        "title": "Jeff Guy knee injury",
-        "Description": "description"
-      }
-    ]
-  },
-  {
-    "AccountID": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "Name": "Mike",
-    "Calendar-Entries": [
-      {
-        "uid": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
-        "startdate": "2024-12-05T09:00:00.000Z",
-        "enddate": "2024-12-05T10:00:00.000Z",
-        "title": "Work 5",
-        "Description": "Doctor's Appointment"
-      },
-      {
-        "uid": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
-        "startdate": "2024-12-07T18:30:00.000Z",
-        "enddate": "2024-12-07T19:30:00.000Z",
-        "title": "Work 6",
-        "Description": "Dinner with Family"
-      },
-      {
-        "uid": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
-        "startdate": "2024-12-17T08:30:00.000Z",
-        "enddate": "2024-12-17T09:00:00.000Z",
-        "title": "Jeffersons",
-        "Description": "Snake Bite"
-      }
-    ]
-  },
-  {
-    "AccountID": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-    "Name": "Anna",
-    "Calendar-Entries": [
-      {
-        "uid": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
-        "startdate": "2024-12-15T13:00:00.000Z",
-        "enddate": "2024-12-15T14:00:00.000Z",
-        "title": "Work 7",
-        "Description": "Lunch with Friends"
-      },
-      {
-        "uid": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
-        "startdate": "2024-12-21T11:30:00.000Z",
-        "enddate": "2024-12-21T12:30:00.000Z",
-        "title": "Work 8",
-        "Description": "Conference Call"
-      }
-    ]
-  }
-]
-[2024-12-16 21:26:00.382] (INFO) - api/calendar/route.ts - Events content: [
-  {
-    "id": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
-    "title": "Work 1",
-    "description": "Buy Cake",
-    "start": "2024-12-01T15:30:00.000Z",
-    "end": "2024-12-01T16:30:00.000Z",
-    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "accountName": "Jan",
-    "color": "bg-blue-500"
-  },
-  {
-    "id": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
-    "title": "Work 2",
-    "description": "Study",
-    "start": "2024-12-11T08:30:00.000Z",
-    "end": "2024-12-11T09:30:00.000Z",
-    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "accountName": "Jan",
-    "color": "bg-blue-500"
-  },
-  {
-    "id": "96da3088-fea8-4d13-a66a-b7f80eae348a",
-    "title": "Jan Test smart",
-    "description": "description",
-    "start": "2024-12-16T11:00:00.000Z",
-    "end": "2024-12-16T11:30:00.000Z",
-    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "accountName": "Jan",
-    "color": "bg-blue-500"
-  },
-  {
-    "id": "d3313a5f-e688-4dc3-a024-3aa1d3c32206",
-    "title": "wewe",
-    "description": "wewe",
-    "start": "2024-12-17T11:30:00.000Z",
-    "end": "2024-12-17T12:30:00.000Z",
-    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-    "accountName": "Sara",
-    "color": "bg-green-500"
-  },
-  {
-    "id": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
-    "title": "Jeff Guy knee injury",
-    "description": "description",
-    "start": "2024-12-26T17:00:00.000Z",
-    "end": "2024-12-26T18:00:00.000Z",
-    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-    "accountName": "Sara",
-    "color": "bg-green-500"
-  },
-  {
-    "id": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
-    "title": "Work 5",
-    "description": "Doctor's Appointment",
-    "start": "2024-12-05T09:00:00.000Z",
-    "end": "2024-12-05T10:00:00.000Z",
-    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "accountName": "Mike",
-    "color": "bg-purple-500"
-  },
-  {
-    "id": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
-    "title": "Work 6",
-    "description": "Dinner with Family",
-    "start": "2024-12-07T18:30:00.000Z",
-    "end": "2024-12-07T19:30:00.000Z",
-    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "accountName": "Mike",
-    "color": "bg-purple-500"
-  },
-  {
-    "id": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
-    "title": "Jeffersons",
-    "description": "Snake Bite",
-    "start": "2024-12-17T08:30:00.000Z",
-    "end": "2024-12-17T09:00:00.000Z",
-    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "accountName": "Mike",
-    "color": "bg-purple-500"
-  },
-  {
-    "id": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
-    "title": "Work 7",
-    "description": "Lunch with Friends",
-    "start": "2024-12-15T13:00:00.000Z",
-    "end": "2024-12-15T14:00:00.000Z",
-    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-    "accountName": "Anna",
-    "color": "bg-orange-500"
-  },
-  {
-    "id": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
-    "title": "Work 8",
-    "description": "Conference Call",
-    "start": "2024-12-21T11:30:00.000Z",
-    "end": "2024-12-21T12:30:00.000Z",
-    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-    "accountName": "Anna",
-    "color": "bg-orange-500"
-  }
-]
-[2024-12-16 21:26:00.382] (DEBUG) - api/calendar/route.ts - Transformed 10 calendar events
-[2024-12-16 21:26:00.383] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
-[2024-12-16 21:26:00.395] (DEBUG) - api/calendar/route.ts - Database connection closed
-[2024-12-16 21:26:23.596] (INFO) - api/calendar/route.ts - Calendar API request received
-[2024-12-16 21:26:23.597] (DEBUG) - api/calendar/route.ts - Database connection successful
-[2024-12-16 21:26:23.597] (DEBUG) - api/calendar/route.ts - Fetching active users
-[2024-12-16 21:26:23.963] (DEBUG) - api/calendar/route.ts - Found 4 active users
-[2024-12-16 21:26:23.964] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
-[2024-12-16 21:26:24.327] (DEBUG) - api/calendar/route.ts - Found 10 calendar entries
-[2024-12-16 21:26:24.329] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
-[2024-12-16 21:26:24.330] (DEBUG) - api/calendar/route.ts - User calendar map content: {
-  "a1b2c3d4-e5f6-7890-ab12-cdef34567890": [
-    {
-      "uid": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
-      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-      "startdate": "2024-12-01T15:30:00.000Z",
-      "enddate": "2024-12-01T16:30:00.000Z",
-      "description": "Buy Cake",
-      "title": "Work 1"
-    },
-    {
-      "uid": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
-      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-      "startdate": "2024-12-11T08:30:00.000Z",
-      "enddate": "2024-12-11T09:30:00.000Z",
-      "description": "Study",
-      "title": "Work 2"
-    },
-    {
-      "uid": "96da3088-fea8-4d13-a66a-b7f80eae348a",
-      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-      "startdate": "2024-12-16T11:00:00.000Z",
-      "enddate": "2024-12-16T11:30:00.000Z",
-      "description": "description",
-      "title": "Jan Test smart"
-    }
-  ],
-  "c1d2e3f4-a5b6-789c-ab12-cdef34567892": [
-    {
-      "uid": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
-      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-      "startdate": "2024-12-05T09:00:00.000Z",
-      "enddate": "2024-12-05T10:00:00.000Z",
-      "description": "Doctor's Appointment",
-      "title": "Work 5"
-    },
-    {
-      "uid": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
-      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-      "startdate": "2024-12-07T18:30:00.000Z",
-      "enddate": "2024-12-07T19:30:00.000Z",
-      "description": "Dinner with Family",
-      "title": "Work 6"
-    },
-    {
-      "uid": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
-      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-      "startdate": "2024-12-17T08:30:00.000Z",
-      "enddate": "2024-12-17T09:00:00.000Z",
-      "description": "Snake Bite and Bike thing",
-      "title": "The Jefferson"
-    }
-  ],
-  "d1e2f3a4-b5c6-789d-ab12-cdef34567893": [
-    {
-      "uid": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
-      "user_uid": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-      "startdate": "2024-12-15T13:00:00.000Z",
-      "enddate": "2024-12-15T14:00:00.000Z",
-      "description": "Lunch with Friends",
-      "title": "Work 7"
-    },
-    {
-      "uid": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
-      "user_uid": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-      "startdate": "2024-12-21T11:30:00.000Z",
-      "enddate": "2024-12-21T12:30:00.000Z",
-      "description": "Conference Call",
-      "title": "Work 8"
-    }
-  ],
-  "b1c2d3e4-f5a6-789b-ab12-cdef34567891": [
-    {
-      "uid": "d3313a5f-e688-4dc3-a024-3aa1d3c32206",
-      "user_uid": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-      "startdate": "2024-12-17T11:30:00.000Z",
-      "enddate": "2024-12-17T12:30:00.000Z",
-      "description": "wewe",
-      "title": "wewe"
-    },
-    {
-      "uid": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
-      "user_uid": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-      "startdate": "2024-12-26T17:00:00.000Z",
-      "enddate": "2024-12-26T18:00:00.000Z",
-      "description": "description",
-      "title": "Jeff Guy knee injury"
-    }
-  ]
-}
-[2024-12-16 21:26:24.331] (DEBUG) - api/calendar/route.ts - Transforming data to required format
-[2024-12-16 21:26:24.334] (DEBUG) - api/calendar/route.ts - Accounts content: [
-  {
-    "AccountID": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "Name": "Jan",
-    "Calendar-Entries": [
-      {
-        "uid": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
-        "startdate": "2024-12-01T15:30:00.000Z",
-        "enddate": "2024-12-01T16:30:00.000Z",
-        "title": "Work 1",
-        "Description": "Buy Cake"
-      },
-      {
-        "uid": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
-        "startdate": "2024-12-11T08:30:00.000Z",
-        "enddate": "2024-12-11T09:30:00.000Z",
-        "title": "Work 2",
-        "Description": "Study"
-      },
-      {
-        "uid": "96da3088-fea8-4d13-a66a-b7f80eae348a",
-        "startdate": "2024-12-16T11:00:00.000Z",
-        "enddate": "2024-12-16T11:30:00.000Z",
-        "title": "Jan Test smart",
-        "Description": "description"
-      }
-    ]
-  },
-  {
-    "AccountID": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-    "Name": "Sara",
-    "Calendar-Entries": [
-      {
-        "uid": "d3313a5f-e688-4dc3-a024-3aa1d3c32206",
-        "startdate": "2024-12-17T11:30:00.000Z",
-        "enddate": "2024-12-17T12:30:00.000Z",
-        "title": "wewe",
-        "Description": "wewe"
-      },
-      {
-        "uid": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
-        "startdate": "2024-12-26T17:00:00.000Z",
-        "enddate": "2024-12-26T18:00:00.000Z",
-        "title": "Jeff Guy knee injury",
-        "Description": "description"
-      }
-    ]
-  },
-  {
-    "AccountID": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "Name": "Mike",
-    "Calendar-Entries": [
-      {
-        "uid": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
-        "startdate": "2024-12-05T09:00:00.000Z",
-        "enddate": "2024-12-05T10:00:00.000Z",
-        "title": "Work 5",
-        "Description": "Doctor's Appointment"
-      },
-      {
-        "uid": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
-        "startdate": "2024-12-07T18:30:00.000Z",
-        "enddate": "2024-12-07T19:30:00.000Z",
-        "title": "Work 6",
-        "Description": "Dinner with Family"
-      },
-      {
-        "uid": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
-        "startdate": "2024-12-17T08:30:00.000Z",
-        "enddate": "2024-12-17T09:00:00.000Z",
-        "title": "The Jefferson",
-        "Description": "Snake Bite and Bike thing"
-      }
-    ]
-  },
-  {
-    "AccountID": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-    "Name": "Anna",
-    "Calendar-Entries": [
-      {
-        "uid": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
-        "startdate": "2024-12-15T13:00:00.000Z",
-        "enddate": "2024-12-15T14:00:00.000Z",
-        "title": "Work 7",
-        "Description": "Lunch with Friends"
-      },
-      {
-        "uid": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
-        "startdate": "2024-12-21T11:30:00.000Z",
-        "enddate": "2024-12-21T12:30:00.000Z",
-        "title": "Work 8",
-        "Description": "Conference Call"
-      }
-    ]
-  }
-]
-[2024-12-16 21:26:24.335] (INFO) - api/calendar/route.ts - Events content: [
-  {
-    "id": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
-    "title": "Work 1",
-    "description": "Buy Cake",
-    "start": "2024-12-01T15:30:00.000Z",
-    "end": "2024-12-01T16:30:00.000Z",
-    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "accountName": "Jan",
-    "color": "bg-blue-500"
-  },
-  {
-    "id": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
-    "title": "Work 2",
-    "description": "Study",
-    "start": "2024-12-11T08:30:00.000Z",
-    "end": "2024-12-11T09:30:00.000Z",
-    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "accountName": "Jan",
-    "color": "bg-blue-500"
-  },
-  {
-    "id": "96da3088-fea8-4d13-a66a-b7f80eae348a",
-    "title": "Jan Test smart",
-    "description": "description",
-    "start": "2024-12-16T11:00:00.000Z",
-    "end": "2024-12-16T11:30:00.000Z",
-    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
-    "accountName": "Jan",
-    "color": "bg-blue-500"
-  },
-  {
-    "id": "d3313a5f-e688-4dc3-a024-3aa1d3c32206",
-    "title": "wewe",
-    "description": "wewe",
-    "start": "2024-12-17T11:30:00.000Z",
-    "end": "2024-12-17T12:30:00.000Z",
-    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-    "accountName": "Sara",
-    "color": "bg-green-500"
-  },
-  {
-    "id": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
-    "title": "Jeff Guy knee injury",
-    "description": "description",
-    "start": "2024-12-26T17:00:00.000Z",
-    "end": "2024-12-26T18:00:00.000Z",
-    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
-    "accountName": "Sara",
-    "color": "bg-green-500"
-  },
-  {
-    "id": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
-    "title": "Work 5",
-    "description": "Doctor's Appointment",
-    "start": "2024-12-05T09:00:00.000Z",
-    "end": "2024-12-05T10:00:00.000Z",
-    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "accountName": "Mike",
-    "color": "bg-purple-500"
-  },
-  {
-    "id": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
-    "title": "Work 6",
-    "description": "Dinner with Family",
-    "start": "2024-12-07T18:30:00.000Z",
-    "end": "2024-12-07T19:30:00.000Z",
-    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "accountName": "Mike",
-    "color": "bg-purple-500"
-  },
-  {
-    "id": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
-    "title": "The Jefferson",
-    "description": "Snake Bite and Bike thing",
-    "start": "2024-12-17T08:30:00.000Z",
-    "end": "2024-12-17T09:00:00.000Z",
-    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
-    "accountName": "Mike",
-    "color": "bg-purple-500"
-  },
-  {
-    "id": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
-    "title": "Work 7",
-    "description": "Lunch with Friends",
-    "start": "2024-12-15T13:00:00.000Z",
-    "end": "2024-12-15T14:00:00.000Z",
-    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-    "accountName": "Anna",
-    "color": "bg-orange-500"
-  },
-  {
-    "id": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
-    "title": "Work 8",
-    "description": "Conference Call",
-    "start": "2024-12-21T11:30:00.000Z",
-    "end": "2024-12-21T12:30:00.000Z",
-    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
-    "accountName": "Anna",
-    "color": "bg-orange-500"
-  }
-]
-[2024-12-16 21:26:24.336] (DEBUG) - api/calendar/route.ts - Transformed 10 calendar events
-[2024-12-16 21:26:24.337] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
-[2024-12-16 21:26:24.355] (DEBUG) - api/calendar/route.ts - Database connection closed
-[2024-12-16 21:26:29.010] (INFO) - appointments.ts - Delete appointment called with ID: d3313a5f-e688-4dc3-a024-3aa1d3c32206
-[2024-12-16 21:26:29.011] (INFO) - appointments.ts - Verifying appointment exists with ID: d3313a5f-e688-4dc3-a024-3aa1d3c32206
-[2024-12-16 21:26:30.870] (DEBUG) - appointments.ts - Found appointment: {"uid":"d3313a5f-e688-4dc3-a024-3aa1d3c32206","user_uid":"b1c2d3e4-f5a6-789b-ab12-cdef34567891","startdate":"2024-12-17T11:30:00.000Z","length":null,"description":"wewe","active":true,"date_created":"2024-12-16T11:38:42.732Z","last_edit":"2024-12-16T11:38:42.732Z","orgid":"d290f1ee-6c54-4b01-90e6-d701748f0851","locked":false,"enddate":"2024-12-17T12:30:00.000Z","title":"wewe"}
-[2024-12-16 21:26:31.240] (INFO) - appointments.ts - Successfully deleted appointment: {"uid":"d3313a5f-e688-4dc3-a024-3aa1d3c32206","user_uid":"b1c2d3e4-f5a6-789b-ab12-cdef34567891","startdate":"2024-12-17T11:30:00.000Z","length":null,"description":"wewe","active":true,"date_created":"2024-12-16T11:38:42.732Z","last_edit":"2024-12-16T11:38:42.732Z","orgid":"d290f1ee-6c54-4b01-90e6-d701748f0851","locked":false,"enddate":"2024-12-17T12:30:00.000Z","title":"wewe"}
-[2024-12-16 21:26:31.322] (INFO) - api/calendar/route.ts - Calendar API request received
-[2024-12-16 21:26:31.322] (DEBUG) - api/calendar/route.ts - Database connection successful
-[2024-12-16 21:26:31.323] (DEBUG) - api/calendar/route.ts - Fetching active users
-[2024-12-16 21:26:31.739] (DEBUG) - api/calendar/route.ts - Found 4 active users
-[2024-12-16 21:26:31.740] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
-[2024-12-16 21:26:32.101] (DEBUG) - api/calendar/route.ts - Found 9 calendar entries
-[2024-12-16 21:26:32.103] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
-[2024-12-16 21:26:32.105] (DEBUG) - api/calendar/route.ts - User calendar map content: {
+[2024-12-20 18:42:46.261] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-20 18:42:48.684] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-20 18:42:48.685] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-20 18:42:49.141] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-20 18:42:49.144] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-20 18:42:49.617] (DEBUG) - api/calendar/route.ts - Found 10 calendar entries
+[2024-12-20 18:42:49.619] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-20 18:42:49.621] (DEBUG) - api/calendar/route.ts - User calendar map content: {
   "a1b2c3d4-e5f6-7890-ab12-cdef34567890": [
     {
       "uid": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
@@ -687,11 +85,19 @@ Logger initialized
       "enddate": "2024-12-26T18:00:00.000Z",
       "description": "description",
       "title": "Jeff Guy knee injury"
+    },
+    {
+      "uid": "d9774500-fb5d-4872-9ff5-c2cf0e4c393b",
+      "user_uid": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+      "startdate": "2024-12-19T08:30:00.000Z",
+      "enddate": "2024-12-19T14:00:00.000Z",
+      "description": "desc",
+      "title": "titlle"
     }
   ]
 }
-[2024-12-16 21:26:32.106] (DEBUG) - api/calendar/route.ts - Transforming data to required format
-[2024-12-16 21:26:32.108] (DEBUG) - api/calendar/route.ts - Accounts content: [
+[2024-12-20 18:42:49.623] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-20 18:42:49.624] (DEBUG) - api/calendar/route.ts - Accounts content: [
   {
     "AccountID": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
     "Name": "Jan",
@@ -729,6 +135,13 @@ Logger initialized
         "enddate": "2024-12-26T18:00:00.000Z",
         "title": "Jeff Guy knee injury",
         "Description": "description"
+      },
+      {
+        "uid": "d9774500-fb5d-4872-9ff5-c2cf0e4c393b",
+        "startdate": "2024-12-19T08:30:00.000Z",
+        "enddate": "2024-12-19T14:00:00.000Z",
+        "title": "titlle",
+        "Description": "desc"
       }
     ]
   },
@@ -780,7 +193,7 @@ Logger initialized
     ]
   }
 ]
-[2024-12-16 21:26:32.110] (INFO) - api/calendar/route.ts - Events content: [
+[2024-12-20 18:42:49.626] (INFO) - api/calendar/route.ts - Events content: [
   {
     "id": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
     "title": "Work 1",
@@ -817,6 +230,16 @@ Logger initialized
     "description": "description",
     "start": "2024-12-26T17:00:00.000Z",
     "end": "2024-12-26T18:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "d9774500-fb5d-4872-9ff5-c2cf0e4c393b",
+    "title": "titlle",
+    "description": "desc",
+    "start": "2024-12-19T08:30:00.000Z",
+    "end": "2024-12-19T14:00:00.000Z",
     "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
     "accountName": "Sara",
     "color": "bg-green-500"
@@ -872,6 +295,305 @@ Logger initialized
     "color": "bg-orange-500"
   }
 ]
-[2024-12-16 21:26:32.111] (DEBUG) - api/calendar/route.ts - Transformed 9 calendar events
-[2024-12-16 21:26:32.112] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
-[2024-12-16 21:26:32.123] (DEBUG) - api/calendar/route.ts - Database connection closed
+[2024-12-20 18:42:49.627] (DEBUG) - api/calendar/route.ts - Transformed 10 calendar events
+[2024-12-20 18:42:49.628] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-20 18:42:49.647] (DEBUG) - api/calendar/route.ts - Database connection closed
+[2024-12-20 18:42:54.730] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-20 18:42:56.170] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-20 18:42:56.171] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-20 18:42:56.580] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-20 18:42:56.590] (DEBUG) - api/calendar/route.ts - Fetching calendar entries for users
+[2024-12-20 18:42:56.988] (DEBUG) - api/calendar/route.ts - Found 10 calendar entries
+[2024-12-20 18:42:56.990] (DEBUG) - api/calendar/route.ts - Grouping calendar entries by user
+[2024-12-20 18:42:56.991] (DEBUG) - api/calendar/route.ts - User calendar map content: {
+  "a1b2c3d4-e5f6-7890-ab12-cdef34567890": [
+    {
+      "uid": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
+      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+      "startdate": "2024-12-01T15:30:00.000Z",
+      "enddate": "2024-12-01T16:30:00.000Z",
+      "description": "Buy Cake",
+      "title": "Work 1"
+    },
+    {
+      "uid": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
+      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+      "startdate": "2024-12-11T08:30:00.000Z",
+      "enddate": "2024-12-11T09:30:00.000Z",
+      "description": "Study",
+      "title": "Work 2"
+    },
+    {
+      "uid": "96da3088-fea8-4d13-a66a-b7f80eae348a",
+      "user_uid": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+      "startdate": "2024-12-16T11:00:00.000Z",
+      "enddate": "2024-12-16T11:30:00.000Z",
+      "description": "description",
+      "title": "Jan Test smart"
+    }
+  ],
+  "c1d2e3f4-a5b6-789c-ab12-cdef34567892": [
+    {
+      "uid": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
+      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+      "startdate": "2024-12-05T09:00:00.000Z",
+      "enddate": "2024-12-05T10:00:00.000Z",
+      "description": "Doctor's Appointment",
+      "title": "Work 5"
+    },
+    {
+      "uid": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
+      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+      "startdate": "2024-12-07T18:30:00.000Z",
+      "enddate": "2024-12-07T19:30:00.000Z",
+      "description": "Dinner with Family",
+      "title": "Work 6"
+    },
+    {
+      "uid": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
+      "user_uid": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+      "startdate": "2024-12-17T08:30:00.000Z",
+      "enddate": "2024-12-17T09:00:00.000Z",
+      "description": "Snake Bite and Bike thing",
+      "title": "The Jefferson"
+    }
+  ],
+  "d1e2f3a4-b5c6-789d-ab12-cdef34567893": [
+    {
+      "uid": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
+      "user_uid": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+      "startdate": "2024-12-15T13:00:00.000Z",
+      "enddate": "2024-12-15T14:00:00.000Z",
+      "description": "Lunch with Friends",
+      "title": "Work 7"
+    },
+    {
+      "uid": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
+      "user_uid": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+      "startdate": "2024-12-21T11:30:00.000Z",
+      "enddate": "2024-12-21T12:30:00.000Z",
+      "description": "Conference Call",
+      "title": "Work 8"
+    }
+  ],
+  "b1c2d3e4-f5a6-789b-ab12-cdef34567891": [
+    {
+      "uid": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
+      "user_uid": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+      "startdate": "2024-12-26T17:00:00.000Z",
+      "enddate": "2024-12-26T18:00:00.000Z",
+      "description": "description",
+      "title": "Jeff Guy knee injury"
+    },
+    {
+      "uid": "d9774500-fb5d-4872-9ff5-c2cf0e4c393b",
+      "user_uid": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+      "startdate": "2024-12-19T08:30:00.000Z",
+      "enddate": "2024-12-19T14:00:00.000Z",
+      "description": "desc",
+      "title": "titlle"
+    }
+  ]
+}
+[2024-12-20 18:42:56.992] (DEBUG) - api/calendar/route.ts - Transforming data to required format
+[2024-12-20 18:42:56.993] (DEBUG) - api/calendar/route.ts - Accounts content: [
+  {
+    "AccountID": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "Name": "Jan",
+    "Calendar-Entries": [
+      {
+        "uid": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
+        "startdate": "2024-12-01T15:30:00.000Z",
+        "enddate": "2024-12-01T16:30:00.000Z",
+        "title": "Work 1",
+        "Description": "Buy Cake"
+      },
+      {
+        "uid": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
+        "startdate": "2024-12-11T08:30:00.000Z",
+        "enddate": "2024-12-11T09:30:00.000Z",
+        "title": "Work 2",
+        "Description": "Study"
+      },
+      {
+        "uid": "96da3088-fea8-4d13-a66a-b7f80eae348a",
+        "startdate": "2024-12-16T11:00:00.000Z",
+        "enddate": "2024-12-16T11:30:00.000Z",
+        "title": "Jan Test smart",
+        "Description": "description"
+      }
+    ]
+  },
+  {
+    "AccountID": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "Name": "Sara",
+    "Calendar-Entries": [
+      {
+        "uid": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
+        "startdate": "2024-12-26T17:00:00.000Z",
+        "enddate": "2024-12-26T18:00:00.000Z",
+        "title": "Jeff Guy knee injury",
+        "Description": "description"
+      },
+      {
+        "uid": "d9774500-fb5d-4872-9ff5-c2cf0e4c393b",
+        "startdate": "2024-12-19T08:30:00.000Z",
+        "enddate": "2024-12-19T14:00:00.000Z",
+        "title": "titlle",
+        "Description": "desc"
+      }
+    ]
+  },
+  {
+    "AccountID": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "Name": "Mike",
+    "Calendar-Entries": [
+      {
+        "uid": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
+        "startdate": "2024-12-05T09:00:00.000Z",
+        "enddate": "2024-12-05T10:00:00.000Z",
+        "title": "Work 5",
+        "Description": "Doctor's Appointment"
+      },
+      {
+        "uid": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
+        "startdate": "2024-12-07T18:30:00.000Z",
+        "enddate": "2024-12-07T19:30:00.000Z",
+        "title": "Work 6",
+        "Description": "Dinner with Family"
+      },
+      {
+        "uid": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
+        "startdate": "2024-12-17T08:30:00.000Z",
+        "enddate": "2024-12-17T09:00:00.000Z",
+        "title": "The Jefferson",
+        "Description": "Snake Bite and Bike thing"
+      }
+    ]
+  },
+  {
+    "AccountID": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "Name": "Anna",
+    "Calendar-Entries": [
+      {
+        "uid": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
+        "startdate": "2024-12-15T13:00:00.000Z",
+        "enddate": "2024-12-15T14:00:00.000Z",
+        "title": "Work 7",
+        "Description": "Lunch with Friends"
+      },
+      {
+        "uid": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
+        "startdate": "2024-12-21T11:30:00.000Z",
+        "enddate": "2024-12-21T12:30:00.000Z",
+        "title": "Work 8",
+        "Description": "Conference Call"
+      }
+    ]
+  }
+]
+[2024-12-20 18:42:56.993] (INFO) - api/calendar/route.ts - Events content: [
+  {
+    "id": "e1f2a3b4-c5d6-789e-ab12-cdef34567894",
+    "title": "Work 1",
+    "description": "Buy Cake",
+    "start": "2024-12-01T15:30:00.000Z",
+    "end": "2024-12-01T16:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "f1a2b3c4-d5e6-789f-ab12-cdef34567895",
+    "title": "Work 2",
+    "description": "Study",
+    "start": "2024-12-11T08:30:00.000Z",
+    "end": "2024-12-11T09:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "96da3088-fea8-4d13-a66a-b7f80eae348a",
+    "title": "Jan Test smart",
+    "description": "description",
+    "start": "2024-12-16T11:00:00.000Z",
+    "end": "2024-12-16T11:30:00.000Z",
+    "accountId": "a1b2c3d4-e5f6-7890-ab12-cdef34567890",
+    "accountName": "Jan",
+    "color": "bg-blue-500"
+  },
+  {
+    "id": "4313bb55-bb05-4c0e-8bf5-15d62619de51",
+    "title": "Jeff Guy knee injury",
+    "description": "description",
+    "start": "2024-12-26T17:00:00.000Z",
+    "end": "2024-12-26T18:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "d9774500-fb5d-4872-9ff5-c2cf0e4c393b",
+    "title": "titlle",
+    "description": "desc",
+    "start": "2024-12-19T08:30:00.000Z",
+    "end": "2024-12-19T14:00:00.000Z",
+    "accountId": "b1c2d3e4-f5a6-789b-ab12-cdef34567891",
+    "accountName": "Sara",
+    "color": "bg-green-500"
+  },
+  {
+    "id": "c2d3e4f5-a7b8-7892-ab12-cdef34567898",
+    "title": "Work 5",
+    "description": "Doctor's Appointment",
+    "start": "2024-12-05T09:00:00.000Z",
+    "end": "2024-12-05T10:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "d2e3f4a5-b7c8-7893-ab12-cdef34567899",
+    "title": "Work 6",
+    "description": "Dinner with Family",
+    "start": "2024-12-07T18:30:00.000Z",
+    "end": "2024-12-07T19:30:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "beba64c3-ca6c-4f0f-851c-d006c1eb1474",
+    "title": "The Jefferson",
+    "description": "Snake Bite and Bike thing",
+    "start": "2024-12-17T08:30:00.000Z",
+    "end": "2024-12-17T09:00:00.000Z",
+    "accountId": "c1d2e3f4-a5b6-789c-ab12-cdef34567892",
+    "accountName": "Mike",
+    "color": "bg-purple-500"
+  },
+  {
+    "id": "e2f3a4b5-c7d8-7894-ab12-cdef3456789a",
+    "title": "Work 7",
+    "description": "Lunch with Friends",
+    "start": "2024-12-15T13:00:00.000Z",
+    "end": "2024-12-15T14:00:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  },
+  {
+    "id": "f2a3b4c5-d7e8-7895-ab12-cdef3456789b",
+    "title": "Work 8",
+    "description": "Conference Call",
+    "start": "2024-12-21T11:30:00.000Z",
+    "end": "2024-12-21T12:30:00.000Z",
+    "accountId": "d1e2f3a4-b5c6-789d-ab12-cdef34567893",
+    "accountName": "Anna",
+    "color": "bg-orange-500"
+  }
+]
+[2024-12-20 18:42:56.994] (DEBUG) - api/calendar/route.ts - Transformed 10 calendar events
+[2024-12-20 18:42:56.994] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2024-12-20 18:42:57.009] (DEBUG) - api/calendar/route.ts - Database connection closed
