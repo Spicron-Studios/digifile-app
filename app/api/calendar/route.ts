@@ -182,7 +182,7 @@ export async function GET() {
 
     // Transform entries into events
     const events: CalendarEvent[] = accounts.flatMap((account, accountIndex) =>
-      account['Calendar-Entries'].map((entry, index) => {
+      account['Calendar-Entries'].map((entry) => {
         return {
           id: entry.uid,
           title: entry.title,

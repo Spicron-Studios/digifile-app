@@ -125,6 +125,7 @@ export function AppointmentModal({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           {/* User Selection */}
           <div>
             <Label htmlFor="user_uid">User</Label>

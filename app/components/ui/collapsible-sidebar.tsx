@@ -16,7 +16,7 @@ import {
 } from "@/app/components/ui/sidebar"
 
 const navItems = [
-  { name: 'Home', icon: Home, href: '/' },
+  { name: 'Home', icon: Home, href: '/sites' },
   { name: 'File Data', icon: FileText, href: '/sites/file-data' },
   { name: 'Calendar', icon: Calendar, href: '/sites/calendar' },
   { name: 'Settings', icon: Settings, href: '/sites/settings' },
