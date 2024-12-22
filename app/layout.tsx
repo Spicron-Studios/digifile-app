@@ -1,11 +1,10 @@
 
 import type { Metadata } from "next";
 import "./globals.css";
-import { CollapsibleSidebar } from "@/app/components/ui/collapsible-sidebar";
 
 export const metadata: Metadata = {
-  title: "Under Construction",
-  description: "Site under construction",
+  title: "DigiFile",
+  description: "",
 };
 
 export default function RootLayout({
@@ -17,7 +16,6 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning className="antialiased">
         <div className="flex h-screen">
-          <CollapsibleSidebar />
           <main className="flex-1 p-6 overflow-auto">
             {children}
           </main>

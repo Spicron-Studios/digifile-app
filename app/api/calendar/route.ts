@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import prisma from '@/app/lib/prisma'
-import { Account, CalendarEvent } from '@/app/types/calendar'
+import { Account, CalendarEvent, CalendarEntry } from '@/app/types/calendar'
 import { Logger } from '@/app/lib/logger'
 
 const logger = Logger.getInstance()
@@ -155,10 +155,13 @@ export async function GET() {
     // Group calendar entries by user
     await logger.debug(FILE_NAME, 'Grouping calendar entries by user')
     const userCalendarMap = userCalendarEntries.reduce((acc, entry) => {
-      if (!acc[entry.user_uid]) {
-        acc[entry.user_uid] = [];
+      const userUid = entry.user_uid
+      if (userUid) {  // Check if userUid exists
+        if (!acc[userUid]) {
+          acc[userUid] = [];
+        }
+        acc[userUid].push(entry);
       }
-      acc[entry.user_uid].push(entry);
       return acc;
     }, {} as Record<string, typeof userCalendarEntries>);
 
@@ -166,7 +169,7 @@ export async function GET() {
 
     // Transform to required format
     await logger.debug(FILE_NAME, 'Transforming data to required format')
-    const accounts: Account[] = users.map((user) => ({
+    const accounts: Account[] = users.map((user, index) => ({
       AccountID: user.uid,
       Name: user.username ?? `${user.first_name} ${user.surname}`,
       'Calendar-Entries': userCalendarMap[user.uid]?.map((entry) => ({
@@ -174,19 +177,21 @@ export async function GET() {
         startdate: entry.startdate?.toISOString() ?? '',
         enddate: entry.enddate?.toISOString() ?? '',
         title: entry.title ?? '',
-        Description: entry.description ?? '',
-      })) ?? []
+        description: entry.description ?? '',
+        length: '0',
+      } as CalendarEntry)) ?? [],
+      color: COLORS[index % COLORS.length]
     }))
 
     await logger.debug(FILE_NAME, `Accounts content: ${JSON.stringify(accounts, null, 2)}`)
 
     // Transform entries into events
     const events: CalendarEvent[] = accounts.flatMap((account, accountIndex) =>
-      account['Calendar-Entries'].map((entry, index) => {
+      account['Calendar-Entries'].map((entry) => {
         return {
           id: entry.uid,
           title: entry.title,
-          description: entry.Description,
+          description: entry.description,
           start: new Date(entry.startdate),
           end: new Date(entry.enddate),
           accountId: account.AccountID,

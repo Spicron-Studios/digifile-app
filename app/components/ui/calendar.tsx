@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   add,
   eachDayOfInterval,
-  endOfDay,
   endOfMonth,
   endOfWeek,
   format,
@@ -14,8 +13,6 @@ import {
   isSameDay,
   isSameMonth,
   isToday,
-  parse,
-  parseISO,
   startOfDay,
   startOfMonth,
   startOfToday,
@@ -27,7 +24,7 @@ import { AccountSelector } from "./account-selector/account-selector"
 import { cn } from "@/app/lib/utils"
 import { AppointmentModal } from "@/app/components/ui/appointment/appointment-modal"
 import { useState } from "react"
-import { toUTCDate, formatTimeToLocal } from "@/app/lib/utils";
+import { formatTimeToLocal } from "@/app/lib/utils";
 
 interface CalendarProps {
   accounts: Account[]
@@ -40,6 +37,7 @@ interface EventDisplayProps {
   className?: string
   accounts: Account[]
   refreshData: () => void
+  style?: React.CSSProperties
 }
 
 const EventDisplay = ({ event, className, accounts, refreshData }: EventDisplayProps) => {

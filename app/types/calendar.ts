@@ -1,5 +1,8 @@
 export interface CalendarEntry {
+  uid: string
   startdate: string
+  enddate: string
+  title: string
   length: string
   description: string
 }
@@ -8,6 +11,7 @@ export interface Account {
   AccountID: string
   Name: string
   "Calendar-Entries": CalendarEntry[]
+  color: string
 }
 
 export type ViewType = "day" | "week" | "month" 
