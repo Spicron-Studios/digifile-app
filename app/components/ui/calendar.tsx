@@ -13,6 +13,7 @@ import {
   isSameDay,
   isSameMonth,
   isToday,
+  startOfDay,
   startOfMonth,
   startOfToday,
   startOfWeek,
@@ -36,6 +37,7 @@ interface EventDisplayProps {
   className?: string
   accounts: Account[]
   refreshData: () => void
+  style?: React.CSSProperties
 }
 
 const EventDisplay = ({ event, className, accounts, refreshData }: EventDisplayProps) => {

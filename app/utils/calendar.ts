@@ -16,9 +16,10 @@ export async function transformEntriesToEvents(accounts: Account[]): Promise<Cal
         `Processing account ${account.Name} (${account.AccountID})`
       );
 
-      for (const entry of account["Calender-Entries"]) {
-        const start = new Date(entry.Date);
-        const end = new Date(start.getTime() + parseInt(entry.Length) * 60000);
+      for (const entry of account["Calendar-Entries"]) {
+        const start = new Date(entry.startdate);
+        const end = new Date(entry.enddate);
+        /// new Date(start.getTime() + parseInt(entry.Length) * 60000);
 
         await logger.debug(
           "calendar.ts",
@@ -27,13 +28,13 @@ export async function transformEntriesToEvents(accounts: Account[]): Promise<Cal
 
         events.push({
           id: entry.uid,
-          title: entry.Description,
+          title: entry.title,
           start,
           end,
           accountId: account.AccountID,
           accountName: account.Name,
           color: account.color,
-          description: entry.Description
+          description: entry.description
         });
       }
     }

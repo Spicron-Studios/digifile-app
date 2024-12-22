@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import prisma from "@/app/lib/prisma"
+import { v4 as uuidv4 } from 'uuid'
 
 const appointmentSchema = z.object({
   user_uid: z.string(),
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
 
     const newAppointment = await prisma.user_calendar_entries.create({
       data: {
-        uid: undefined, // Prisma will auto-generate if set up
+        uid: uuidv4(),
         user_uid: data.user_uid,
         startdate: new Date(data.startdate),
         enddate: new Date(data.enddate),
@@ -31,8 +32,9 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(newAppointment)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error creating appointment:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

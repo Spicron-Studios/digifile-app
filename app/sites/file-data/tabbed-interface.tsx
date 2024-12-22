@@ -9,6 +9,7 @@ import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
+import Image from 'next/image'
 
 interface TimelineEntry {
   date: string
@@ -90,8 +91,8 @@ export default function TabbedInterface() {
                           selected={startDate}
                           onChange={(date) => setStartDate(date)}
                           selectsStart
-                          startDate={startDate}
-                          endDate={endDate}
+                          startDate={startDate ?? undefined}
+                          endDate={endDate ?? undefined}
                           className="w-full p-2 border rounded"
                         />
                       </div>
@@ -102,9 +103,9 @@ export default function TabbedInterface() {
                           selected={endDate}
                           onChange={(date) => setEndDate(date)}
                           selectsEnd
-                          startDate={startDate}
-                          endDate={endDate}
-                          minDate={startDate}
+                          startDate={startDate ?? undefined}
+                          endDate={endDate ?? undefined}
+                          minDate={startDate ?? undefined}
                           className="w-full p-2 border rounded"
                         />
                       </div>
@@ -129,10 +130,12 @@ export default function TabbedInterface() {
                     <div className="grid grid-cols-2 gap-4 max-w-[400px]">
                       {entry.images.map((src, imgIndex) => (
                         <div key={imgIndex} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                          <img
+                          <Image
                             src={src}
                             alt="Content image"
                             className="w-full h-full object-cover"
+                            width={150}
+                            height={150}
                           />
                         </div>
                       ))}
