@@ -1556,3 +1556,6 @@ Logger initialized
 [2024-12-22 16:20:49.932] (DEBUG) - api/calendar/route.ts - Transformed 10 calendar events
 [2024-12-22 16:20:49.934] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
 [2024-12-22 16:20:49.958] (DEBUG) - api/calendar/route.ts - Database connection closed
+Logger initialized
+Logger initialized
+Logger initialized

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from '@/app/lib/prisma'
 import { Account, CalendarEvent, CalendarEntry } from '@/app/types/calendar'
 import { Logger } from '@/app/lib/logger'
+import * as Sentry from "@sentry/nextjs"
 
 const logger = Logger.getInstance()
 const FILE_NAME = 'api/calendar/route.ts'
@@ -69,8 +70,20 @@ const COLORS = [
 ];
 
 export async function GET() {
+  // Start a Sentry span for this request
+  const span = Sentry.startSpan({
+    name: "GET /api/calendar",
+    op: "http.server"
+  });
+
   try {
+    // Log: File System + Sentry
     await logger.info(FILE_NAME, 'Calendar API request received')
+    Sentry.addBreadcrumb({
+      category: 'api',
+      message: 'Calendar API request received',
+      level: 'info'
+    });
 
     const headers = {
       'Content-Type': 'application/json',
@@ -79,40 +92,71 @@ export async function GET() {
     // Test database connection
     try {
       await prisma.$connect()
+      // Log: File System + Sentry
       await logger.debug(FILE_NAME, 'Database connection successful')
+      Sentry.addBreadcrumb({
+        category: 'database',
+        message: 'Database connection successful',
+        level: 'debug'
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      // Log: File System + Sentry
       await logger.error(FILE_NAME, `Database connection failed: ${errorMessage}`)
+      Sentry.captureException(error, {
+        tags: { component: 'database' },
+        extra: { fileName: FILE_NAME }
+      });
       throw new Error('Database connection failed')
     }
 
-    // First get all active users
-    await logger.debug(FILE_NAME, 'Fetching active users')
-    const users = await prisma.users.findMany({
-        where: {
-            AND: [
-              { active: true },
-              { orgid: 'd290f1ee-6c54-4b01-90e6-d701748f0851' }
-            ]
-        }
-    })
+    // Start a Sentry span for user fetching
+    const userSpan = span.startChild({
+      op: 'db.query',
+      description: 'Fetch active users'
+    });
 
-    // Check if no active users found
+    // Log: File System + Sentry
+    await logger.debug(FILE_NAME, 'Fetching active users')
+    Sentry.addBreadcrumb({
+      category: 'database',
+      message: 'Fetching active users',
+      level: 'debug'
+    });
+
+    const users = await prisma.users.findMany({
+      where: {
+        AND: [
+          { active: true },
+          { orgid: 'd290f1ee-6c54-4b01-90e6-d701748f0851' }
+        ]
+      }
+    })
+    userSpan.finish();
+
     if (users.length === 0) {
+      // Log: File System + Sentry
       await logger.info(FILE_NAME, 'No active users found')
+      Sentry.captureMessage('No active users found', 'info');
       return NextResponse.json(
-        { 
-          error: 'No active users found',
-          type: 'NO_USERS'
-        },
-        { 
-          status: 404,
-          headers 
-        }
+        { error: 'No active users found', type: 'NO_USERS' },
+        { status: 404, headers }
       )
     }
     
+    // Log: File System + Sentry
     await logger.debug(FILE_NAME, `Found ${users.length} active users`)
+    Sentry.addBreadcrumb({
+      category: 'database',
+      message: `Found ${users.length} active users`,
+      level: 'debug'
+    });
+
+    // Start a Sentry span for calendar entries fetching
+    const entriesSpan = span.startChild({
+      op: 'db.query',
+      description: 'Fetch calendar entries'
+    });
 
     // Then get all calendar entries for these users
     await logger.debug(FILE_NAME, 'Fetching calendar entries for users')
@@ -204,6 +248,11 @@ export async function GET() {
     await logger.info(FILE_NAME, `Events content: ${JSON.stringify(events, null, 2)}`)
     await logger.debug(FILE_NAME, `Transformed ${events.length} calendar events`)
     await logger.info(FILE_NAME, 'Calendar data successfully retrieved')
+    Sentry.addBreadcrumb({
+      category: 'api',
+      message: 'Calendar data successfully retrieved',
+      level: 'info'
+    });
 
     return NextResponse.json(
       { accounts, events },
@@ -212,7 +261,18 @@ export async function GET() {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    // Log: File System + Sentry
     await logger.error(FILE_NAME, `Failed to fetch calendar data: ${errorMessage}`)
+    Sentry.captureException(error, {
+      tags: { 
+        component: 'calendar',
+        endpoint: '/api/calendar'
+      },
+      extra: { 
+        fileName: FILE_NAME,
+        userCount: users.length
+      }
+    });
     
     return NextResponse.json(
       { 
@@ -226,6 +286,15 @@ export async function GET() {
     )
   } finally {
     await prisma.$disconnect()
+    // Log: File System + Sentry
     await logger.debug(FILE_NAME, 'Database connection closed')
+    Sentry.addBreadcrumb({
+      category: 'database',
+      message: 'Database connection closed',
+      level: 'debug'
+    });
+    
+    // Finish the span
+    span?.finish();
   }
 } 
