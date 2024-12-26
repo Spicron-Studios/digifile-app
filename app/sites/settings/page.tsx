@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Upload } from 'lucide-react'
+import Image from 'next/image'
 
 import { Button } from "@/app/components/ui/button"
 import { Card } from "@/app/components/ui/card"
@@ -123,9 +124,11 @@ export default function TabPanel() {
                     {/* Left column */}
                     <div className="space-y-4">
                       <div className="aspect-square w-full max-w-[200px] overflow-hidden rounded-lg border">
-                        <img
+                        <Image
                           src={logoUrl}
                           alt="Company logo"
+                          width={200}
+                          height={100}
                           className="h-full w-full object-cover"
                         />
                       </div>
@@ -366,9 +369,11 @@ export default function TabPanel() {
                             Signature
                           </label>
                           <div className="aspect-[2/1] w-full max-w-[200px] overflow-hidden rounded-lg border">
-                            <img
+                            <Image
                               src={signatureUrl}
                               alt="User signature"
+                              width={200}
+                              height={100}
                               className="h-full w-full object-contain"
                             />
                           </div>
