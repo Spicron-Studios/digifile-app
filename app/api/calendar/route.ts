@@ -71,10 +71,31 @@ const COLORS = [
 
 export async function GET() {
   // Start a Sentry span for this request
-  const span = Sentry.startSpan({
-    name: "GET /api/calendar",
-    op: "http.server"
-  });
+  const span = Sentry.startSpan(
+    {
+      name: "GET /api/calendar",
+      op: "http.server"
+    },
+    (span) => span
+  );
+
+  // Start a Sentry span for user fetching
+  const userSpan = Sentry.startSpan(
+    {
+      name: "Fetch active users",
+      op: "db.query"
+    },
+    (span) => span
+  );
+
+  // Start a Sentry span for calendar entries fetching
+  const entriesSpan = Sentry.startSpan(
+    {
+      name: "Fetch calendar entries",
+      op: "db.query"
+    },
+    (span) => span
+  );
 
   try {
     // Log: File System + Sentry
@@ -84,6 +105,8 @@ export async function GET() {
       message: 'Calendar API request received',
       level: 'info'
     });
+
+    Sentry.captureMessage('Jan Test');
 
     const headers = {
       'Content-Type': 'application/json',
@@ -110,12 +133,6 @@ export async function GET() {
       throw new Error('Database connection failed')
     }
 
-    // Start a Sentry span for user fetching
-    const userSpan = span.startChild({
-      op: 'db.query',
-      description: 'Fetch active users'
-    });
-
     // Log: File System + Sentry
     await logger.debug(FILE_NAME, 'Fetching active users')
     Sentry.addBreadcrumb({
@@ -132,7 +149,9 @@ export async function GET() {
         ]
       }
     })
-    userSpan.finish();
+    if (userSpan) {
+      userSpan.end();
+    }
 
     if (users.length === 0) {
       // Log: File System + Sentry
@@ -150,12 +169,6 @@ export async function GET() {
       category: 'database',
       message: `Found ${users.length} active users`,
       level: 'debug'
-    });
-
-    // Start a Sentry span for calendar entries fetching
-    const entriesSpan = span.startChild({
-      op: 'db.query',
-      description: 'Fetch calendar entries'
     });
 
     // Then get all calendar entries for these users
@@ -177,6 +190,9 @@ export async function GET() {
         title: true
       }
     })
+    
+    // Finish the entries span after the query completes
+    entriesSpan.end();
 
     // Check if no calendar entries found
     if (userCalendarEntries.length === 0) {
@@ -270,7 +286,7 @@ export async function GET() {
       },
       extra: { 
         fileName: FILE_NAME,
-        userCount: users.length
+        userCount: "User count not available"
       }
     });
     
@@ -285,16 +301,11 @@ export async function GET() {
       }
     )
   } finally {
-    await prisma.$disconnect()
-    // Log: File System + Sentry
-    await logger.debug(FILE_NAME, 'Database connection closed')
-    Sentry.addBreadcrumb({
-      category: 'database',
-      message: 'Database connection closed',
-      level: 'debug'
-    });
+    await prisma.$disconnect();
     
-    // Finish the span
-    span?.finish();
+    // End spans in reverse order
+    if (entriesSpan) entriesSpan.end();
+    if (userSpan) userSpan.end();
+    if (span) span.end();
   }
 } 
