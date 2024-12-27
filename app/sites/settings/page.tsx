@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Upload } from 'lucide-react'
 import Image from 'next/image'
 
@@ -12,50 +12,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs"
 import { ConsentModal } from "@/app/components/ui/consent-modal"
 
-// Extended user type to include all fields
+// Update the User type to match our database schema
 type User = {
-  id: number
-  name: string
-  email: string
-  phone: string
-  title: string
-  initials: string
-  firstName: string
-  lastName: string
-  username: string
-  password: string
-  role: string
-  signature: string
-  hpcsa: string
+  uid: string
+  title: string | null
+  first_name: string | null
+  surname: string | null
+  email: string | null
+  username: string | null
+  cell_no: string | null
 }
 
-// Sample users data with extended fields
-const users: User[] = [
-  {
-    id: 1,
-    name: "Jan",
-    email: "jan@example.com",
-    phone: "123-456-7890",
-    title: "Mr",
-    initials: "J",
-    firstName: "Jan",
-    lastName: "Smith",
-    username: "jansmith",
-    password: "********",
-    role: "admin",
-    signature: "/placeholder.svg?height=100&width=200",
-    hpcsa: "HPCSA123"
-  },
-  { id: 2, name: "Ben", email: "ben@example.com", phone: "234-567-8901", title: "Mrs", initials: "B", firstName: "Ben", lastName: "Doe", username: "bend", password: "********", role: "user", signature: "/placeholder.svg?height=100&width=200", hpcsa: "HPCSA456" },
-  { id: 3, name: "Zan", email: "zan@example.com", phone: "345-678-9012", title: "Mr", initials: "Z", firstName: "Zan", lastName: "Jones", username: "zanjones", password: "********", role: "admin", signature: "/placeholder.svg?height=100&width=200", hpcsa: "HPCSA789" },
-]
-
 export default function TabPanel() {
+  const [users, setUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [signatureUrl, setSignatureUrl] = useState<string>("/placeholder.svg?height=100&width=200")
   const [logoUrl, setLogoUrl] = useState("/placeholder.svg?height=200&width=200")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedConsent, setSelectedConsent] = useState<number | null>(null)
+
+  // Fetch users from the database
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/settings/users')
+        const data = await response.json()
+        
+        if (!response.ok) throw new Error(data.error)
+        
+        setUsers(data)
+      } catch (error) {
+        console.error('Failed to fetch users:', error)
+      }
+    }
+
+    fetchUsers()
+  }, [])
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -286,7 +278,7 @@ export default function TabPanel() {
               <div className="p-4">
                 {selectedUser ? (
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold mb-6">Edit User: {selectedUser.name}</h2>
+                    <h2 className="text-2xl font-bold mb-6">Edit User: {selectedUser.first_name} {selectedUser.surname}</h2>
                     <form className="space-y-6">
                       {/* First Row */}
                       <div className="grid grid-cols-2 gap-6">
@@ -308,7 +300,7 @@ export default function TabPanel() {
                           <label htmlFor="initials" className="block text-sm font-medium text-gray-700">
                             Initials<span className="text-red-500">*</span>
                           </label>
-                          <Input id="initials" defaultValue={selectedUser.initials} className="mt-1" />
+                          <Input id="initials" defaultValue={selectedUser.first_name} className="mt-1" />
                         </div>
                       </div>
 
@@ -318,13 +310,13 @@ export default function TabPanel() {
                           <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
                             First Name<span className="text-red-500">*</span>
                           </label>
-                          <Input id="firstName" defaultValue={selectedUser.firstName} className="mt-1" />
+                          <Input id="firstName" defaultValue={selectedUser.first_name} className="mt-1" />
                         </div>
                         <div>
                           <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
                             Last Name<span className="text-red-500">*</span>
                           </label>
-                          <Input id="lastName" defaultValue={selectedUser.lastName} className="mt-1" />
+                          <Input id="lastName" defaultValue={selectedUser.surname} className="mt-1" />
                         </div>
                       </div>
 
@@ -416,10 +408,12 @@ export default function TabPanel() {
                   <div className="space-y-4">
                     <h2 className="text-2xl font-bold mb-4">User List</h2>
                     {users.map((user) => (
-                      <Card key={user.id} className="p-4">
+                      <Card key={user.uid} className="p-4">
                         <div className="flex justify-between items-center">
                           <div>
-                            <h3 className="text-lg font-semibold">{user.name}</h3>
+                            <h3 className="text-lg font-semibold">
+                              {user.first_name} {user.surname}
+                            </h3>
                             <p className="text-sm text-gray-600">{user.email}</p>
                           </div>
                           <Button onClick={() => setSelectedUser(user)}>Edit</Button>

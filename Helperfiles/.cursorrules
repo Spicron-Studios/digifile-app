@@ -32,6 +32,16 @@ Follow these rules when you write code:
 - Implement accessibility features on elements. For example, a tag should have a tabindex=“0”, aria-label, on:click, and on:keydown, and similar attributes.
 - Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.
 
+## Organization Data Separation Rule
+When working with multi-tenant databases:
+1. Every database query MUST include the orgid filter in the WHERE clause
+2. Store ORGANIZATION_ID in environment variables
+3. Use AND conditions to combine orgid with other filters
+4. Apply this rule to all API routes and database operations
+5. Never expose organization data across tenants
+
+
+
 
 
 <Sentry>

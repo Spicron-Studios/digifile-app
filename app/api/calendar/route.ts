@@ -1,3 +1,5 @@
+'use server'
+
 import { NextResponse } from "next/server"
 import prisma from '@/app/lib/prisma'
 import { Account, CalendarEvent, CalendarEntry } from '@/app/types/calendar'
@@ -145,7 +147,7 @@ export async function GET() {
       where: {
         AND: [
           { active: true },
-          { orgid: 'd290f1ee-6c54-4b01-90e6-d701748f0851' }
+          { orgid: process.env.ORGANIZATION_ID }
         ]
       }
     })

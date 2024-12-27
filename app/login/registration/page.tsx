@@ -57,7 +57,7 @@ export default function RegistrationPage() {
   }
 
   const handleCancel = () => {
-    router.push('/')
+    router.push('/login/signin')
   }
 
   const handleVerificationSubmit = () => {
