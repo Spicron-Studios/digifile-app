@@ -1,7 +1,6 @@
 'use server'
 
 import { NextResponse } from 'next/server'
-import * as Sentry from "@sentry/nextjs"
 import prisma from '@/app/lib/prisma'
 
 export async function GET() {
@@ -26,13 +25,7 @@ export async function GET() {
 
     return NextResponse.json(users)
   } catch (error) {
-    // Log the error to Sentry
-    Sentry.captureException(error, {
-      tags: {
-        "endpoint": "GET /api/settings/users"
-      }
-    })
-
+    console.error('Failed to fetch users:', error)
     return NextResponse.json(
       { error: "Failed to fetch users" },
       { status: 500 }

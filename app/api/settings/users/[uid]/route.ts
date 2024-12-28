@@ -1,7 +1,6 @@
 'use server'
 
 import { NextResponse } from 'next/server'
-import * as Sentry from "@sentry/nextjs"
 import prisma from '@/app/lib/prisma'
 
 export async function PUT(
@@ -31,12 +30,7 @@ export async function PUT(
 
     return NextResponse.json(updatedUser)
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: {
-        "endpoint": "PUT /api/settings/users/[uid]"
-      }
-    })
-
+    console.error('Failed to update user:', error)
     return NextResponse.json(
       { error: "Failed to update user" },
       { status: 500 }
