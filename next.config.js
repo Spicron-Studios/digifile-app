@@ -1,11 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ["next-auth"],
-  },
-  auth: {
-    path: "/app/lib/auth",
+    serverExternalPackages: ["next-auth"],
   }
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig

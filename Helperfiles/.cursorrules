@@ -46,18 +46,25 @@ When working with multi-tenant databases:
 project/
 ├── app/
 │   ├── actions/                 # Server-side code (internal only)
-│   │   └── *.ts                # Server actions
+│   │   ├── auth.ts             # Re-exports of auth utilities
+│   │   └── *.ts                # Other server actions
 │   ├── api/                    # Server-side code (external connections)
-│   │   └── */route.ts         # API routes
+│   │   ├── auth/              # Auth API routes
+│   │   │   └── [...nextauth]/ # NextAuth.js route handlers
+│   │   │       └── route.ts   # Auth API endpoint
+│   │   └── */route.ts         # Other API routes
 │   ├── components/
 │   │   ├── ui/                # Reusable UI components
 │   │   │   └── *.tsx         # UI components
 │   │   └── *.tsx             # Other components
 │   ├── lib/                   # Server components for actions & api
+│   │   ├── auth.ts           # Central auth configuration
 │   │   ├── prisma.ts         # Prisma client
 │   │   └── *.ts              # Other server utilities
 │   ├── login/                 # Authentication frontend
-│   │   └── *.tsx             # Login related pages
+│   │   ├── signin/           # Sign in related pages
+│   │   │   └── page.tsx      # Sign in page
+│   │   └── *.tsx             # Other login related pages
 │   ├── sites/                 # Main application frontend
 │   │   ├── layout.tsx        # Sites layout
 │   │   └── */page.tsx        # Site pages
@@ -69,6 +76,7 @@ project/
 │   ├── .cursorrules         # AI coding guidelines
 │   ├── .database_rules      # Database rules
 │   └── *.rules             # Other rule files
+├── middleware.ts            # Auth middleware
 └── prisma/
     ├── migrations/          # Database migration files
     │   └── *.sql           # Migration files

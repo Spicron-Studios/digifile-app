@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signIn as nextAuthSignIn } from 'next-auth/react'
+import { signIn } from '@/app/lib/auth'
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import {
@@ -29,7 +29,7 @@ export default function SigninPage() {
     setIsLoading(true)
 
     try {
-      const result = await nextAuthSignIn('credentials', {
+      const result = await signIn('credentials', {
         bfhNumber: formData.bfhNumber,
         username: formData.username,
         password: formData.password,

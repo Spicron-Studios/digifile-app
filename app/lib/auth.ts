@@ -2,38 +2,36 @@ import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import prisma from "@/app/lib/prisma"
-import type { User } from "next-auth"
+import type { DefaultSession } from "next-auth"
 
-// Add type definitions for extended token and session
-interface ExtendedToken {
-  orgId: string;
-  roles: {
-    role: {
-      uid: string;
-      name: string;
-      // add other role properties as needed
-    };
-  }[];
-}
-
-interface ExtendedSession {
+// Add type definitions for extended session
+interface ExtendedSession extends DefaultSession {
   user: {
     orgId: string;
-    roles: ExtendedToken['roles'];
-  } & DefaultSession['user'];
+    roles: {
+      role: {
+        uid: string;
+        name: string;
+      };
+    }[];
+  } & DefaultSession["user"]
 }
 
-export const authConfig = {
+export const {
+  handlers: { GET, POST },
+  auth,
+  signIn,
+  signOut,
+} = NextAuth({
   adapter: PrismaAdapter(prisma),
-  secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: "jwt",
+  session: { strategy: "jwt" },
+  pages: {
+    signIn: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.orgId = user.orgid
-        // First get user roles
         const userRoles = await prisma.user_roles.findMany({
           where: {
             userid: user.uid,
@@ -42,7 +40,6 @@ export const authConfig = {
           }
         })
 
-        // Then fetch role details for each role
         const rolesWithDetails = await Promise.all(
           userRoles.map(async (userRole) => {
             const roleDetails = await prisma.roles.findFirst({
@@ -60,14 +57,14 @@ export const authConfig = {
 
         token.roles = rolesWithDetails
       }
-      return token as JWT & ExtendedToken
+      return token
     },
-    async session({ session, token }) {
+    async session({ session, token }): Promise<ExtendedSession> {
       if (session.user) {
-        session.user.orgId = token.orgId
-        session.user.roles = token.roles
+        session.user.orgId = token.orgId as string
+        session.user.roles = token.roles as ExtendedSession["user"]["roles"]
       }
-      return session as ExtendedSession
+      return session
     }
   },
   providers: [
@@ -109,11 +106,11 @@ export const authConfig = {
             name: `${user.first_name} ${user.surname}`,
             email: user.email,
             orgid: user.orgid
-          } as User
+          }
         } catch (error) {
           return null
         }
       }
     })
   ]
-} 
+})

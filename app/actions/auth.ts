@@ -1,7 +1,4 @@
-import { authConfig } from "@/app/api/auth/config"
-import NextAuth from "next-auth"
-
-export const { auth, signIn, signOut } = NextAuth(authConfig)
+import { auth, signIn, signOut } from "@/app/lib/auth"
 
 // Server action to get session data
 export async function getSessionData() {
@@ -16,4 +13,6 @@ export async function getSessionData() {
       role: session.user?.role
     }
   }
-} 
+}
+
+export { auth, signIn, signOut } 

@@ -2,21 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { auth } from '@/app/lib/auth'
 import { useSession } from 'next-auth/react'
 
 export default function SitesPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { data: session, status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      router.push('/login/signin')
+    },
+  })
   const [usernames, setUsernames] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Redirect if not authenticated
-    if (status === 'unauthenticated') {
-      router.push('/login/signin')
-      return
-    }
-
     const fetchUsers = async () => {
       try {
         const response = await fetch('/api', {
@@ -42,7 +42,7 @@ export default function SitesPage() {
     if (status === 'authenticated') {
       fetchUsers()
     }
-  }, [status, router])
+  }, [status])
 
   if (status === 'loading' || isLoading) {
     return <div>Loading...</div>

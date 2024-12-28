@@ -1,11 +1,9 @@
-import NextAuth from "next-auth"
-import { authConfig } from "./app/api/auth/config"
+import { auth } from "@/app/lib/auth"
 
-export const middleware = NextAuth(authConfig).auth
+export default auth
 
 export const config = {
   matcher: [
-    // Add routes that need authentication
     "/sites/:path*",
     "/api/:path*",
     "/((?!api|_next/static|_next/image|favicon.ico|login).*)"
