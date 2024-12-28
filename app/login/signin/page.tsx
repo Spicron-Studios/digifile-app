@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signIn } from '@/app/lib/auth'
+import { signIn } from 'next-auth/react'
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import {
@@ -29,6 +29,7 @@ export default function SigninPage() {
     setIsLoading(true)
 
     try {
+      //debugger;
       const result = await signIn('credentials', {
         bfhNumber: formData.bfhNumber,
         username: formData.username,
@@ -43,6 +44,7 @@ export default function SigninPage() {
         router.refresh()
       }
     } catch (error) {
+      console.error('Sign in exception:', error)
       toast.error('An error occurred during sign in')
     } finally {
       setIsLoading(false)

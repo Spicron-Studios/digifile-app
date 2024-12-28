@@ -49,108 +49,61 @@ project/
 │   │   ├── auth.ts             # Re-exports of auth utilities
 │   │   └── *.ts                # Other server actions
 │   ├── api/                    # Server-side code (external connections)
-│   │   ├── auth/              # Auth API routes
-│   │   │   └── [...nextauth]/ # NextAuth.js route handlers
-│   │   │       └── route.ts   # Auth API endpoint
+│   │   ├── auth/               # Auth API routes
+│   │   │   └── [...nextauth]/  # NextAuth.js route handlers
+│   │   │       └── route.ts    # Auth API endpoint
 │   │   └── */route.ts         # Other API routes
 │   ├── components/
-│   │   ├── ui/                # Reusable UI components
-│   │   │   └── *.tsx         # UI components
-│   │   └── *.tsx             # Other components
-│   ├── lib/                   # Server components for actions & api
-│   │   ├── auth.ts           # Central auth configuration
-│   │   ├── prisma.ts         # Prisma client
-│   │   └── *.ts              # Other server utilities
-│   ├── login/                 # Authentication frontend
-│   │   ├── signin/           # Sign in related pages
-│   │   │   └── page.tsx      # Sign in page
-│   │   └── *.tsx             # Other login related pages
-│   ├── sites/                 # Main application frontend
-│   │   ├── layout.tsx        # Sites layout
-│   │   └── */page.tsx        # Site pages
-│   ├── types/                 # Shared TypeScript interfaces
-│   │   └── *.d.ts            # Type definitions
-│   └── utils/                 # Utility functions & helpers
-│       └── *.ts              # Utility files
-├── helperfiles/              # AI rules and context
-│   ├── .cursorrules         # AI coding guidelines
-│   ├── .database_rules      # Database rules
-│   └── *.rules             # Other rule files
-├── middleware.ts            # Auth middleware
+│   │   ├── providers/         # React context providers
+│   │   │   ├── AuthProvider.tsx  # Auth context provider
+│   │   │   └── *.tsx         # Other providers
+│   │   ├── ui/               # Reusable UI components
+│   │   │   └── *.tsx        # UI components
+│   │   └── *.tsx            # Other components
+│   ├── hooks/                # Custom React hooks
+│   │   ├── use-session.ts   # Session management hook
+│   │   └── *.ts             # Other custom hooks
+│   ├── lib/                  # Server components for actions & api
+│   │   ├── auth.ts          # Central auth configuration
+│   │   ├── prisma.ts        # Prisma client
+│   │   ├── utils.ts         # Utility functions
+│   │   └── *.ts             # Other server utilities
+│   ├── login/               # Authentication frontend
+│   │   ├── signin/          # Sign in related pages
+│   │   │   └── page.tsx     # Sign in page
+│   │   ├── registration/    # Registration related pages
+│   │   │   └── page.tsx     # Registration page
+│   │   └── *.tsx            # Other login related pages
+│   ├── sites/               # Main application frontend
+│   │   ├── layout.tsx       # Sites layout
+│   │   ├── file-data/      # File data management
+│   │   │   └── page.tsx    # File data page
+│   │   ├── settings/       # Settings pages
+│   │   │   └── page.tsx    # Settings page
+│   │   └── */page.tsx      # Other site pages
+│   ├── types/              # Shared TypeScript interfaces
+│   │   ├── next-auth.d.ts # Auth type definitions
+│   │   └── *.d.ts         # Other type definitions
+│   └── utils/             # Client-side utility functions
+│       └── *.ts           # Utility files
+├── helperfiles/          # AI rules and context
+│   ├── .cursorrules     # AI coding guidelines
+│   ├── .database_rules  # Database rules
+│   └── *.rules          # Other rule files
+├── middleware.ts        # Auth middleware
+├── next.config.js      # Next.js configuration
+├── tailwind.config.ts  # Tailwind configuration
+├── components.json     # UI component configuration
 └── prisma/
-    ├── migrations/          # Database migration files
-    │   └── *.sql           # Migration files
-    └── schema.prisma       # Database schema
+    ├── migrations/     # Database migration files
+    │   └── *.sql      # Migration files
+    └── schema.prisma  # Database schema
 </PROJECT STRUCTURE>
 
 
 
 
-<Sentry>
-# Sentry Next.js Troubleshooting Guide
 
-## Common Issues & Solutions
-### #1. Type Error: Expected 2 arguments
-Symptom: Expected 2 arguments, but got 1
-Solution: Always provide both config object and callback function
-Remember: Callback must return the span
-
-### #2. Property 'finish' does not exist
-Symptom: Property 'finish' does not exist on type 'Span'
-Solution: Use end() instead of finish()
-Remember: Always null-check before calling end()
-
-### #3. Void Type Error
-Symptom: Property 'end' does not exist on type 'void'
-Solution: Return span in callback function
-Remember: (span) => span
-Implementation Example
-
-## Implementation Example
-
-```typescript
-import * as Sentry from '@sentry/nextjs';
-
-export async function handler() {
-  // Parent span
-  const mainSpan = Sentry.startSpan(
-    {
-      name: "Main Operation",
-      op: "http.server"
-    },
-    (span) => span  // ✅ Return the span
-  );
-
-  // Child span
-  const dbSpan = Sentry.startSpan(
-    {
-      name: "Database Query",
-      op: "db.query"
-    },
-    (span) => span  // ✅ Return the span
-  );
-
-  try {
-    // Your operation code here
-    await someOperation();
-  } catch (error) {
-    Sentry.captureException(error);
-    throw error;
-  } finally {
-    // ✅ Null check and use end()
-    if (dbSpan) dbSpan.end();    // End child first
-    if (mainSpan) mainSpan.end(); // End parent last
-  }
-}
-```
-## Key Principles
-Always use two-argument startSpan
-Return span from callback
-Use end() not finish()
-Check for null before ending
-End spans in reverse order (children first)
-Use appropriate op types for different operations
-</Sentry>
 
 
 

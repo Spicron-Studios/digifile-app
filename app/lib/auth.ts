@@ -76,9 +76,11 @@ export const {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        
         if (!credentials?.bfhNumber || !credentials?.username || !credentials?.password) {
           return null
         }
+        console.log('hello world')
 
         try {
           const org = await prisma.organization_info.findFirst({
