@@ -1,0 +1,7 @@
+Logger initialized
+[2024-12-28 13:31:48.897] (INFO) - api/calendar/route.ts - Calendar API request received
+[2024-12-28 13:31:48.901] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2024-12-28 13:31:48.903] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2024-12-28 13:31:49.642] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2024-12-28 13:31:50.126] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2024-12-28 13:31:50.127] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved

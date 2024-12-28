@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signIn as nextAuthSignIn } from 'next-auth/react'
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import {
@@ -11,10 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/dialog"
+import { toast } from "sonner"
 
 export default function SigninPage() {
   const router = useRouter()
   const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     bfhNumber: '',
     username: '',
@@ -23,7 +26,27 @@ export default function SigninPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement Next-Auth authentication logic here
+    setIsLoading(true)
+
+    try {
+      const result = await nextAuthSignIn('credentials', {
+        bfhNumber: formData.bfhNumber,
+        username: formData.username,
+        password: formData.password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        toast.error('Invalid username, BFH number, or password')
+      } else {
+        router.push('/sites')
+        router.refresh()
+      }
+    } catch (error) {
+      toast.error('An error occurred during sign in')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -39,12 +62,16 @@ export default function SigninPage() {
           placeholder="BFH Number"
           value={formData.bfhNumber}
           onChange={(e) => setFormData(prev => ({ ...prev, bfhNumber: e.target.value }))}
+          disabled={isLoading}
+          required
         />
         
         <Input
           placeholder="Username"
           value={formData.username}
           onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+          disabled={isLoading}
+          required
         />
         
         <Input
@@ -52,10 +79,16 @@ export default function SigninPage() {
           placeholder="Password"
           value={formData.password}
           onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+          disabled={isLoading}
+          required
         />
 
-        <Button type="submit" className="w-full">
-          Login
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Signing in...' : 'Login'}
         </Button>
       </form>
 

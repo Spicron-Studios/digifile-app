@@ -13,14 +13,14 @@ if (process.env.NEXT_RUNTIME === 'nodejs') {
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { initializeSentryServer } = await import('./app/lib/sentry/server');
     initializeSentryServer();
   }
 }
 
-export const onRequestError = (error: Error) => {
+export const onRequestError = async (error: Error) => {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    import('@sentry/node').then(Sentry => {
-      Sentry.captureException(error);
-    });
+    const Sentry = await import('@sentry/nextjs');
+    Sentry.captureException(error);
   }
 };

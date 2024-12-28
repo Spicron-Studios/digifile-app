@@ -23,6 +23,7 @@ The user asks questions about the following coding languages:
 - HTML
 - CSS
 
+
 ### Code Implementation Guidelines
 Follow these rules when you write code:
 - Use early returns whenever possible to make the code more readable.
@@ -40,6 +41,39 @@ When working with multi-tenant databases:
 4. Apply this rule to all API routes and database operations
 5. Never expose organization data across tenants
 
+
+<PROJECT STRUCTURE>
+project/
+├── app/
+│   ├── actions/                 # Server-side code (internal only)
+│   │   └── *.ts                # Server actions
+│   ├── api/                    # Server-side code (external connections)
+│   │   └── */route.ts         # API routes
+│   ├── components/
+│   │   ├── ui/                # Reusable UI components
+│   │   │   └── *.tsx         # UI components
+│   │   └── *.tsx             # Other components
+│   ├── lib/                   # Server components for actions & api
+│   │   ├── prisma.ts         # Prisma client
+│   │   └── *.ts              # Other server utilities
+│   ├── login/                 # Authentication frontend
+│   │   └── *.tsx             # Login related pages
+│   ├── sites/                 # Main application frontend
+│   │   ├── layout.tsx        # Sites layout
+│   │   └── */page.tsx        # Site pages
+│   ├── types/                 # Shared TypeScript interfaces
+│   │   └── *.d.ts            # Type definitions
+│   └── utils/                 # Utility functions & helpers
+│       └── *.ts              # Utility files
+├── helperfiles/              # AI rules and context
+│   ├── .cursorrules         # AI coding guidelines
+│   ├── .database_rules      # Database rules
+│   └── *.rules             # Other rule files
+└── prisma/
+    ├── migrations/          # Database migration files
+    │   └── *.sql           # Migration files
+    └── schema.prisma       # Database schema
+</PROJECT STRUCTURE>
 
 
 
@@ -109,3 +143,20 @@ Check for null before ending
 End spans in reverse order (children first)
 Use appropriate op types for different operations
 </Sentry>
+
+
+
+<Auth>
+
+The session will contain the organization ID and user role, which you can access in any protected route using the auth() function:
+``` javascript
+import { auth } from "@/auth"
+
+export default async function ProtectedPage() {
+  const session = await auth()
+  // Access session.user.orgId and session.user.role
+}
+```
+
+
+</Auth>

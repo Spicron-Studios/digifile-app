@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/browser";
+import * as Sentry from "@sentry/nextjs";
 
 export const initializeSentryClient = () => {
   if (typeof window !== 'undefined') {
@@ -6,7 +6,7 @@ export const initializeSentryClient = () => {
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
       tracesSampleRate: 1.0,
       integrations: [
-        new Sentry.BrowserTracing(),
+        new Sentry.Replay()
       ],
     });
   }

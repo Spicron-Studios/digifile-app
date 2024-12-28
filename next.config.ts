@@ -3,6 +3,17 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  
+  // Add experimental features
+  experimental: {
+    // Allow auth.ts to be in app directory
+    serverComponentsExternalPackages: ["next-auth"],
+  },
+  
+  // Configure auth path
+  auth: {
+    path: "/app/lib/auth",
+  }
 };
 
 export default withSentryConfig(nextConfig, {
