@@ -2,19 +2,11 @@ import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import prisma from "@/app/lib/prisma"
-import type { DefaultSession } from "next-auth"
 
-// Add type definitions for extended session
-interface ExtendedSession extends DefaultSession {
-  user: {
-    orgId: string;
-    roles: {
-      role: {
-        uid: string;
-        name: string;
-      };
-    }[];
-  } & DefaultSession["user"]
+// Only keep ExtendedUser interface
+interface ExtendedUser {
+  orgid: string;
+  uid: string;
 }
 
 export const {
@@ -29,7 +21,8 @@ export const {
     signIn: '/login',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user: dbUser }) {
+      const user = dbUser as ExtendedUser | null
       if (user) {
         token.orgId = user.orgid
         const userRoles = await prisma.user_roles.findMany({
@@ -44,13 +37,15 @@ export const {
           userRoles.map(async (userRole) => {
             const roleDetails = await prisma.roles.findFirst({
               where: {
-                uid: userRole.roleid,
+                uid: userRole.roleid!,
                 active: true
               }
             })
             return {
-              ...userRole,
-              role: roleDetails
+              role: {
+                uid: roleDetails?.uid || '',
+                name: roleDetails?.role_name || ''
+              }
             }
           })
         )
@@ -59,12 +54,15 @@ export const {
       }
       return token
     },
-    async session({ session, token }): Promise<ExtendedSession> {
-      if (session.user) {
-        session.user.orgId = token.orgId as string
-        session.user.roles = token.roles as ExtendedSession["user"]["roles"]
+    async session({ session, token }) {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          orgId: token.orgId as string,
+          roles: token.roles
+        }
       }
-      return session
     }
   },
   providers: [
@@ -110,6 +108,7 @@ export const {
             orgid: user.orgid
           }
         } catch (error) {
+          console.error('Error during authorization:', error)
           return null
         }
       }

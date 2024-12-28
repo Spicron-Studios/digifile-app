@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { getSessionData } from '@/app/actions/auth'
-import type { Session } from '@/app/types/next-auth'
+import type { Session } from 'next-auth'
+import { config } from '@/app/lib/config'
 
 export const useSession = () => {
   const [session, setSession] = useState<Session | null>(null)
@@ -12,7 +13,22 @@ export const useSession = () => {
     const loadSession = async () => {
       try {
         const data = await getSessionData()
-        setSession(data)
+        
+        if (!data) {
+          setSession(null)
+          return
+        }
+
+        const sessionData: Session | null = {
+          expires: new Date(Date.now() + config.sessionTimeout).toISOString(),
+          user: {
+            orgId: data.user.orgId,
+            roles: data.user.roles || [],
+            name: data.user.name || null,
+            email: data.user.email || null,
+          },
+        }
+        setSession(sessionData)
       } catch (error) {
         console.error('Error loading session:', error)
         setSession(null)

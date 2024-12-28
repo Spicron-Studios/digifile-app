@@ -10,7 +10,7 @@ export async function getSessionData() {
       name: session.user?.name,
       email: session.user?.email,
       orgId: session.user?.orgId,
-      role: session.user?.role
+      roles: session.user?.roles
     }
   }
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { auth } from '@/app/lib/auth'
 import { useSession } from 'next-auth/react'
 
 export default function SitesPage() {

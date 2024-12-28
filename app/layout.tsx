@@ -1,7 +1,6 @@
 import { Toaster } from 'sonner'
 import "./globals.css"
 import { AuthProvider } from "@/app/components/providers/AuthProvider"
-import { getSessionData } from "@/app/actions/auth"
 
 export const metadata = {
   title: "DigiFile",
@@ -13,8 +12,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getSessionData()
-
   return (
     <html lang="en">
       <body suppressHydrationWarning className="antialiased">
