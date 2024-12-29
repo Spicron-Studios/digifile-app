@@ -1,13 +1,13 @@
+import { Toaster } from 'sonner'
+import "./globals.css"
+import { AuthProvider } from "@/app/components/providers/AuthProvider"
 
-import type { Metadata } from "next";
-import "./globals.css";
-
-export const metadata: Metadata = {
+export const metadata = {
   title: "DigiFile",
   description: "",
-};
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -15,12 +15,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body suppressHydrationWarning className="antialiased">
-        <div className="flex h-screen">
-          <main className="flex-1 p-6 overflow-auto">
-            {children}
-          </main>
-        </div>
+        <AuthProvider>
+          <div className="flex h-screen">
+            <main className="flex-1 p-6 overflow-auto">
+              {children}
+            </main>
+          </div>
+          <Toaster position="top-center" />
+        </AuthProvider>
       </body>
     </html>
-  );
+  )
 }

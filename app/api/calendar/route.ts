@@ -1,3 +1,5 @@
+'use server'
+
 import { NextResponse } from "next/server"
 import prisma from '@/app/lib/prisma'
 import { Account, CalendarEvent, CalendarEntry } from '@/app/types/calendar'
@@ -9,7 +11,6 @@ const FILE_NAME = 'api/calendar/route.ts'
 // Initialize logger once at module level
 await logger.init()
 
-// Add this array at the top of the file
 const COLORS = [
 
     'bg-blue-500',
@@ -86,36 +87,27 @@ export async function GET() {
       throw new Error('Database connection failed')
     }
 
-    // First get all active users
     await logger.debug(FILE_NAME, 'Fetching active users')
+
     const users = await prisma.users.findMany({
-        where: {
-            AND: [
-              { active: true },
-              { orgid: 'd290f1ee-6c54-4b01-90e6-d701748f0851' }
-            ]
-        }
+      where: {
+        AND: [
+          { active: true },
+          { orgid: process.env.ORGANIZATION_ID }
+        ]
+      }
     })
 
-    // Check if no active users found
     if (users.length === 0) {
       await logger.info(FILE_NAME, 'No active users found')
       return NextResponse.json(
-        { 
-          error: 'No active users found',
-          type: 'NO_USERS'
-        },
-        { 
-          status: 404,
-          headers 
-        }
+        { error: 'No active users found', type: 'NO_USERS' },
+        { status: 404, headers }
       )
     }
     
     await logger.debug(FILE_NAME, `Found ${users.length} active users`)
 
-    // Then get all calendar entries for these users
-    await logger.debug(FILE_NAME, 'Fetching calendar entries for users')
     const userCalendarEntries = await prisma.user_calendar_entries.findMany({
       where: {
         active: true,
@@ -134,29 +126,19 @@ export async function GET() {
       }
     })
 
-    // Check if no calendar entries found
     if (userCalendarEntries.length === 0) {
       await logger.info(FILE_NAME, 'No calendar entries found for active users')
       return NextResponse.json(
-        { 
-          error: 'No calendar entries found',
-          type: 'NO_ENTRIES'
-        },
-        { 
-          status: 404,
-          headers 
-        }
+        { error: 'No calendar entries found', type: 'NO_ENTRIES' },
+        { status: 404, headers }
       )
     }
 
-
     await logger.debug(FILE_NAME, `Found ${userCalendarEntries.length} calendar entries`)
 
-    // Group calendar entries by user
-    await logger.debug(FILE_NAME, 'Grouping calendar entries by user')
     const userCalendarMap = userCalendarEntries.reduce((acc, entry) => {
       const userUid = entry.user_uid
-      if (userUid) {  // Check if userUid exists
+      if (userUid) {
         if (!acc[userUid]) {
           acc[userUid] = [];
         }
@@ -165,10 +147,6 @@ export async function GET() {
       return acc;
     }, {} as Record<string, typeof userCalendarEntries>);
 
-    await logger.debug(FILE_NAME, `User calendar map content: ${JSON.stringify(userCalendarMap, null, 2)}`)
-
-    // Transform to required format
-    await logger.debug(FILE_NAME, 'Transforming data to required format')
     const accounts: Account[] = users.map((user, index) => ({
       AccountID: user.uid,
       Name: user.username ?? `${user.first_name} ${user.surname}`,
@@ -183,26 +161,19 @@ export async function GET() {
       color: COLORS[index % COLORS.length]
     }))
 
-    await logger.debug(FILE_NAME, `Accounts content: ${JSON.stringify(accounts, null, 2)}`)
-
-    // Transform entries into events
     const events: CalendarEvent[] = accounts.flatMap((account, accountIndex) =>
-      account['Calendar-Entries'].map((entry) => {
-        return {
-          id: entry.uid,
-          title: entry.title,
-          description: entry.description,
-          start: new Date(entry.startdate),
-          end: new Date(entry.enddate),
-          accountId: account.AccountID,
-          accountName: account.Name,
-          color: COLORS[accountIndex % COLORS.length],
-        }
-      })
+      account['Calendar-Entries'].map((entry) => ({
+        id: entry.uid,
+        title: entry.title,
+        description: entry.description,
+        start: new Date(entry.startdate),
+        end: new Date(entry.enddate),
+        accountId: account.AccountID,
+        accountName: account.Name,
+        color: COLORS[accountIndex % COLORS.length],
+      }))
     )
 
-    await logger.info(FILE_NAME, `Events content: ${JSON.stringify(events, null, 2)}`)
-    await logger.debug(FILE_NAME, `Transformed ${events.length} calendar events`)
     await logger.info(FILE_NAME, 'Calendar data successfully retrieved')
 
     return NextResponse.json(
@@ -215,17 +186,10 @@ export async function GET() {
     await logger.error(FILE_NAME, `Failed to fetch calendar data: ${errorMessage}`)
     
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch calendar data',
-        type: 'SYSTEM_ERROR'
-      },
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { error: 'Failed to fetch calendar data', type: 'SYSTEM_ERROR' },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   } finally {
     await prisma.$disconnect()
-    await logger.debug(FILE_NAME, 'Database connection closed')
   }
 } 

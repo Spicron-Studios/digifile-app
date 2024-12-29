@@ -23,6 +23,7 @@ The user asks questions about the following coding languages:
 - HTML
 - CSS
 
+
 ### Code Implementation Guidelines
 Follow these rules when you write code:
 - Use early returns whenever possible to make the code more readable.
@@ -31,3 +32,92 @@ Follow these rules when you write code:
 - Use descriptive variable and function/const names. Also, event functions should be named with a “handle” prefix, like “handleClick” for onClick and “handleKeyDown” for onKeyDown.
 - Implement accessibility features on elements. For example, a tag should have a tabindex=“0”, aria-label, on:click, and on:keydown, and similar attributes.
 - Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.
+
+## Organization Data Separation Rule
+When working with multi-tenant databases:
+1. Every database query MUST include the orgid filter in the WHERE clause
+2. Store ORGANIZATION_ID in environment variables
+3. Use AND conditions to combine orgid with other filters
+4. Apply this rule to all API routes and database operations
+5. Never expose organization data across tenants
+
+
+<PROJECT STRUCTURE>
+project/
+├── app/
+│   ├── actions/                 # Server-side code (internal only)
+│   │   ├── auth.ts             # Re-exports of auth utilities
+│   │   └── *.ts                # Other server actions
+│   ├── api/                    # Server-side code (external connections)
+│   │   ├── auth/               # Auth API routes
+│   │   │   └── [...nextauth]/  # NextAuth.js route handlers
+│   │   │       └── route.ts    # Auth API endpoint
+│   │   └── */route.ts         # Other API routes
+│   ├── components/
+│   │   ├── providers/         # React context providers
+│   │   │   ├── AuthProvider.tsx  # Auth context provider
+│   │   │   └── *.tsx         # Other providers
+│   │   ├── ui/               # Reusable UI components
+│   │   │   └── *.tsx        # UI components
+│   │   └── *.tsx            # Other components
+│   ├── hooks/                # Custom React hooks
+│   │   ├── use-session.ts   # Session management hook
+│   │   └── *.ts             # Other custom hooks
+│   ├── lib/                  # Server components for actions & api
+│   │   ├── auth.ts          # Central auth configuration
+│   │   ├── prisma.ts        # Prisma client
+│   │   ├── utils.ts         # Utility functions
+│   │   └── *.ts             # Other server utilities
+│   ├── login/               # Authentication frontend
+│   │   ├── signin/          # Sign in related pages
+│   │   │   └── page.tsx     # Sign in page
+│   │   ├── registration/    # Registration related pages
+│   │   │   └── page.tsx     # Registration page
+│   │   └── *.tsx            # Other login related pages
+│   ├── sites/               # Main application frontend
+│   │   ├── layout.tsx       # Sites layout
+│   │   ├── file-data/      # File data management
+│   │   │   └── page.tsx    # File data page
+│   │   ├── settings/       # Settings pages
+│   │   │   └── page.tsx    # Settings page
+│   │   └── */page.tsx      # Other site pages
+│   ├── types/              # Shared TypeScript interfaces
+│   │   ├── next-auth.d.ts # Auth type definitions
+│   │   └── *.d.ts         # Other type definitions
+│   └── utils/             # Client-side utility functions
+│       └── *.ts           # Utility files
+├── helperfiles/          # AI rules and context
+│   ├── .cursorrules     # AI coding guidelines
+│   ├── .database_rules  # Database rules
+│   └── *.rules          # Other rule files
+├── middleware.ts        # Auth middleware
+├── next.config.js      # Next.js configuration
+├── tailwind.config.ts  # Tailwind configuration
+├── components.json     # UI component configuration
+└── prisma/
+    ├── migrations/     # Database migration files
+    │   └── *.sql      # Migration files
+    └── schema.prisma  # Database schema
+</PROJECT STRUCTURE>
+
+
+
+
+
+
+
+
+<Auth>
+
+The session will contain the organization ID and user role, which you can access in any protected route using the auth() function:
+``` javascript
+import { auth } from "@/auth"
+
+export default async function ProtectedPage() {
+  const session = await auth()
+  // Access session.user.orgId and session.user.role
+}
+```
+
+
+</Auth>
