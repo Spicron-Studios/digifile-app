@@ -1,0 +1,288 @@
+'use client'
+
+import { useState, useEffect, FormEvent } from "react"
+import { Card } from "@/app/components/ui/card"
+import { Button } from "@/app/components/ui/button"
+import { Input } from "@/app/components/ui/input"
+import { ScrollArea } from "@/app/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
+import { config } from "@/app/lib/config"
+
+type User = {
+  uid: string
+  title: string | null
+  first_name: string | null
+  surname: string | null
+  email: string | null
+  username: string | null
+  cell_no: string | null
+}
+
+interface UpdateUserPayload {
+  title: string
+  firstName: string
+  lastName: string
+  username: string
+  email: string
+  phone: string
+}
+
+export function UserSettings() {
+  const [users, setUsers] = useState<User[]>([])
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [formData, setFormData] = useState<UpdateUserPayload>({
+    title: '',
+    firstName: '',
+    lastName: '',
+    username: '',
+    email: '',
+    phone: ''
+  })
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/settings/users')
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error)
+        setUsers(data)
+      } catch (error) {
+        console.error('Failed to fetch users:', error)
+      }
+    }
+
+    fetchUsers()
+  }, [])
+
+  useEffect(() => {
+    if (selectedUser) {
+      setFormData({
+        title: selectedUser.title || '',
+        firstName: selectedUser.first_name || '',
+        lastName: selectedUser.surname || '',
+        username: selectedUser.username || '',
+        email: selectedUser.email || '',
+        phone: selectedUser.cell_no || ''
+      })
+    }
+  }, [selectedUser])
+
+  const handleFieldChange = (field: keyof UpdateUserPayload, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSaveUser = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedUser) return
+
+    console.log('Sending update:', formData)
+
+    try {
+      const res = await fetch(`/api/settings/users/${selectedUser.uid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json()
+        console.error('Failed to update user:', errData.error)
+        return
+      }
+
+      const updated = await res.json()
+      console.log('User updated successfully:', updated)
+
+      setUsers(prev =>
+        prev.map(user => 
+          user.uid === selectedUser.uid 
+            ? {
+                ...user,
+                title: updated.title,
+                first_name: updated.first_name,
+                surname: updated.surname,
+                email: updated.email,
+                username: updated.username,
+                cell_no: updated.cell_no
+              }
+            : user
+        )
+      )
+
+      setSelectedUser(null)
+    } catch (error) {
+      console.error('Error while updating user:', error)
+    }
+  }
+
+  const handleResetPassword = () => {
+    // TODO: Implement reset password functionality
+    console.log('Reset Password button clicked!')
+  }
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4">
+        {selectedUser ? (
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">
+              Edit User: {selectedUser.first_name} {selectedUser.surname}
+            </h2>
+            <form onSubmit={handleSaveUser} className="space-y-6">
+              {/* Title and Name Fields */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                    Title
+                  </label>
+                  <Select 
+                    value={formData.title}
+                    onValueChange={(value) => handleFieldChange('title', value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {config.titles.map((title) => (
+                        <SelectItem key={title.value} value={title.value}>
+                          {title.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* First Name and Last Name */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                    First Name
+                  </label>
+                  <Input
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => handleFieldChange('firstName', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                    Last Name
+                  </label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => handleFieldChange('lastName', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Username and Reset Password */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                    Username<span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="username"
+                    value={formData.username}
+                    onChange={(e) => handleFieldChange('username', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Reset Password
+                  </label>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="mt-1"
+                    onClick={handleResetPassword}
+                  >
+                    Reset Password
+                  </Button>
+                </div>
+              </div>
+
+              {/* User Role */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                    User Role
+                  </label>
+                  <Select defaultValue="">
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="cellNumber" className="block text-sm font-medium text-gray-700">
+                    Cell Number
+                  </label>
+                  <Input
+                    id="cellNumber"
+                    value={formData.phone}
+                    onChange={(e) => handleFieldChange('phone', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="emailAddress" className="block text-sm font-medium text-gray-700">
+                    Email Address
+                  </label>
+                  <Input
+                    id="emailAddress"
+                    value={formData.email}
+                    onChange={(e) => handleFieldChange('email', e.target.value)}
+                    className="mt-1"
+                    type="email"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between pt-4">
+                <Button type="submit">Save Changes</Button>
+                <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                  Back to User List
+                </Button>
+              </div>
+            </form>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold mb-4">User List</h2>
+            {users.map((user) => (
+              <Card key={user.uid} className="p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {user.first_name} {user.surname}
+                    </h3>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                  </div>
+                  <Button onClick={() => setSelectedUser(user)}>Edit</Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  )
+}

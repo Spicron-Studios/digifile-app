@@ -4,23 +4,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/app/lib/prisma'
 import { auth } from '@/app/lib/auth'
 
-// We can define the type inline here
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { uid: string } }
+  context: { params: { uid: string } }
 ): Promise<NextResponse> {
   try {
+    const { uid } = await Promise.resolve(context.params)
+    
     const session = await auth()
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const data = await request.json()
+    console.log('Received data:', data)
 
-    // orgId filter from the session
     const updatedUser = await prisma.users.update({
       where: {
-        uid: params.uid,
+        uid: uid,
         orgid: session.user.orgId
       },
       data: {
@@ -34,6 +35,7 @@ export async function PUT(
       }
     })
 
+    console.log('Updated user:', updatedUser)
     return NextResponse.json(updatedUser)
   } catch (error) {
     console.error('Failed to update user:', error)
