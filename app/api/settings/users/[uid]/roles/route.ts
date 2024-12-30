@@ -38,9 +38,9 @@ export async function GET(
     // Transform the result to match the expected shape, handling null case
     const roles = Array.isArray(userRoles) 
       ? userRoles.map((ur: any) => ({
-          uid: ur.role_uid,
-          role_name: ur.role_name,
-          description: ur.description
+          uid: ur.role_uid || '',
+          role_name: ur.role_name || '',
+          description: ur.description || null
         }))
       : []
 
@@ -63,6 +63,8 @@ export async function PUT(
   request: NextRequest,
   context: { params: { uid: string } }
 ) {
+
+    console.log("Hello World");
   try {
     const { uid } = await Promise.resolve(context.params)
     
@@ -83,6 +85,7 @@ export async function PUT(
       )
     }
 
+    console.log("Jan, what is this?")
     if (action === 'add') {
 
         console.log("Adding Role");
@@ -90,7 +93,7 @@ export async function PUT(
       // Check for existing role (active or inactive)
       const existingRole = await prisma.user_roles.findFirst({
         where: {
-          userid: uid,
+          userid: uid, 
           roleid: roleIds[0],
           orgid: session.user.orgId,
         }
@@ -134,6 +137,8 @@ export async function PUT(
         console.log("New Role Created");
       }
     } else {
+
+        console.log("Removing Role");
         
       // Set role to inactive
       await prisma.user_roles.updateMany({
@@ -148,28 +153,39 @@ export async function PUT(
           last_edit: new Date()
         }
       })
+
+      console.log("Role Removed");
     }
 
+    console.log("Jan, Add and Remove worked?")
+
     // Fetch updated roles with role details
-    const updatedUserRoles = await prisma.user_roles.findMany({
-      where: {
-        userid: uid,
-        orgid: session.user.orgId,
-        active: true
-      },
-      include: {
-        roles: true
-      }
-    })
+    const updatedUserRoles = await prisma.$queryRaw`
+    SELECT 
+    ur.uid,
+    r.uid AS role_uid,
+    r.role_name,
+    r.description
+  FROM 
+    user_roles AS ur
+  JOIN 
+    roles AS r ON ur.roleid = r.uid
+  WHERE 
+    ur.userid = ${uid}::uuid AND
+    ur.orgid = ${session.user.orgId}::uuid AND
+    ur.active = true
+` || []
+
+    console.log("Jan, Updated User Roles:", updatedUserRoles);
 
     // Transform the result to return just the role details
-    const roles = updatedUserRoles
-      .map(ur => ({
-        uid: ur.roles?.uid || '',
-        role_name: ur.roles?.role_name || '',
-        description: ur.roles?.description || null
-      }))
-      .filter(role => role.uid !== '')
+    const roles = Array.isArray(updatedUserRoles) 
+      ? updatedUserRoles.map((ur: any) => ({
+          uid: ur.role_uid || '',
+          role_name: ur.role_name || '',
+          description: ur.description || null
+        }))
+      : []
 
     return NextResponse.json(roles)
 

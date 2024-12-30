@@ -178,7 +178,15 @@ export function UserSettings() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
 
-      setUserRoles(data)
+      if (action === 'add') {
+        const roleToAdd = availableRoles.find(role => role.uid === roleId)
+        if (roleToAdd) {
+          setUserRoles(prev => [...prev, roleToAdd])
+        }
+      } else {
+        setUserRoles(prev => prev.filter(role => role.uid !== roleId))
+      }
+
       toast.success(`Role ${action === 'add' ? 'added' : 'removed'} successfully`)
     } catch (error) {
       console.error('Failed to update user roles:', error)
