@@ -13,10 +13,10 @@ export async function GET() {
       )
     }
 
+    console.log("[api/settings/users/roles] Getting all roles for organization " + session.user.orgId);
     // Fetch all roles for the organization
     const roles = await prisma.roles.findMany({
       where: {
-        orgid: session.user.orgId,
         active: true
       },
       select: {
@@ -25,6 +25,8 @@ export async function GET() {
         description: true
       }
     })
+
+    console.log("[api/settings/users/roles] Roles found:", roles)
 
     return NextResponse.json(roles)
   } catch (error) {

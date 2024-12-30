@@ -18,33 +18,48 @@ export async function GET(
       )
     }
 
-    // Fetch user roles
-    const userRoles = await prisma.user_roles.findMany({
-      where: {
-        userid: uid,
-        orgid: session.user.orgId,
-        active: true
-      },
-      include: {
-        roles: {
-          select: {
-            uid: true,
-            role_name: true,
-            description: true
-          }
-        }
-      }
-    })
+    console.log("[api/settings/users/[uid]/roles] Getting user roles for " + uid);
+    console.log("[api/settings/users/[uid]/roles] orgid:", session.user.orgId);
+    
 
-    // Transform the result to return just the role details
-    const roles = userRoles
-      .map(ur => ur.roles)
-      .filter((role): role is NonNullable<typeof role> => role !== null)
 
-    // Return empty array if no roles found
-    return NextResponse.json(roles.length ? roles : [])
+
+    // Fetch user roles using $queryRaw
+    const userRoles = await prisma.$queryRaw`
+        SELECT 
+        ur.uid,
+        r.uid AS role_uid,
+        r.role_name,
+        r.description
+      FROM 
+        user_roles AS ur
+      JOIN 
+        roles AS r ON ur.roleid = r.uid
+      WHERE 
+        ur.userid = ${uid}::uuid AND
+        ur.orgid = ${session.user.orgId}::uuid AND
+        ur.active = true
+    ` || []  // Default to empty array if null
+
+    console.log("Hello Jan")
+    console.log("[api/settings/users/[uid]/roles] User roles found:", userRoles)
+
+    // Transform the result to match the expected shape, handling null case
+    const roles = Array.isArray(userRoles) 
+      ? userRoles.map((ur: any) => ({
+          uid: ur.role_uid,
+          role_name: ur.role_name,
+          description: ur.description
+        }))
+      : []
+
+    return NextResponse.json(roles)
   } catch (error) {
-    console.error('Failed to fetch user roles:', error)
+    if (error) {
+        console.error('Failed to fetch user roles:', error)
+      } else {
+        console.error('Failed to fetch user roles: Unknown error')
+      }
     return NextResponse.json(
       { error: 'Failed to fetch user roles' },
       { status: 500 }

@@ -64,6 +64,36 @@ export function UserSettings() {
   }, [])
 
   useEffect(() => {
+    const fetchUserData = async () => {
+      if (!selectedUser) return
+
+      try {
+        const [rolesResponse, userRolesResponse] = await Promise.all([
+          fetch('/api/settings/users/roles'),
+          fetch(`/api/settings/users/${selectedUser.uid}/roles`)
+        ])
+
+        const [rolesData, userRolesData] = await Promise.all([
+          rolesResponse.json(),
+          userRolesResponse.json()
+        ])
+
+        if (!rolesResponse.ok) throw new Error('Failed to fetch available roles')
+        if (!userRolesResponse.ok) throw new Error('Failed to fetch user roles')
+
+        setAvailableRoles(rolesData || [])
+        setUserRoles(userRolesData || [])
+      } catch (error) {
+        console.error('Failed to fetch role data:', error)
+        toast.error('Failed to load role information')
+        setUserRoles([])
+      }
+    }
+
+    fetchUserData()
+  }, [selectedUser])
+
+  useEffect(() => {
     if (selectedUser) {
       setFormData({
         title: selectedUser.title || '',
@@ -74,40 +104,6 @@ export function UserSettings() {
         phone: selectedUser.cell_no || ''
       })
     }
-  }, [selectedUser])
-
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const response = await fetch('/api/settings/users/roles')
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error)
-        setAvailableRoles(data)
-      } catch (error) {
-        console.error('Failed to fetch roles:', error)
-        toast.error('Failed to fetch available roles')
-      }
-    }
-
-    fetchRoles()
-  }, [])
-
-  useEffect(() => {
-    const fetchUserRoles = async () => {
-      if (!selectedUser) return
-
-      try {
-        const response = await fetch(`/api/settings/users/${selectedUser.uid}/roles`)
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error)
-        setUserRoles(data)
-      } catch (error) {
-        console.error('Failed to fetch user roles:', error)
-        toast.error('Failed to fetch user roles')
-      }
-    }
-
-    fetchUserRoles()
   }, [selectedUser])
 
   const handleFieldChange = (field: keyof UpdateUserPayload, value: string) => {

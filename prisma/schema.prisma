@@ -194,7 +194,6 @@ model roles {
   uid          String    @id @db.Uuid
   role_name    String?   @db.VarChar(255)
   description  String?
-  orgid        String?   @db.Uuid
   active       Boolean?
   date_created DateTime? @db.Timestamp(6)
   last_edit    DateTime? @db.Timestamp(6)
