@@ -22,8 +22,6 @@ export async function GET(
     console.log("[api/settings/users/[uid]/roles] orgid:", session.user.orgId);
     
 
-
-
     // Fetch user roles using $queryRaw
     const userRoles = await prisma.$queryRaw`
         SELECT 
