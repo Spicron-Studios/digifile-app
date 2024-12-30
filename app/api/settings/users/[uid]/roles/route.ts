@@ -16,11 +16,7 @@ export async function GET(
         { error: 'Unauthorized' },
         { status: 401 }
       )
-    }
-
-    console.log("[api/settings/users/[uid]/roles] Getting user roles for " + uid);
-    console.log("[api/settings/users/[uid]/roles] orgid:", session.user.orgId);
-    
+    } 
 
     // Fetch user roles using $queryRaw
     const userRoles = await prisma.$queryRaw`
@@ -38,9 +34,6 @@ export async function GET(
         ur.orgid = ${session.user.orgId}::uuid AND
         ur.active = true
     ` || []  // Default to empty array if null
-
-    console.log("Hello Jan")
-    console.log("[api/settings/users/[uid]/roles] User roles found:", userRoles)
 
     // Transform the result to match the expected shape, handling null case
     const roles = Array.isArray(userRoles) 
@@ -91,6 +84,9 @@ export async function PUT(
     }
 
     if (action === 'add') {
+
+        console.log("Adding Role");
+
       // Check for existing role (active or inactive)
       const existingRole = await prisma.user_roles.findFirst({
         where: {
@@ -100,8 +96,12 @@ export async function PUT(
         }
       })
 
+      console.log("Existing Role:", existingRole);
+
       if (existingRole) {
         // Update existing role to active
+
+        console.log("Updating Existing Role");
         await prisma.user_roles.update({
           where: {
             uid: existingRole.uid
@@ -111,7 +111,12 @@ export async function PUT(
             last_edit: new Date()
           }
         })
+
+        console.log("Existing Role Updated");
+
       } else {
+
+        console.log("Creating New Role");
         // Create new user role record
         await prisma.user_roles.create({
           data: {
@@ -125,8 +130,11 @@ export async function PUT(
             locked: false
           }
         })
+
+        console.log("New Role Created");
       }
     } else {
+        
       // Set role to inactive
       await prisma.user_roles.updateMany({
         where: {
