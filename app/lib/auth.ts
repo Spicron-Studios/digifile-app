@@ -78,7 +78,7 @@ export const {
         if (!credentials?.bfhNumber || !credentials?.username || !credentials?.password) {
           return null
         }
-        console.log('hello world')
+
 
         try {
           const org = await prisma.organization_info.findFirst({
@@ -87,6 +87,7 @@ export const {
               active: true
             }
           })
+
 
           if (!org) return null
 
