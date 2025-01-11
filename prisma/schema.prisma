@@ -281,3 +281,9 @@ model users {
   orgid        String?   @db.Uuid
   locked       Boolean?
 }
+
+model Practice_Types {
+  uuid  String  @id @db.Uuid
+  codes String?
+  name  String?
+}

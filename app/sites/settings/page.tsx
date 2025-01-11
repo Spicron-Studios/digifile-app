@@ -7,8 +7,8 @@ import { DebitOrderSettings } from "./DebitOrderSettings"
 
 export default function SettingsPage() {
   return (
-    <div className="flex h-screen bg-white">
-      <Tabs defaultValue="general" className="flex h-full w-full">
+    <div className="h-full">
+      <Tabs defaultValue="general" className="flex h-full">
         <div className="w-64 border-r bg-gray-50">
           <TabsList className="flex h-full w-full flex-col items-stretch gap-1 bg-transparent p-2">
             <TabsTrigger
@@ -32,16 +32,16 @@ export default function SettingsPage() {
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-hidden">
-          <TabsContent value="general" className="h-full mt-0 border-0 p-0">
+        <div className="flex-1">
+          <TabsContent value="general" className="h-full m-0 border-0">
             <GeneralSettings />
           </TabsContent>
 
-          <TabsContent value="users" className="h-full mt-0 border-0 p-0">
+          <TabsContent value="users" className="h-full m-0 border-0">
             <UserSettings />
           </TabsContent>
 
-          <TabsContent value="debit-order" className="h-full mt-0 border-0 p-0">
+          <TabsContent value="debit-order" className="h-full m-0 border-0">
             <DebitOrderSettings />
           </TabsContent>
         </div>

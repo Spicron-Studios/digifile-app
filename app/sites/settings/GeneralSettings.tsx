@@ -151,8 +151,8 @@ export function GeneralSettings() {
   }
 
   return (
-    <div className="h-full">
-      <ScrollArea className="h-full">
+    <div className="h-full bg-gray-50">
+      <div className="h-full overflow-y-auto">
         <form onSubmit={handleSubmit} className="space-y-4 p-4">
           {/* Organization Info Card */}
           <Card className="p-6">
@@ -389,7 +389,7 @@ export function GeneralSettings() {
           </Button>
         </div>
         </form>
-      </ScrollArea>
+      </div>
 
       {selectedConsent && (
         <ConsentModal
