@@ -27,6 +27,12 @@ type OrganizationInfo = {
   email: string | null
 }
 
+type PracticeType = {
+  uuid: string
+  codes: string | null
+  name: string | null
+}
+
 export function GeneralSettings() {
   const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -34,6 +40,7 @@ export function GeneralSettings() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedConsent, setSelectedConsent] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [practiceTypes, setPracticeTypes] = useState<PracticeType[]>([])
 
   // Fetch organization info
   useEffect(() => {
@@ -57,6 +64,22 @@ export function GeneralSettings() {
     }
 
     fetchOrgInfo()
+  }, [])
+
+  useEffect(() => {
+    const fetchPracticeTypes = async () => {
+      try {
+        const response = await fetch('/api/practice-types')
+        const data = await response.json()
+        if (response.ok) {
+          setPracticeTypes(data)
+        }
+      } catch (error) {
+        console.error('Error fetching practice types:', error)
+      }
+    }
+
+    fetchPracticeTypes()
   }, [])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -197,8 +220,11 @@ export function GeneralSettings() {
                       <SelectValue placeholder="Practice Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="test1">Test Value 1</SelectItem>
-                      <SelectItem value="test2">Test Value 2</SelectItem>
+                      {practiceTypes.map((type) => (
+                        <SelectItem key={type.uuid} value={type.uuid}>
+                          {type.codes} - {type.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

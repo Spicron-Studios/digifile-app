@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select"
+import { useEffect, useState } from 'react'
 
 interface PracticeInfoFormProps {
   value: {
@@ -31,7 +32,31 @@ interface PracticeInfoFormProps {
   };
 }
 
+type PracticeType = {
+  uuid: string
+  codes: string | null
+  name: string | null
+}
+
 export function PracticeInfoForm({ value, onChange, errors }: PracticeInfoFormProps) {
+  const [practiceTypes, setPracticeTypes] = useState<PracticeType[]>([])
+
+  useEffect(() => {
+    const fetchPracticeTypes = async () => {
+      try {
+        const response = await fetch('/api/practice-types')
+        const data = await response.json()
+        if (response.ok) {
+          setPracticeTypes(data)
+        }
+      } catch (error) {
+        console.error('Error fetching practice types:', error)
+      }
+    }
+
+    fetchPracticeTypes()
+  }, [])
+
   const handleInputChange = (field: keyof typeof value) => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -107,8 +132,11 @@ export function PracticeInfoForm({ value, onChange, errors }: PracticeInfoFormPr
             <SelectValue placeholder="Select practice type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="dentist">Dentist</SelectItem>
-            <SelectItem value="vodoo">Vodoo</SelectItem>
+            {practiceTypes.map((type) => (
+              <SelectItem key={type.uuid} value={type.uuid}>
+                {type.codes} - {type.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
