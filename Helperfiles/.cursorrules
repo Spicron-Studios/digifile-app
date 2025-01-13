@@ -121,3 +121,16 @@ export default async function ProtectedPage() {
 
 
 </Auth>
+
+
+<SupaBase Bucket>
+Supabase Buckets are used for storing signatures, Logos and Documents.
+
+Logos - /{orgid}/logo/
+Signatures - /{orgid}/signatures/
+Consent Forms - /{orgid}/consent-forms/
+Documents - /{orgid}/documents/
+
+We are using Bucket "DigiFile_Public" for storing all Documents. As seen above, the paths for the documents.
+
+</SupaBase Bucket>

@@ -10,6 +10,7 @@ import { ScrollArea } from "@/app/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { ConsentModal } from "@/app/components/ui/consent-modal"
 import { toast } from "sonner"
+import { createClient } from '@supabase/supabase-js'
 
 type OrganizationInfo = {
   uid: string
@@ -33,6 +34,12 @@ type PracticeType = {
   name: string | null
 }
 
+// Add Supabase client initialization
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
 export function GeneralSettings() {
   const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -41,6 +48,7 @@ export function GeneralSettings() {
   const [selectedConsent, setSelectedConsent] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [practiceTypes, setPracticeTypes] = useState<PracticeType[]>([])
+  const [logoFile, setLogoFile] = useState<File | null>(null)
 
   // Fetch organization info
   useEffect(() => {
@@ -82,11 +90,48 @@ export function GeneralSettings() {
     fetchPracticeTypes()
   }, [])
 
+  // Fetch logo on component mount
+  useEffect(() => {
+    const fetchLogo = async () => {
+      if (!orgInfo?.uid) return
+      
+      const { data } = supabase.storage
+        .from('DigiFile_Public')
+        .getPublicUrl(`${orgInfo.uid}/logo/${orgInfo.uid}-logo.jpg`)
+
+      if (data?.publicUrl) {
+        setLogoUrl(data.publicUrl)
+      }
+    }
+
+    fetchLogo()
+  }, [orgInfo?.uid])
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!orgInfo?.uid) return
 
     try {
+      // Handle logo upload if new file was selected
+      if (logoFile) {
+        const formData = new FormData()
+        formData.append('file', logoFile)
+
+        const uploadResponse = await fetch(`/api/settings/organization/${orgInfo.uid}/logo`, {
+          method: 'PUT',
+          body: formData
+        })
+
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json()
+          throw new Error(error.error || 'Failed to upload logo')
+        }
+
+        const { url: newLogoUrl } = await uploadResponse.json()
+        setLogoUrl(newLogoUrl)
+      }
+
+      // Rest of the organization update logic
       const response = await fetch(`/api/settings/organization/${orgInfo.uid}`, {
         method: 'PUT',
         headers: {
@@ -107,17 +152,17 @@ export function GeneralSettings() {
         }),
       })
 
+      const responseData = await response.json()
+      
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to update organization info')
+        throw new Error(responseData.error || 'Failed to update organization info')
       }
       
-      const updatedData = await response.json()
-      setOrgInfo(updatedData)
+      setOrgInfo(responseData)
       toast.success('Organization information updated successfully')
     } catch (error) {
       console.error('Error updating organization info:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to update organization information')
+      toast.error(error instanceof Error ? error.message : 'An error occurred while updating')
     }
   }
 
@@ -129,18 +174,54 @@ export function GeneralSettings() {
     }))
   }
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const url = URL.createObjectURL(file)
-      setLogoUrl(url)
+  const handleFileUpload = async (file: File, type: 'logo' | 'consent', consentNumber?: number) => {
+    if (!orgInfo?.uid) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    if (type === 'consent' && consentNumber) {
+      formData.append('consentNumber', consentNumber.toString())
+    }
+
+    try {
+      const uploadResponse = await fetch(`/api/settings/organization/${orgInfo.uid}/upload`, {
+        method: 'PUT',
+        body: formData
+      })
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json()
+        throw new Error(error.error || 'Failed to upload file')
+      }
+
+      const { url: newUrl } = await uploadResponse.json()
+      
+      if (type === 'logo') {
+        setLogoUrl(newUrl)
+      }
+      
+      toast.success(`${type === 'logo' ? 'Logo' : 'Consent document'} uploaded successfully`)
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to upload file')
     }
   }
 
-  const handleConsentFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      console.log(`Uploading file for consent: ${file.name}`)
+      setLogoFile(file)
+      const url = URL.createObjectURL(file)
+      setLogoUrl(url)
+      handleFileUpload(file, 'logo')
+    }
+  }
+
+  const handleConsentFileUpload = (event: React.ChangeEvent<HTMLInputElement>, consentNumber: number) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      handleFileUpload(file, 'consent', consentNumber)
     }
   }
 
@@ -190,6 +271,10 @@ export function GeneralSettings() {
                       width={200}
                       height={200}
                       className="h-full w-full object-cover"
+                      unoptimized
+                      onError={() => {
+                        setLogoUrl("/placeholder.svg?height=200&width=200")
+                      }}
                     />
                   </div>
                   <div>
@@ -380,6 +465,7 @@ export function GeneralSettings() {
                   </span>
                   <div className="flex gap-2">
                     <Button
+                      type="button"
                       variant="outline"
                       onClick={() => openModal(consentNumber)}
                     >
@@ -391,10 +477,10 @@ export function GeneralSettings() {
                         accept=".txt"
                         id={`consent-${consentNumber}-upload`}
                         className="sr-only"
-                        onChange={handleConsentFileUpload}
+                        onChange={(e) => handleConsentFileUpload(e, consentNumber)}
                       />
                       <label htmlFor={`consent-${consentNumber}-upload`}>
-                        <Button variant="outline" asChild>
+                        <Button variant="outline" type="button" asChild>
                           <span>
                             <Upload className="mr-2 h-4 w-4" />
                             Upload
@@ -422,6 +508,7 @@ export function GeneralSettings() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           consentNumber={selectedConsent}
+          orgId={orgInfo.uid}
         />
       )}
     </div>
