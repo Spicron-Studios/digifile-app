@@ -4,11 +4,11 @@ import { NextResponse } from "next/server"
 import prisma from '@/app/lib/prisma'
 import { Account, CalendarEvent, CalendarEntry } from '@/app/types/calendar'
 import { Logger } from '@/app/lib/logger'
+import { auth } from '@/app/lib/auth'
 
 const logger = Logger.getInstance()
 const FILE_NAME = 'api/calendar/route.ts'
 
-// Initialize logger once at module level
 await logger.init()
 
 const COLORS = [
@@ -73,30 +73,42 @@ export async function GET() {
   try {
     await logger.info(FILE_NAME, 'Calendar API request received')
 
+    const session = await auth()
+    if (!session?.user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', type: 'AUTH_ERROR' },
+        { status: 401 }
+      )
+    }
+
+    const isAdmin = session.user.roles.some(r => 
+      r.role.name.toLowerCase() === 'admin'
+    )
+    const isOrganizer = session.user.roles.some(r => 
+      r.role.name.toLowerCase() === 'organizer'
+    )
+
     const headers = {
       'Content-Type': 'application/json',
     }
 
-    // Test database connection
-    try {
-      await prisma.$connect()
-      await logger.debug(FILE_NAME, 'Database connection successful')
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      await logger.error(FILE_NAME, `Database connection failed: ${errorMessage}`)
-      throw new Error('Database connection failed')
+    await prisma.$connect()
+    await logger.debug(FILE_NAME, 'Database connection successful')
+
+    // Build the where clause based on user role
+    const whereClause = {
+      AND: [
+        { active: true },
+        { orgid: session.user.orgId }
+      ]
     }
 
-    await logger.debug(FILE_NAME, 'Fetching active users')
+    // If not admin/organizer, only show the user's own calendar
+    if (!isAdmin && !isOrganizer) {
+      whereClause.AND.push({ uid: session.user.id })
+    }
 
-    const users = await prisma.users.findMany({
-      where: {
-        AND: [
-          { active: true },
-          { orgid: process.env.ORGANIZATION_ID }
-        ]
-      }
-    })
+    const users = await prisma.users.findMany({ where: whereClause })
 
     if (users.length === 0) {
       await logger.info(FILE_NAME, 'No active users found')
@@ -105,7 +117,7 @@ export async function GET() {
         { status: 404, headers }
       )
     }
-    
+
     await logger.debug(FILE_NAME, `Found ${users.length} active users`)
 
     const userCalendarEntries = await prisma.user_calendar_entries.findMany({
@@ -192,4 +204,4 @@ export async function GET() {
   } finally {
     await prisma.$disconnect()
   }
-} 
+}

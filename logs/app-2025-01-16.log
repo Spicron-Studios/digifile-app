@@ -11,3 +11,47 @@ Logger initialized
 [2025-01-16 20:07:48.529] (DEBUG) - api/calendar/route.ts - Found 5 active users
 [2025-01-16 20:07:48.962] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
 [2025-01-16 20:07:48.965] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+Logger initialized
+[2025-01-16 21:39:18.489] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:39:19.854] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:39:19.857] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2025-01-16 21:39:20.276] (DEBUG) - api/calendar/route.ts - Found 5 active users
+[2025-01-16 21:39:20.636] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2025-01-16 21:39:20.639] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2025-01-16 21:41:04.897] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:41:06.180] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:41:06.183] (DEBUG) - api/calendar/route.ts - Fetching active users
+[2025-01-16 21:41:06.544] (DEBUG) - api/calendar/route.ts - Found 5 active users
+[2025-01-16 21:41:06.904] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2025-01-16 21:41:06.905] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+Logger initialized
+[2025-01-16 21:42:56.709] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:42:58.193] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:42:58.602] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2025-01-16 21:42:59.011] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2025-01-16 21:42:59.017] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2025-01-16 21:42:59.255] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:43:00.752] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:43:01.162] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2025-01-16 21:43:01.523] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2025-01-16 21:43:01.527] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2025-01-16 21:43:34.192] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:43:34.199] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:43:34.647] (DEBUG) - api/calendar/route.ts - Found 1 active users
+[2025-01-16 21:43:35.057] (DEBUG) - api/calendar/route.ts - Found 2 calendar entries
+[2025-01-16 21:43:35.059] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2025-01-16 21:43:35.245] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:43:36.695] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:43:37.079] (DEBUG) - api/calendar/route.ts - Found 1 active users
+[2025-01-16 21:43:37.502] (DEBUG) - api/calendar/route.ts - Found 2 calendar entries
+[2025-01-16 21:43:37.507] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2025-01-16 21:49:35.495] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:49:35.510] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:49:35.917] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2025-01-16 21:49:36.328] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2025-01-16 21:49:36.330] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved
+[2025-01-16 21:49:36.478] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-16 21:49:37.965] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-16 21:49:38.374] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2025-01-16 21:49:38.784] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2025-01-16 21:49:38.786] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved

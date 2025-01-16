@@ -227,3 +227,69 @@ To modify logo handling:
     - Clear user feedback
     - Proper error boundaries
     - Role-appropriate error messages
+
+### Calendar Access Control
+
+1. **Role-Based Calendar Access**
+   - **Admin/Organizer Access**
+     - Can view all users' calendars
+     - Full access to calendar management
+     - Can add/edit appointments for any user
+   - **Regular Users**
+     - Can only view their own calendar
+     - Limited to managing own appointments
+     - Cannot access other users' calendars
+
+2. **Implementation Details**
+   ```typescript
+   const hasAdminAccess = session?.user?.roles?.some(r => 
+     r.role.name.toLowerCase() === 'admin' || 
+     r.role.name.toLowerCase() === 'organizer'
+   )
+   ```
+   - Used consistently in calendar components
+   - Controls both UI visibility and data access
+   - Applied at both client and server levels
+
+3. **Security Implementation**
+   - **Client-side**
+     - Role checks for UI rendering
+     - Filtered calendar view based on roles
+     - Conditional rendering of admin features
+   - **Server-side**
+     - Session validation
+     - Role-based data filtering
+     - Organization-scoped queries
+     - Protected API endpoints
+
+4. **Data Access Patterns**
+   - Admin/Organizer: All organization calendars
+   - Regular users: Only personal calendar
+   - Organization-scoped queries
+   - Active user filtering
+
+5. **Best Practices**
+   - Consistent role checking methodology
+   - Multi-level access control
+   - Server-side validation for all actions
+   - Clean UI separation based on roles
+   - Proper error handling for unauthorized access
+
+6. **Related Components**
+   - Calendar page component
+   - Calendar API routes
+   - Appointment management
+   - Session integration
+   - Role-based UI elements
+
+7. **Common Patterns**
+   - Early role validation
+   - Conditional data fetching
+   - Consistent access helpers
+   - Clear separation of admin/user views
+
+8. **Error Handling**
+   - Unauthorized access handling
+   - Data fetch failures
+   - Role-appropriate error messages
+   - Graceful UI degradation
