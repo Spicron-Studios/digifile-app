@@ -122,6 +122,49 @@ export default async function ProtectedPage() {
 
 </Auth>
 
+Session Structure>
+The auth() function returns a session object with the following structure:
+
+Session {
+  user: {
+    // Basic user info
+    name: string | null       // Full name (firstName + surname)
+    email: string | null      // User's email address
+    
+    // Organization info
+    orgId: string            // UUID of user's organization
+    
+    // Role information
+    roles: [                 // Array of user roles
+      {
+        role: {
+          uid: string        // Role ID
+          name: string       // Role name (e.g., "admin", "organizer")
+        }
+      }
+    ]
+  }
+  expires: string            // ISO date string when session expires
+}
+
+Common role names:
+- "admin" - Full system access
+- "organizer" - Organization management access
+
+Usage examples:
+1. Check if user is admin:
+   session?.user?.roles?.some(r => r.role.name === "admin")
+
+2. Get organization ID:
+   session?.user?.orgId
+
+3. Get user's full name:
+   session?.user?.name
+
+Note: All session data is automatically filtered by organization ID (orgId) 
+to maintain multi-tenant data separation.
+</Session Structure>
+
 
 <SupaBase Bucket>
 Supabase Buckets are used for storing signatures, Logos and Documents.

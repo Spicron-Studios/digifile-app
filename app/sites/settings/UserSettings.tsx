@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, FormEvent } from "react"
+import { useSession } from "next-auth/react"
 import { Card } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
@@ -35,7 +36,9 @@ type Role = {
 }
 
 export function UserSettings() {
+  const { data: session, status } = useSession()
   const [users, setUsers] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [formData, setFormData] = useState<UpdateUserPayload>({
     title: '',
@@ -48,21 +51,44 @@ export function UserSettings() {
   const [availableRoles, setAvailableRoles] = useState<Role[]>([])
   const [userRoles, setUserRoles] = useState<Role[]>([])
 
+  const isAdmin = session?.user?.roles?.some(r => 
+    r.role.name.toLowerCase() === 'admin'
+  )
+  const isOrganizer = session?.user?.roles?.some(r => 
+    r.role.name.toLowerCase() === 'organizer'
+  )
+
+  const hasRoleManagementAccess = (roles: Session['user']['roles']) => {
+    return roles?.some(r => 
+      r.role.name.toLowerCase() === 'admin' || 
+      r.role.name.toLowerCase() === 'organizer'
+    );
+  };
+
+  // Fetch users effect
   useEffect(() => {
     const fetchUsers = async () => {
+      if (status !== 'authenticated') return
+      
       try {
+        setIsLoading(true)
         const response = await fetch('/api/settings/users')
         const data = await response.json()
+        
         if (!response.ok) throw new Error(data.error)
         setUsers(data)
       } catch (error) {
         console.error('Failed to fetch users:', error)
+        toast.error('Failed to load users')
+      } finally {
+        setIsLoading(false)
       }
     }
 
     fetchUsers()
-  }, [])
+  }, [status])
 
+  // Fetch roles effect
   useEffect(() => {
     const fetchUserData = async () => {
       if (!selectedUser) return
@@ -93,6 +119,7 @@ export function UserSettings() {
     fetchUserData()
   }, [selectedUser])
 
+  // Update form data effect
   useEffect(() => {
     if (selectedUser) {
       setFormData({
@@ -117,7 +144,6 @@ export function UserSettings() {
     e.preventDefault()
     if (!selectedUser) return
 
-    console.log('Sending update:', formData)
 
     try {
       const res = await fetch(`/api/settings/users/${selectedUser.uid}`, {
@@ -192,6 +218,22 @@ export function UserSettings() {
       console.error('Failed to update user roles:', error)
       toast.error('Failed to update user roles')
     }
+  }
+
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Loading...</p>
+      </div>
+    )
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Please sign in to access user settings</p>
+      </div>
+    )
   }
 
   return (
@@ -283,23 +325,6 @@ export function UserSettings() {
                   </div>
                 </div>
 
-                {/* User Role */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                      User Role
-                    </label>
-                    <Select defaultValue="">
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="user">User</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
                 {/* Contact Information */}
                 <div className="grid grid-cols-2 gap-6">
@@ -330,72 +355,73 @@ export function UserSettings() {
               </form>
             </Card>
 
-            {/* User Roles Card */}
-            <Card className="p-6">
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold">User Roles</h3>
-                
-                {/* Current Roles Section */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-700">Current Roles</h4>
-                  {userRoles.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic">No roles assigned</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {userRoles.map((role) => (
-                        <div 
-                          key={role.uid}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                        >
-                          <div>
-                            <span className="font-medium">{role.role_name}</span>
-                            {role.description && (
-                              <p className="text-sm text-gray-500">{role.description}</p>
-                            )}
-                          </div>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRoleChange(role.uid, 'remove')}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Available Roles Section */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-700">Available Roles</h4>
+            {selectedUser && hasRoleManagementAccess(session?.user?.roles) && (
+              <Card className="p-6">
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold">User Roles</h3>
+                  
+                  {/* Current Roles Section */}
                   <div className="space-y-2">
-                    {availableRoles
-                      .filter(role => !userRoles.some(ur => ur.uid === role.uid))
-                      .map((role) => (
-                        <div 
-                          key={role.uid}
-                          className="flex items-center justify-between p-3 bg-white rounded-lg border"
-                        >
-                          <div>
-                            <span className="font-medium">{role.role_name}</span>
-                            {role.description && (
-                              <p className="text-sm text-gray-500">{role.description}</p>
-                            )}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRoleChange(role.uid, 'add')}
+                    <h4 className="text-sm font-medium text-gray-700">Current Roles</h4>
+                    {userRoles.length === 0 ? (
+                      <p className="text-sm text-gray-500 italic">No roles assigned</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {userRoles.map((role) => (
+                          <div 
+                            key={role.uid}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                           >
-                            Add Role
-                          </Button>
-                        </div>
-                      ))}
+                            <div>
+                              <span className="font-medium">{role.role_name}</span>
+                              {role.description && (
+                                <p className="text-sm text-gray-500">{role.description}</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRoleChange(role.uid, 'remove')}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Available Roles Section */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-gray-700">Available Roles</h4>
+                    <div className="space-y-2">
+                      {availableRoles
+                        .filter(role => !userRoles.some(ur => ur.uid === role.uid))
+                        .map((role) => (
+                          <div 
+                            key={role.uid}
+                            className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                          >
+                            <div>
+                              <span className="font-medium">{role.role_name}</span>
+                              {role.description && (
+                                <p className="text-sm text-gray-500">{role.description}</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRoleChange(role.uid, 'add')}
+                            >
+                              Add Role
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">
@@ -407,7 +433,14 @@ export function UserSettings() {
           </div>
         ) : (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold mb-4">User List</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">User List</h2>
+              {(isAdmin || isOrganizer) && (
+                <Button variant="outline" onClick={() => {/* TODO: Add new user */}}>
+                  Add User
+                </Button>
+              )}
+            </div>
             {users.map((user) => (
               <Card key={user.uid} className="p-4">
                 <div className="flex justify-between items-center">
@@ -417,7 +450,12 @@ export function UserSettings() {
                     </h3>
                     <p className="text-sm text-gray-600">{user.email}</p>
                   </div>
-                  <Button onClick={() => setSelectedUser(user)}>Edit</Button>
+                  <Button 
+                    onClick={() => setSelectedUser(user)}
+                    disabled={!isAdmin && !isOrganizer && user.uid !== session?.user?.id}
+                  >
+                    Edit
+                  </Button>
                 </div>
               </Card>
             ))}

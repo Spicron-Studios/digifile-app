@@ -100,3 +100,130 @@ To modify logo handling:
    - Fetches content on demand
    - Server-side file retrieval
    - Error handling for missing files
+
+
+### Session Management
+
+1. **Session Structure**
+   - Contains user identification and organization context
+   - Includes role-based access control information
+   - Available through auth() function server-side
+   - Accessible via useSession() hook client-side
+
+2. **Key Properties**
+   - user.name: Full name from database
+   - user.email: User's email address
+   - user.orgId: Organization identifier
+   - user.roles: Array of role objects
+     - role.uid: Role unique identifier
+     - role.name: Role name (e.g., "admin", "organizer")
+
+3. **Role-Based Access**
+   - Admin role: Full system access
+   - Organizer role: Organization management
+   - Regular users: Limited to own data
+   - Role checks should use toLowerCase() for comparison
+
+4. **Security Considerations**
+   - Session includes orgId for multi-tenant separation
+   - Roles determine UI element visibility
+   - Server-side validation required despite client roles
+   - Session timeout set to 30 minutes
+
+5. **Usage Examples**
+   ```typescript
+   // Server-side
+   const session = await auth()
+   const orgId = session?.user?.orgId
+   
+   // Client-side
+   const { data: session } = useSession()
+   const isAdmin = session?.user?.roles?.some(r => 
+     r.role.name.toLowerCase() === 'admin'
+   )
+   ```
+
+6. **Implementation Files**
+   - app/lib/auth.ts: Core authentication logic
+   - app/hooks/use-session.ts: Client-side hook
+   - app/types/next-auth.d.ts: Type definitions
+   - app/lib/config.ts: Session configuration
+
+### Settings Page Structure
+
+1. **Components**
+   - `settings/page.tsx`: Main settings layout with tabs
+   - `settings/GeneralSettings.tsx`: Organization settings
+   - `settings/UserSettings.tsx`: User management
+   - `settings/DebitOrderSettings.tsx`: Debit order configuration
+
+2. **Role-Based Access Control**
+   - **Admin/Organizer Access**
+     - Full access to all settings tabs
+     - Can view and modify General Settings
+     - Can manage User Settings and roles
+     - Can access Debit Order Settings
+   - **Regular User Access**
+     - Limited to User Settings tab only
+     - Can only edit their own user profile
+     - Cannot view or modify organization settings
+     - Cannot access debit order settings
+
+3. **Tab Management**
+   - Default tab selection based on user role
+   - Admin/Organizer: defaults to "general"
+   - Regular users: defaults to "users"
+   - Conditional tab rendering prevents unauthorized access
+
+4. **Implementation Details**
+   ```typescript
+   const hasAdminAccess = session?.user?.roles?.some(r => 
+     r.role.name.toLowerCase() === 'admin' || 
+     r.role.name.toLowerCase() === 'organizer'
+   )
+   ```
+   - Used consistently across settings components
+   - Controls both UI visibility and access
+   - Applied at both tab and content levels
+
+5. **Security Considerations**
+   - Client-side role checks for UI rendering
+   - Server-side validation required for all actions
+   - Consistent role checking methodology
+   - Protected API routes for sensitive operations
+
+6. **User Settings Access Levels**
+   - **Admin/Organizer**
+     - Can view and edit all users
+     - Can manage user roles
+     - Full access to role management card
+   - **Regular Users**
+     - Can only view own profile
+     - Can edit basic profile information
+     - Cannot view or modify roles
+     - Cannot access other users' data
+
+7. **Best Practices**
+   - Use `hasAdminAccess` helper consistently
+   - Apply role checks at multiple levels
+   - Maintain server-side validation
+   - Keep UI clean and role-appropriate
+   - Handle unauthorized access gracefully
+
+8. **Related Components**
+   - Tabs from shadcn/ui
+   - Custom role-based buttons
+   - Protected API routes
+   - Session management integration
+
+9. **Common Patterns**
+   - Early role checks in components
+   - Conditional rendering based on roles
+   - Consistent access control helpers
+   - Clear separation of admin/user functions
+
+10. **Error Handling**
+    - Graceful degradation for unauthorized access
+    - Clear user feedback
+    - Proper error boundaries
+    - Role-appropriate error messages
