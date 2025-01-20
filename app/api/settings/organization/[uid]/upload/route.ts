@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/app/lib/auth'
 import { getSupabaseClient } from '@/app/lib/supabase'
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { uid: string } }
+) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase client not initialized' }, { status: 500 })
@@ -52,7 +55,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('DigiFile_Public')
       .upload(path, file, {
         upsert: true,
