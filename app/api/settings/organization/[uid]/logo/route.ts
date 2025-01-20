@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseClient } from '@/app/lib/supabase'
 import { auth } from '@/app/lib/auth'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role key for server-side operations
-)
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { uid: string } }
 ) {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase client not initialized' }, { status: 500 })
+  }
+
   try {
     const session = await auth()
     if (!session?.user?.orgId) {
@@ -38,7 +38,7 @@ export async function PUT(
     }
 
     // Upload to Supabase
-    const { data, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('DigiFile_Public')
       .upload(`${params.uid}/logo/${params.uid}-logo.jpg`, file, {
         upsert: true,
