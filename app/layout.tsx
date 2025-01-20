@@ -14,10 +14,10 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body suppressHydrationWarning className="antialiased">
+      <body suppressHydrationWarning className="antialiased overflow-hidden">
         <AuthProvider>
-          <div className="flex h-screen">
-            <main className="flex-1 p-6 overflow-auto">
+          <div className="flex h-screen overflow-hidden">
+            <main className="flex-1">
               {children}
             </main>
           </div>

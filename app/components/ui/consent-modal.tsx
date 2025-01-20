@@ -1,40 +1,62 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog'
+import { ScrollArea } from './scroll-area'
 
-import { Button } from "@/app/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/app/components/ui/dialog"
-
-interface ConsentModalProps {
+type ConsentModalProps = {
   isOpen: boolean
   onClose: () => void
   consentNumber: number
+  orgId: string
 }
 
-export function ConsentModal({ isOpen, onClose, consentNumber }: ConsentModalProps) {
+export function ConsentModal({ isOpen, onClose, consentNumber, orgId }: ConsentModalProps) {
+  const [content, setContent] = useState<string>('')
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchConsentContent = async () => {
+      if (!isOpen) return
+      
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        const response = await fetch(`/api/settings/organization/${orgId}/consent/${consentNumber}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch consent document')
+        }
+        
+        const text = await response.text()
+        setContent(text)
+      } catch (error) {
+        console.error('Error fetching consent content:', error)
+        setError('Failed to load consent document')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchConsentContent()
+  }, [isOpen, consentNumber, orgId])
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Consent {consentNumber}</DialogTitle>
-          <Button
-            variant="ghost"
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
+          <DialogTitle>Consent Document {consentNumber}</DialogTitle>
         </DialogHeader>
-        <DialogDescription className="text-center py-4">
-          Under Construction
-        </DialogDescription>
+        <ScrollArea className="h-[60vh] w-full p-4">
+          {isLoading ? (
+            <div className="flex justify-center">Loading...</div>
+          ) : error ? (
+            <div className="text-red-500">{error}</div>
+          ) : (
+            <pre className="whitespace-pre-wrap font-sans">{content}</pre>
+          )}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

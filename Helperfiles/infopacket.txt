@@ -1,0 +1,77 @@
+require('dotenv').config();  
+const express = require('express');  
+const axios = require('axios');  
+const fs = require('fs');  
+const path = require('path');  
+const { createClient } = require('@supabase/supabase-js');  
+
+const app = express();  
+
+// 1) Load environment variables  
+const supabaseUrl = process.env.SUPABASE_URL;  
+const supabaseKey = process.env.SUPABASE_ANON_KEY;  
+
+// 2) Initialize Supabase client  
+const supabase = createClient(supabaseUrl, supabaseKey);  
+
+// 3) Simple route: lists buckets and displays an image  
+app.get('/', async (req, res) => {  
+  try {  
+    // --------------------------------------------------  
+    // (a) List all buckets  
+    // --------------------------------------------------  
+    const { data: buckets, error: bucketErr } = await supabase.storage.listBuckets();  
+    if (bucketErr) throw bucketErr;  
+
+    let bucketsReport;  
+    if (!buckets || buckets.length === 0) {  
+      bucketsReport = "No buckets found.";  
+    } else {  
+      bucketsReport = buckets.map(  
+        (bucket, idx) => `Bucket #${idx + 1}: ${bucket.name} (ID: ${bucket.id})`  
+      ).join('<br>');  
+    }  
+
+    // --------------------------------------------------  
+    // (b) Get public URL for "3.jpg" from "DigiFile_Storage" bucket  
+    // --------------------------------------------------  
+    const { data: publicData, error: urlError } =   
+      supabase.storage.from('DigiFile_Storage').getPublicUrl('7771231237130/3.jpg');  
+    if (urlError) throw urlError;  
+
+    const publicImageUrl = publicData.publicUrl;  
+    // If you want to download the image to your server:  
+    // const imagePath = path.join(__dirname, '3.jpg');  
+    // const response = await axios.get(publicImageUrl, { responseType: 'arraybuffer' });  
+    // fs.writeFileSync(imagePath, response.data);  
+
+    // --------------------------------------------------  
+    // (c) Return a simple HTML page  
+    // --------------------------------------------------  
+    const html = `  
+      <html>  
+        <head><title>Supabase Node Example</title></head>  
+        <body>  
+          <h1>Bucket List</h1>  
+          <p>${bucketsReport}</p>  
+
+          <h2>Public Image</h2>  
+          <!-- Displays the image from the public URL directly -->  
+          <img src="${publicImageUrl}" alt="Image from Supabase" />  
+        </body>  
+      </html>  
+    `;  
+    res.setHeader('Content-Type', 'text/html');  
+    res.send(html);  
+
+  } catch (error) {  
+    console.error(error);  
+    res.status(500).send("Error listing buckets or fetching image.");  
+  }  
+});  
+
+// 4) Start the server  
+const PORT = process.env.PORT || 3000;  
+app.listen(PORT, () => {  
+  console.log(`Server running at http://localhost:${PORT}/`);  
+});

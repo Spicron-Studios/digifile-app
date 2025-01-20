@@ -24,6 +24,7 @@ export const {
     async jwt({ token, user: dbUser }) {
       const user = dbUser as ExtendedUser | null
       if (user) {
+        token.id = user.uid
         token.orgId = user.orgid
         const userRoles = await prisma.user_roles.findMany({
           where: {
@@ -49,7 +50,6 @@ export const {
             }
           })
         )
-
         token.roles = rolesWithDetails
       }
       return token
@@ -59,6 +59,7 @@ export const {
         ...session,
         user: {
           ...session.user,
+          id: token.id as string,
           orgId: token.orgId as string,
           roles: token.roles
         }
@@ -78,7 +79,7 @@ export const {
         if (!credentials?.bfhNumber || !credentials?.username || !credentials?.password) {
           return null
         }
-        console.log('hello world')
+
 
         try {
           const org = await prisma.organization_info.findFirst({
@@ -87,6 +88,7 @@ export const {
               active: true
             }
           })
+
 
           if (!org) return null
 
@@ -102,7 +104,7 @@ export const {
           if (!user) return null
 
           return {
-            id: user.uid,
+            uid: user.uid,
             name: `${user.first_name} ${user.surname}`,
             email: user.email,
             orgid: user.orgid
