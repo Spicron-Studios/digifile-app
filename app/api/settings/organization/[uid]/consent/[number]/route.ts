@@ -1,11 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextRequest } from 'next/server'
 import { auth } from '@/app/lib/auth'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getSupabaseClient } from '@/app/lib/supabase'
 
 export async function GET(
   request: NextRequest,
@@ -19,6 +14,11 @@ export async function GET(
 
     if (session.user.orgId !== params.uid) {
       return new Response('Forbidden', { status: 403 })
+    }
+
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      return new Response('Supabase client not initialized', { status: 500 })
     }
 
     const path = `${params.uid}/consent-forms/${params.uid}Consent${params.number}.txt`
