@@ -30,6 +30,8 @@ interface CalendarProps {
   accounts: Account[]
   events: CalendarEvent[]
   refreshData: () => void
+  hasAdminAccess: boolean
+  defaultSelectedAccount?: string
 }
 
 interface EventDisplayProps {
@@ -75,12 +77,14 @@ const EventDisplay = ({ event, className, accounts, refreshData }: EventDisplayP
   )
 }
 
-export function Calendar({ accounts, events, refreshData }: CalendarProps) {
+export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaultSelectedAccount }: CalendarProps) {
   const today = startOfToday()
   const [selectedDay, setSelectedDay] = React.useState(today)
   const [currentDate, setCurrentDate] = React.useState(today)
   const [view, setView] = React.useState<ViewType>("month")
-  const [selectedAccounts, setSelectedAccounts] = React.useState<string[]>(accounts.map(account => account.AccountID))
+  const [selectedAccounts, setSelectedAccounts] = React.useState<string[]>(
+    defaultSelectedAccount ? [defaultSelectedAccount] : []
+  )
 
   function previousPeriod() {
     setCurrentDate((prev) => {

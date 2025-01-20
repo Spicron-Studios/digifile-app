@@ -1,18 +1,35 @@
-import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+'use server'
 
-const prisma = new PrismaClient()
+import { NextResponse } from 'next/server'
+import { auth } from "@/app/actions/auth"
+import prisma from '@/app/lib/prisma'
 
 export async function GET() {
   try {
+    // Verify authentication
+    const session = await auth()
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const users = await prisma.users.findMany({
+      where: {
+        AND: [
+          { active: true },
+          { orgid: session.user.orgId } // Use the organization ID from the session
+        ]
+      },
       select: {
         username: true
       }
     })
+    
     return NextResponse.json(users)
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch users' + error }, 
+      { status: 500 }
+    )
   }
 }
 

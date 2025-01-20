@@ -1,0 +1,5 @@
+[2025-01-17 05:21:08.623] (INFO) - api/calendar/route.ts - Calendar API request received
+[2025-01-17 05:21:10.452] (DEBUG) - api/calendar/route.ts - Database connection successful
+[2025-01-17 05:21:10.848] (DEBUG) - api/calendar/route.ts - Found 4 active users
+[2025-01-17 05:21:11.217] (DEBUG) - api/calendar/route.ts - Found 12 calendar entries
+[2025-01-17 05:21:11.221] (INFO) - api/calendar/route.ts - Calendar data successfully retrieved

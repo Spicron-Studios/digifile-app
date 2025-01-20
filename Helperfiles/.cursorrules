@@ -23,6 +23,7 @@ The user asks questions about the following coding languages:
 - HTML
 - CSS
 
+
 ### Code Implementation Guidelines
 Follow these rules when you write code:
 - Use early returns whenever possible to make the code more readable.
@@ -32,70 +33,147 @@ Follow these rules when you write code:
 - Implement accessibility features on elements. For example, a tag should have a tabindex=“0”, aria-label, on:click, and on:keydown, and similar attributes.
 - Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.
 
+## Organization Data Separation Rule
+When working with multi-tenant databases:
+1. Every database query MUST include the orgid filter in the WHERE clause
+2. Store ORGANIZATION_ID in environment variables
+3. Use AND conditions to combine orgid with other filters
+4. Apply this rule to all API routes and database operations
+5. Never expose organization data across tenants
 
 
-<Sentry>
-# Sentry Next.js Troubleshooting Guide
+<PROJECT STRUCTURE>
+project/
+├── app/
+│   ├── actions/                 # Server-side code (internal only)
+│   │   ├── auth.ts             # Re-exports of auth utilities
+│   │   └── *.ts                # Other server actions
+│   ├── api/                    # Server-side code (external connections)
+│   │   ├── auth/               # Auth API routes
+│   │   │   └── [...nextauth]/  # NextAuth.js route handlers
+│   │   │       └── route.ts    # Auth API endpoint
+│   │   └── */route.ts         # Other API routes
+│   ├── components/
+│   │   ├── providers/         # React context providers
+│   │   │   ├── AuthProvider.tsx  # Auth context provider
+│   │   │   └── *.tsx         # Other providers
+│   │   ├── ui/               # Reusable UI components
+│   │   │   └── *.tsx        # UI components
+│   │   └── *.tsx            # Other components
+│   ├── hooks/                # Custom React hooks
+│   │   ├── use-session.ts   # Session management hook
+│   │   └── *.ts             # Other custom hooks
+│   ├── lib/                  # Server components for actions & api
+│   │   ├── auth.ts          # Central auth configuration
+│   │   ├── prisma.ts        # Prisma client
+│   │   ├── utils.ts         # Utility functions
+│   │   └── *.ts             # Other server utilities
+│   ├── login/               # Authentication frontend
+│   │   ├── signin/          # Sign in related pages
+│   │   │   └── page.tsx     # Sign in page
+│   │   ├── registration/    # Registration related pages
+│   │   │   └── page.tsx     # Registration page
+│   │   └── *.tsx            # Other login related pages
+│   ├── sites/               # Main application frontend
+│   │   ├── layout.tsx       # Sites layout
+│   │   ├── file-data/      # File data management
+│   │   │   └── page.tsx    # File data page
+│   │   ├── settings/       # Settings pages
+│   │   │   └── page.tsx    # Settings page
+│   │   └── */page.tsx      # Other site pages
+│   ├── types/              # Shared TypeScript interfaces
+│   │   ├── next-auth.d.ts # Auth type definitions
+│   │   └── *.d.ts         # Other type definitions
+│   └── utils/             # Client-side utility functions
+│       └── *.ts           # Utility files
+├── helperfiles/          # AI rules and context
+│   ├── .cursorrules     # AI coding guidelines
+│   ├── .database_rules  # Database rules
+│   └── *.rules          # Other rule files
+├── middleware.ts        # Auth middleware
+├── next.config.js      # Next.js configuration
+├── tailwind.config.ts  # Tailwind configuration
+├── components.json     # UI component configuration
+└── prisma/
+    ├── migrations/     # Database migration files
+    │   └── *.sql      # Migration files
+    └── schema.prisma  # Database schema
+</PROJECT STRUCTURE>
 
-## Common Issues & Solutions
-### #1. Type Error: Expected 2 arguments
-Symptom: Expected 2 arguments, but got 1
-Solution: Always provide both config object and callback function
-Remember: Callback must return the span
 
-### #2. Property 'finish' does not exist
-Symptom: Property 'finish' does not exist on type 'Span'
-Solution: Use end() instead of finish()
-Remember: Always null-check before calling end()
 
-### #3. Void Type Error
-Symptom: Property 'end' does not exist on type 'void'
-Solution: Return span in callback function
-Remember: (span) => span
-Implementation Example
 
-## Implementation Example
 
-```typescript
-import * as Sentry from '@sentry/nextjs';
 
-export async function handler() {
-  // Parent span
-  const mainSpan = Sentry.startSpan(
-    {
-      name: "Main Operation",
-      op: "http.server"
-    },
-    (span) => span  // ✅ Return the span
-  );
 
-  // Child span
-  const dbSpan = Sentry.startSpan(
-    {
-      name: "Database Query",
-      op: "db.query"
-    },
-    (span) => span  // ✅ Return the span
-  );
 
-  try {
-    // Your operation code here
-    await someOperation();
-  } catch (error) {
-    Sentry.captureException(error);
-    throw error;
-  } finally {
-    // ✅ Null check and use end()
-    if (dbSpan) dbSpan.end();    // End child first
-    if (mainSpan) mainSpan.end(); // End parent last
-  }
+<Auth>
+
+The session will contain the organization ID and user role, which you can access in any protected route using the auth() function:
+``` javascript
+import { auth } from "@/auth"
+
+export default async function ProtectedPage() {
+  const session = await auth()
+  // Access session.user.orgId and session.user.role
 }
 ```
-## Key Principles
-Always use two-argument startSpan
-Return span from callback
-Use end() not finish()
-Check for null before ending
-End spans in reverse order (children first)
-Use appropriate op types for different operations
-</Sentry>
+
+
+</Auth>
+
+Session Structure>
+The auth() function returns a session object with the following structure:
+
+Session {
+  user: {
+    // Basic user info
+    name: string | null       // Full name (firstName + surname)
+    email: string | null      // User's email address
+    
+    // Organization info
+    orgId: string            // UUID of user's organization
+    
+    // Role information
+    roles: [                 // Array of user roles
+      {
+        role: {
+          uid: string        // Role ID
+          name: string       // Role name (e.g., "admin", "organizer")
+        }
+      }
+    ]
+  }
+  expires: string            // ISO date string when session expires
+}
+
+Common role names:
+- "admin" - Full system access
+- "organizer" - Organization management access
+
+Usage examples:
+1. Check if user is admin:
+   session?.user?.roles?.some(r => r.role.name === "admin")
+
+2. Get organization ID:
+   session?.user?.orgId
+
+3. Get user's full name:
+   session?.user?.name
+
+Note: All session data is automatically filtered by organization ID (orgId) 
+to maintain multi-tenant data separation.
+</Session Structure>
+
+
+<SupaBase Bucket>
+Supabase Buckets are used for storing signatures, Logos and Documents.
+
+Logos - /{orgid}/logo/
+Signatures - /{orgid}/signatures/
+Consent Forms - /{orgid}/consent-forms/
+Documents - /{orgid}/documents/
+
+We are using Bucket "DigiFile_Public" for storing all Documents. As seen above, the paths for the documents.
+
+</SupaBase Bucket>
