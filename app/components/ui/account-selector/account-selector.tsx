@@ -20,15 +20,9 @@ export function AccountSelector({
   accounts,
   selectedAccounts,
   onToggleAccount,
-  
 }: AccountSelectorProps) {
   return (
     <div className="flex items-center gap-4 w-full border rounded-lg p-2 bg-white">
-      <AccountList
-        accounts={accounts}
-        selectedAccounts={selectedAccounts}
-        onRemoveAccount={onToggleAccount}
-      />
       <Dialog>
         <DialogTrigger asChild>
           <Button 
@@ -62,6 +56,11 @@ export function AccountSelector({
           </div>
         </DialogContent>
       </Dialog>
+      <AccountList
+        accounts={accounts}
+        selectedAccounts={selectedAccounts}
+        onRemoveAccount={onToggleAccount}
+      />
     </div>
   )
 }
