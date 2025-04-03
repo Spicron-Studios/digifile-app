@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { Tab } from '@headlessui/react'
-import PatientTab from './SectionOne/PatientTab'
-import MedicalCoverTab from './SectionOne/MedicalCoverTab'
-import ExtraTab from './SectionOne/ExtraTab'
+import PatientTab from '../SectionOne/PatientTab'
+import MedicalCoverTab from '../SectionOne/MedicalCoverTab'
+import ExtraTab from '../SectionOne/ExtraTab'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')

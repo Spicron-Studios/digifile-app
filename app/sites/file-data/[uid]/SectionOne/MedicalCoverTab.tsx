@@ -7,7 +7,7 @@ import { Label } from '@/app/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group'
 import { Checkbox } from '@/app/components/ui/checkbox'
 import { Select } from '@/app/components/ui/select'
-import { useSharedContext } from '../../context/SharedContext'
+import { useSharedContext } from '../context/SharedContext'
 
 type CoverType = 'Medical Aid' | 'Private' | 'Injury on Duty'
 

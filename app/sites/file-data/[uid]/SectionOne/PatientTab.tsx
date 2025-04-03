@@ -5,7 +5,7 @@ import { Button } from '@/app/components/ui/button'
 import { Input } from '@/app/components/ui/input'
 import { Label } from '@/app/components/ui/label'
 import { Select } from '@/app/components/ui/select'
-import { useSharedContext } from '../../context/SharedContext'
+import { useSharedContext } from '../context/SharedContext'
 
 export default function PatientTab() {
   const { updatePatientData } = useSharedContext()
