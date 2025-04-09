@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import prisma from '@/app/lib/prisma';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Card } from '@/app/components/ui/card';
 import { v4 as uuidv4 } from 'uuid';
+import { useParams, useRouter } from 'next/navigation';
 
 export default function FileDataListPage() {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const { uid } = useParams();
+  const router = useRouter();
+
   useEffect(() => {
     async function fetchFiles() {
       console.log('%c🚀 Frontend: Starting file fetch', 'color: blue; font-weight: bold');
