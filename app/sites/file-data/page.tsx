@@ -89,8 +89,7 @@ export default function FileDataListPage() {
   console.log(`%c📊 Frontend: Filtered files count: ${filteredFiles.length}`, 'color: green; font-weight: bold');
   
   const handleCreateNew = () => {
-    const newId = uuidv4();
-    window.location.href = `/sites/file-data/${newId}`;
+    window.location.href = `/sites/file-data/new-record`;
   };
   
   return (
