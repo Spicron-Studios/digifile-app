@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'next/navigation';
-import { Button } from '@/app/components/ui/button';
+import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Input } from '@/app/components/ui/input';
@@ -18,8 +17,10 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 
 export default function FileDataPage() {
   const { uid } = useParams();
+  const router = useRouter();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const isNewRecord = uid === 'new-record';
   const [extraInfo, setExtraInfo] = useState(file?.extraInfo || '');
   const [coverType, setCoverType] = useState('medical-aid');
@@ -193,6 +194,121 @@ export default function FileDataPage() {
     });
   };
 
+  // Function to handle input changes for patient data
+  const handlePatientInputChange = (field, value) => {
+    console.log(`Updating patient.${field} to:`, value);
+    
+    // Special handling for ID number - extract and populate date of birth
+    if (field === 'id' && value.length >= 6) {
+      const idNumber = value;
+      const yearPart = idNumber.substring(0, 2);
+      const monthPart = idNumber.substring(2, 4);
+      const dayPart = idNumber.substring(4, 6);
+      
+      // Determine the century
+      const currentYear = new Date().getFullYear();
+      const currentCentury = Math.floor(currentYear / 100);
+      const currentYearLastTwo = currentYear % 100;
+      
+      // If the year part is greater than the current year's last two digits,
+      // it's likely from the previous century
+      const fullYear = parseInt(yearPart) > currentYearLastTwo
+        ? `${currentCentury - 1}${yearPart}`
+        : `${currentCentury}${yearPart}`;
+      
+      // Update date of birth fields
+      setDateOfBirth({
+        year: fullYear,
+        month: monthPart,
+        day: dayPart
+      });
+      
+      // Update the file state with the extracted DOB
+      setFile(prevFile => ({
+        ...prevFile,
+        patient: {
+          ...prevFile.patient,
+          [field]: value,
+          dob: `${fullYear}/${monthPart}/${dayPart}`
+        }
+      }));
+      return;
+    }
+    
+    // Special handling for name - auto-generate initials
+    if (field === 'name' || field === 'surname') {
+      setFile(prevFile => {
+        const newName = field === 'name' ? value : prevFile.patient?.name || '';
+        const newSurname = field === 'surname' ? value : prevFile.patient?.surname || '';
+        
+        // Generate initials from name and surname
+        let initials = '';
+        if (newName) {
+          // Split by spaces in case there's a middle name
+          const nameParts = newName.split(' ');
+          nameParts.forEach(part => {
+            if (part.trim()) {
+              initials += part.charAt(0).toUpperCase() + '.';
+            }
+          });
+        }
+        
+        if (newSurname) {
+          initials += newSurname.charAt(0).toUpperCase() + '.';
+        }
+        
+        return {
+          ...prevFile,
+          patient: {
+            ...prevFile.patient,
+            [field]: value,
+            initials: initials.trim()
+          }
+        };
+      });
+      return;
+    }
+    
+    // Standard handling for other fields
+    setFile(prevFile => ({
+      ...prevFile,
+      patient: {
+        ...prevFile.patient,
+        [field]: value
+      }
+    }));
+  };
+
+  // Function to handle select changes for patient data
+  const handlePatientSelectChange = (field, value) => {
+    console.log(`Updating patient.${field} to:`, value);
+    
+    // Special handling for gender based field
+    if (field === 'title') {
+      // If title is changed, update gender accordingly
+      const gender = value === 'Mr' ? 'male' : value === 'Mrs' ? 'female' : file?.patient?.gender || '';
+      
+      setFile(prevFile => ({
+        ...prevFile,
+        patient: {
+          ...prevFile.patient,
+          [field]: value,
+          gender: gender
+        }
+      }));
+      return;
+    }
+    
+    // Standard handling for other fields
+    setFile(prevFile => ({
+      ...prevFile,
+      patient: {
+        ...prevFile.patient,
+        [field]: value
+      }
+    }));
+  };
+
   useEffect(() => {
     async function fetchFileData() {
       if (isNewRecord) {
@@ -226,6 +342,75 @@ export default function FileDataPage() {
     fetchFileData();
   }, [uid, isNewRecord]);
 
+  // Send header data to layout
+  useEffect(() => {
+    if (file) {
+      const headerData = {
+        fileNumber: file.file_number,
+        accountNumber: file.account_number
+      };
+      
+      // Dispatch a custom event with the header data
+      window.dispatchEvent(new CustomEvent('file-header-data', { detail: headerData }));
+    }
+  }, [file]);
+
+  // Function to save the file data
+  const handleSave = async () => {
+    if (!file) return;
+    
+    try {
+      setSaving(true);
+      console.log('Saving file data:', file);
+      
+      const endpoint = isNewRecord ? '/api/files/new' : `/api/files/${uid}`;
+      const method = isNewRecord ? 'POST' : 'PUT';
+      
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(file),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save file data');
+      }
+      
+      const savedData = await response.json();
+      
+      // Update the file state with the returned data
+      setFile(savedData);
+      
+      // If this was a new record, redirect to the saved record's page
+      if (isNewRecord && savedData.uid) {
+        router.push(`/sites/file-data/${savedData.uid}`);
+      }
+      
+      console.log('File saved successfully:', savedData);
+      alert("File data saved successfully");
+    } catch (error) {
+      console.error('Error saving file:', error);
+      alert("Failed to save file data");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Listen for save trigger from layout
+  useEffect(() => {
+    const handleSaveTrigger = () => {
+      handleSave();
+    };
+    
+    window.addEventListener('file-save-triggered', handleSaveTrigger);
+    
+    return () => {
+      window.removeEventListener('file-save-triggered', handleSaveTrigger);
+    };
+  }, [handleSave]);
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -235,8 +420,8 @@ export default function FileDataPage() {
   }
 
   return (
-    <div className="h-screen max-h-screen flex flex-col overflow-hidden">
-      {/* Main content container - takes remaining height and prevents overflow */}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Main content container - takes full height and prevents overflow */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Section - 50% width */}
         <div className="w-1/2 p-4 overflow-hidden">
@@ -253,31 +438,63 @@ export default function FileDataPage() {
                     {/* Left Column - Row 1 */}
                     <div className="space-y-2">
                       <Label htmlFor="idNo">ID No</Label>
-                      <Input id="idNo" placeholder="Enter ID number" />
+                      <Input 
+                        id="idNo" 
+                        placeholder="Enter ID number" 
+                        value={file?.patient?.id || ''}
+                        onChange={(e) => handlePatientInputChange('id', e.target.value)}
+                      />
                     </div>
                     
-                    {/* Right Column - Row 1 */}
+                    {/* Right Column - Row 1 - CHANGED FROM INPUT TO SELECT */}
                     <div className="space-y-2">
                       <Label htmlFor="title">Title</Label>
-                      <Input id="title" placeholder="Enter title" />
+                      <Select 
+                        value={file?.patient?.title || ''} 
+                        onValueChange={(value) => handlePatientSelectChange('title', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select title" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mr">Mr</SelectItem>
+                          <SelectItem value="Mrs">Mrs</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Left Column - Row 2 */}
                     <div className="space-y-2">
                       <Label htmlFor="name">Name</Label>
-                      <Input id="name" placeholder="Enter name" />
+                      <Input 
+                        id="name" 
+                        placeholder="Enter name" 
+                        value={file?.patient?.name || ''}
+                        onChange={(e) => handlePatientInputChange('name', e.target.value)}
+                      />
                     </div>
 
                     {/* Right Column - Row 2 */}
                     <div className="space-y-2">
                       <Label htmlFor="initials">Initials</Label>
-                      <Input id="initials" placeholder="Enter initials" />
+                      <Input 
+                        id="initials" 
+                        placeholder="Auto-generated from name" 
+                        value={file?.patient?.initials || ''}
+                        onChange={(e) => handlePatientInputChange('initials', e.target.value)}
+                        readOnly
+                      />
                     </div>
 
                     {/* Left Column - Row 3 */}
                     <div className="space-y-2">
                       <Label htmlFor="surname">Surname</Label>
-                      <Input id="surname" placeholder="Enter surname" />
+                      <Input 
+                        id="surname" 
+                        placeholder="Enter surname" 
+                        value={file?.patient?.surname || ''}
+                        onChange={(e) => handlePatientInputChange('surname', e.target.value)}
+                      />
                     </div>
 
                     {/* Right Column - Row 3 (Date of Birth) */}
@@ -325,7 +542,10 @@ export default function FileDataPage() {
                     {/* Left Column - Row 4 */}
                     <div className="space-y-2">
                       <Label htmlFor="gender">Gender</Label>
-                      <Select>
+                      <Select 
+                        value={file?.patient?.gender || ''} 
+                        onValueChange={(value) => handlePatientSelectChange('gender', value)}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
@@ -339,31 +559,57 @@ export default function FileDataPage() {
                     {/* Right Column - Row 4 */}
                     <div className="space-y-2">
                       <Label htmlFor="cellphone">Cellphone</Label>
-                      <Input id="cellphone" placeholder="Enter cellphone number" />
+                      <Input 
+                        id="cellphone" 
+                        placeholder="Enter cellphone number" 
+                        value={file?.patient?.cell_phone || ''}
+                        onChange={(e) => handlePatientInputChange('cell_phone', e.target.value)}
+                      />
                     </div>
 
                     {/* Left Column - Row 5 */}
                     <div className="space-y-2">
                       <Label htmlFor="additionalContact1">Additional Contact Name</Label>
-                      <Input id="additionalContact1" placeholder="Enter contact name" />
+                      <Input 
+                        id="additionalContact1" 
+                        placeholder="Enter contact name" 
+                        value={file?.patient?.additional_name || ''}
+                        onChange={(e) => handlePatientInputChange('additional_name', e.target.value)}
+                      />
                     </div>
 
                     {/* Right Column - Row 5 */}
                     <div className="space-y-2">
-                      <Label htmlFor="additionalContact2">Additional Contact Name</Label>
-                      <Input id="additionalContact2" placeholder="Enter contact name" />
+                      <Label htmlFor="additionalContact2">Additional Contact Cell</Label>
+                      <Input 
+                        id="additionalContact2" 
+                        placeholder="Enter contact cell" 
+                        value={file?.patient?.additional_cell || ''}
+                        onChange={(e) => handlePatientInputChange('additional_cell', e.target.value)}
+                      />
                     </div>
 
                     {/* Left Column - Row 6 */}
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" placeholder="Enter email address" />
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="Enter email address" 
+                        value={file?.patient?.email || ''}
+                        onChange={(e) => handlePatientInputChange('email', e.target.value)}
+                      />
                     </div>
 
                     {/* Full Width - Row 7 */}
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="address">Residential Address</Label>
-                      <Input id="address" placeholder="Enter residential address" />
+                      <Input 
+                        id="address" 
+                        placeholder="Enter residential address" 
+                        value={file?.patient?.address || ''}
+                        onChange={(e) => handlePatientInputChange('address', e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>

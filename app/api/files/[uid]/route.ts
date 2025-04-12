@@ -165,7 +165,7 @@ export async function GET(
   }
 }
 
-// For updating an existing file
+// PUT endpoint for updating an existing file
 export async function PUT(
   request: NextRequest,
   { params }: { params: { uid: string } }
@@ -179,34 +179,61 @@ export async function PUT(
     }
 
     const data = await request.json();
-    console.log(chalk.cyan('📦 API: Received data for update:'), data);
+    
+    // Log the full received data object for debugging
+    console.log(chalk.yellow('📦 API: RECEIVED DATA OBJECT:'));
+    console.log(JSON.stringify(data, null, 2));
 
-    // Update the file info
-    const updatedFileInfo = await prisma.file_info.update({
-      where: {
-        uid: params.uid,
-        orgid: session.user.orgId
-      },
-      data: {
+    // The uid from params is our identifier for file_info
+    const fileUid = params.uid;
+    
+    // First, check if the file_info record exists
+    const existingFileInfo = await prisma.file_info.findUnique({
+      where: { uid: fileUid },
+      include: {
+        fileinfo_patient: {
+          where: { active: true },
+          include: {
+            patient: true
+          }
+        }
+      }
+    });
+    
+    console.log(chalk.cyan(`🔍 API: Existing file_info found: ${!!existingFileInfo}`));
+    if (existingFileInfo) {
+      console.log(chalk.cyan(`🔍 API: Has fileinfo_patient relationships: ${existingFileInfo.fileinfo_patient.length > 0}`));
+    }
+
+    // Upsert the file_info record
+    const upsertedFileInfo = await prisma.file_info.upsert({
+      where: { uid: fileUid },
+      update: {
         file_number: data.file_number,
         account_number: data.account_number,
+        referral_doc_name: data.referral_doc_name,
+        referral_doc_number: data.referral_doc_number,
+        last_edit: new Date(),
+      },
+      create: {
+        uid: fileUid,
+        file_number: data.file_number || '',
+        account_number: data.account_number || '',
+        referral_doc_name: data.referral_doc_name || '',
+        referral_doc_number: data.referral_doc_number || '',
+        orgid: session.user.orgId,
+        active: true,
+        date_created: new Date(),
         last_edit: new Date()
       }
     });
-
-    // Handle patient information - more complex as it involves relationships
+    
+    console.log(chalk.green(`✅ API: File_info upserted with UID: ${upsertedFileInfo.uid}`));
+    
+    // Process patient information if provided
     if (data.patient) {
-      // Check if there's already a patient relationship
-      const existingRelation = await prisma.fileinfo_patient.findFirst({
-        where: {
-          fileid: params.uid,
-          active: true
-        },
-        include: {
-          patient: true
-        }
-      });
-
+      console.log(chalk.cyan('🧑 API: Processing patient data'));
+      
       // Parse date of birth if provided
       let dobDate = null;
       if (data.patient.dob) {
@@ -219,13 +246,24 @@ export async function PUT(
           );
         }
       }
-
-      if (existingRelation) {
+      
+      // Find existing fileinfo_patient relationship if any
+      let existingRelation = null;
+      let existingPatient = null;
+      
+      if (existingFileInfo && existingFileInfo.fileinfo_patient.length > 0) {
+        existingRelation = existingFileInfo.fileinfo_patient[0];
+        existingPatient = existingRelation.patient;
+        console.log(chalk.yellow(`🔄 API: Found existing patient relationship with UID: ${existingPatient.uid}`));
+      }
+      
+      // Decide whether to update existing patient or create new one
+      if (existingPatient) {
         // Update existing patient
+        console.log(chalk.yellow(`🔄 API: Updating existing patient with UID: ${existingPatient.uid}`));
+        
         await prisma.patient.update({
-          where: {
-            uid: existingRelation.patient.uid
-          },
+          where: { uid: existingPatient.uid },
           data: {
             title: data.patient.title,
             name: data.patient.name,
@@ -241,12 +279,18 @@ export async function PUT(
             last_edit: new Date()
           }
         });
+        
+        console.log(chalk.green('✅ API: Existing patient updated'));
       } else if (data.patient.name || data.patient.surname) {
-        // Create new patient
+        // Create new patient and relationship
+        const newPatientUid = uuidv4();
+        console.log(chalk.green(`➕ API: Creating new patient with UID: ${newPatientUid}`));
+        
+        // Create the patient record
         const newPatient = await prisma.patient.create({
           data: {
-            uid: uuidv4(),
-            id: data.patient.id || uuidv4(),
+            uid: newPatientUid,
+            id: data.patient.id || '',
             title: data.patient.title || '',
             name: data.patient.name || '',
             initials: data.patient.initials || '',
@@ -264,180 +308,111 @@ export async function PUT(
             last_edit: new Date()
           }
         });
-
-        // Create the relationship
+        
+        // Create the fileinfo_patient relationship
+        const newRelationUid = uuidv4();
+        console.log(chalk.green(`➕ API: Creating fileinfo_patient relationship with UID: ${newRelationUid}`));
+        
         await prisma.fileinfo_patient.create({
           data: {
-            uid: uuidv4(),
-            fileid: params.uid,
-            patientid: newPatient.uid,
+            uid: newRelationUid,
+            fileid: fileUid,
+            patientid: newPatientUid,
             orgid: session.user.orgId,
             active: true,
             date_created: new Date(),
             last_edit: new Date()
           }
         });
+        
+        console.log(chalk.green('✅ API: New patient and relationship created successfully'));
       }
     }
-
-    // Handle medical cover information
-    if (data.medical_cover) {
-      // Processing medical aid if medical-aid type is selected
-      if (data.medical_cover.type === 'medical-aid' && data.medical_cover.medical_aid) {
-        // Find existing medical aid record
-        const existingMedicalAid = await prisma.patient_medical_aid.findFirst({
-          where: {
-            fileid: params.uid,
-            active: true
-          }
-        });
-        
-        // Get or create medical scheme
-        let schemeId;
-        
-        if (data.medical_cover.medical_aid.name) {
-          const medicalScheme = await prisma.medical_scheme.findFirst({
-            where: {
-              scheme_name: data.medical_cover.medical_aid.name,
-              active: true
-            }
-          });
-          
-          if (medicalScheme) {
-            schemeId = medicalScheme.uid;
-          } else {
-            // Create new medical scheme
-            const newScheme = await prisma.medical_scheme.create({
-              data: {
-                uid: uuidv4(),
-                scheme_name: data.medical_cover.medical_aid.name,
-                active: true,
-                date_created: new Date(),
-                last_edit: new Date(),
-                orgid: session.user.orgId
-              }
-            });
-            schemeId = newScheme.uid;
-          }
-        }
-        
-        if (existingMedicalAid) {
-          // Update existing medical aid
-          await prisma.patient_medical_aid.update({
-            where: {
-              uid: existingMedicalAid.uid
-            },
-            data: {
-              medical_scheme_id: schemeId,
-              membership_number: data.medical_cover.medical_aid.membership_number,
-              patient_dependant_code: data.medical_cover.medical_aid.dependent_code,
-              last_edit: new Date()
-            }
-          });
-        } else if (schemeId) {
-          // Create new medical aid record
-          await prisma.patient_medical_aid.create({
-            data: {
-              uid: uuidv4(),
-              medical_scheme_id: schemeId,
-              membership_number: data.medical_cover.medical_aid.membership_number || '',
-              patient_dependant_code: data.medical_cover.medical_aid.dependent_code || '',
-              fileid: params.uid,
-              orgid: session.user.orgId,
-              active: true,
-              date_created: new Date(),
-              last_edit: new Date()
-            }
-          });
-        }
-      }
-    }
-
-    // Fetch the updated data to return
-    const updatedFile = await prisma.file_info.findFirst({
-      where: {
-        uid: params.uid,
-        active: true
-      },
+    
+    // Fetch the updated file data to return
+    const updatedFileData = await prisma.file_info.findUnique({
+      where: { uid: fileUid },
       include: {
         fileinfo_patient: {
-          where: {
-            active: true
-          },
+          where: { active: true },
           include: {
-            patient: {
-              where: {
-                active: true
-              }
-            }
-          }
-        },
-        patient_medical_aid: {
-          where: {
-            active: true
-          },
-          include: {
-            medical_scheme: true
+            patient: true
           }
         }
       }
     });
-
-    // Get the first linked patient if it exists
-    const filePatient = updatedFile?.fileinfo_patient.length ? updatedFile.fileinfo_patient[0] : null;
-    const patient = filePatient?.patient || null;
     
-    // Get medical aid info if it exists
-    const medicalAid = updatedFile?.patient_medical_aid.length ? updatedFile.patient_medical_aid[0] : null;
-
+    if (!updatedFileData) {
+      console.log(chalk.red('❌ API: Failed to fetch updated file data'));
+      return NextResponse.json({ error: 'File not found after update' }, { status: 404 });
+    }
+    
+    // Get the associated patient data if available
+    const filePatient = updatedFileData.fileinfo_patient[0]?.patient || null;
+    
     // Format date of birth if it exists
     let formattedDob = '';
-    if (patient?.date_of_birth) {
-      const dob = new Date(patient.date_of_birth);
+    if (filePatient?.date_of_birth) {
+      const dob = new Date(filePatient.date_of_birth);
       formattedDob = `${dob.getFullYear()}/${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}`;
     }
-
-    // Return the updated file data
+    
+    // Prepare the response data
     const responseData = {
-      uid: updatedFile?.uid,
-      file_number: updatedFile?.file_number || '',
-      account_number: updatedFile?.account_number || '',
-      patient: {
-        id: patient?.id || '',
-        title: patient?.title || '',
-        name: patient?.name || '',
-        initials: patient?.initials || '',
-        surname: patient?.surname || '',
+      uid: updatedFileData.uid,
+      file_number: updatedFileData.file_number || '',
+      account_number: updatedFileData.account_number || '',
+      referral_doc_name: updatedFileData.referral_doc_name || '',
+      referral_doc_number: updatedFileData.referral_doc_number || '',
+      patient: filePatient ? {
+        id: filePatient.id || '',
+        title: filePatient.title || '',
+        name: filePatient.name || '',
+        initials: filePatient.initials || '',
+        surname: filePatient.surname || '',
         dob: formattedDob,
-        gender: patient?.gender || '',
-        cell_phone: patient?.cell_phone || '',
-        additional_name: patient?.additional_name || '',
-        additional_cell: patient?.additional_cell || '',
-        email: patient?.email || '',
-        address: patient?.address || ''
+        gender: filePatient.gender || '',
+        cell_phone: filePatient.cell_phone || '',
+        additional_name: filePatient.additional_name || '',
+        additional_cell: filePatient.additional_cell || '',
+        email: filePatient.email || '',
+        address: filePatient.address || ''
+      } : {
+        id: '',
+        title: '',
+        name: '',
+        initials: '',
+        surname: '',
+        dob: '',
+        gender: '',
+        cell_phone: '',
+        additional_name: '',
+        additional_cell: '',
+        email: '',
+        address: ''
       },
-      medical_cover: {
-        type: medicalAid ? 'medical-aid' : 'private',
-        same_as_patient: data.medical_cover?.same_as_patient || false,
+      medical_cover: data.medical_cover || {
+        type: 'medical-aid',
+        same_as_patient: false,
         member: {
-          id: data.medical_cover?.member?.id || '',
-          name: data.medical_cover?.member?.name || '',
-          initials: data.medical_cover?.member?.initials || '',
-          surname: data.medical_cover?.member?.surname || '',
-          dob: data.medical_cover?.member?.dob || '',
-          cell: data.medical_cover?.member?.cell || '',
-          email: data.medical_cover?.member?.email || '',
-          address: data.medical_cover?.member?.address || ''
+          id: '',
+          name: '',
+          initials: '',
+          surname: '',
+          dob: '',
+          cell: '',
+          email: '',
+          address: ''
         },
         medical_aid: {
-          name: medicalAid?.medical_scheme?.scheme_name || '',
-          membership_number: medicalAid?.membership_number || '',
-          dependent_code: medicalAid?.patient_dependant_code || ''
+          name: '',
+          membership_number: '',
+          dependent_code: ''
         }
       }
     };
-
-    console.log(chalk.green('✅ API: File updated successfully'));
+    
+    console.log(chalk.green('✅ API: File update completed successfully'));
     return NextResponse.json(responseData);
   } catch (error) {
     console.error(chalk.red('💥 API: Error updating file:'), error);
@@ -445,51 +420,79 @@ export async function PUT(
   }
 }
 
-// POST endpoint to create a new file
+// POST endpoint for creating a new file
 export async function POST(
   request: NextRequest,
   { params }: { params: { uid: string } }
 ) {
   try {
-    console.log(chalk.blue.bold(`🔍 API: /api/files/${params.uid} POST called`));
+    console.log(chalk.blue.bold(`🔍 API: /api/files/new POST called`));
     const session = await auth();
     if (!session?.user?.orgId) {
       console.log(chalk.red('❌ API: No organization ID found in session'));
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    
     const data = await request.json();
-    console.log(chalk.cyan('📦 API: Received data for new file:'), data);
-
-    // Generate a new file UID if not provided
-    const fileUid = params.uid === 'new' ? uuidv4() : params.uid;
-
-    // Create the file_info record
+    
+    // Log the full received data object for debugging
+    console.log(chalk.yellow('📦 API: RECEIVED DATA OBJECT FOR NEW FILE:'));
+    console.log(JSON.stringify(data, null, 2));
+    
+    // Generate a new UUID for this file
+    const newFileUid = uuidv4();
+    console.log(chalk.green(`🆕 API: Generated new file UID: ${newFileUid}`));
+    
+    // Create the file_info record first
     const newFileInfo = await prisma.file_info.create({
       data: {
-        uid: fileUid,
+        uid: newFileUid,
         file_number: data.file_number || '',
         account_number: data.account_number || '',
+        referral_doc_name: data.referral_doc_name || '',
+        referral_doc_number: data.referral_doc_number || '',
         orgid: session.user.orgId,
         active: true,
         date_created: new Date(),
         last_edit: new Date()
       }
     });
-
-    // Handle patient information if provided
-    let patientId = '';
-    if (data.patient && (data.patient.name || data.patient.id_number || data.patient.gender || data.patient.title)) {
-      // Create patient record with expanded fields from schema
+    
+    console.log(chalk.green(`✅ API: New file_info created with UID: ${newFileInfo.uid}`));
+    
+    // Create patient record if patient data is provided
+    let patientData = null;
+    
+    if (data.patient && (data.patient.name || data.patient.surname)) {
+      console.log(chalk.cyan('🧑 API: Processing patient data for new file'));
+      
+      // Parse date of birth if provided
+      let dobDate = null;
+      if (data.patient.dob) {
+        const dobParts = data.patient.dob.split('/');
+        if (dobParts.length === 3) {
+          dobDate = new Date(
+            parseInt(dobParts[0]), // Year
+            parseInt(dobParts[1]) - 1, // Month (0-indexed)
+            parseInt(dobParts[2]) // Day
+          );
+        }
+      }
+      
+      // Generate a new UUID for the patient
+      const newPatientUid = uuidv4();
+      console.log(chalk.green(`➕ API: Creating new patient with UID: ${newPatientUid}`));
+      
+      // Create the patient record
       const newPatient = await prisma.patient.create({
         data: {
-          uid: uuidv4(),
-          id: data.patient.id || uuidv4(),
+          uid: newPatientUid,
+          id: data.patient.id || '',
           title: data.patient.title || '',
           name: data.patient.name || '',
           initials: data.patient.initials || '',
           surname: data.patient.surname || '',
-          date_of_birth: data.patient.dob ? new Date(data.patient.dob) : null,
+          date_of_birth: dobDate,
           gender: data.patient.gender || '',
           cell_phone: data.patient.cell_phone || '',
           additional_name: data.patient.additional_name || '',
@@ -503,62 +506,85 @@ export async function POST(
         }
       });
       
-      patientId = newPatient.uid;
-
-      // Create the relationship between file and patient
+      console.log(chalk.green(`✅ API: Patient created with UID: ${newPatient.uid}`));
+      
+      // Generate a new UUID for the relationship
+      const relationshipUid = uuidv4();
+      
+      // Create the fileinfo_patient relationship
       await prisma.fileinfo_patient.create({
         data: {
-          uid: uuidv4(),
-          fileid: fileUid,
-          patientid: patientId,
+          uid: relationshipUid,
+          fileid: newFileUid,
+          patientid: newPatientUid,
           orgid: session.user.orgId,
           active: true,
           date_created: new Date(),
           last_edit: new Date()
         }
       });
+      
+      console.log(chalk.green(`✅ API: fileinfo_patient relationship created with UID: ${relationshipUid}`));
+      
+      // Store the patient data for the response
+      patientData = {
+        id: data.patient.id || '',
+        title: data.patient.title || '',
+        name: data.patient.name || '',
+        initials: data.patient.initials || '',
+        surname: data.patient.surname || '',
+        dob: data.patient.dob || '',
+        gender: data.patient.gender || '',
+        cell_phone: data.patient.cell_phone || '',
+        additional_name: data.patient.additional_name || '',
+        additional_cell: data.patient.additional_cell || '',
+        email: data.patient.email || '',
+        address: data.patient.address || ''
+      };
     }
-
-    // Create response data object with expanded patient fields
+    
+    // Prepare the response data
     const responseData = {
-      uid: newFileInfo.uid,
-      file_number: newFileInfo.file_number || '',
-      account_number: newFileInfo.account_number || '',
-      patient: {
-        id: patientId || '',
-        title: data.patient?.title || '',
-        name: data.patient?.name || '',
-        initials: data.patient?.initials || '',
-        surname: data.patient?.surname || '',
-        dob: data.patient?.dob || '',
-        gender: data.patient?.gender || '',
-        cell_phone: data.patient?.cell_phone || '',
-        additional_name: data.patient?.additional_name || '',
-        additional_cell: data.patient?.additional_cell || '',
-        email: data.patient?.email || '',
-        address: data.patient?.address || ''
+      uid: newFileUid,
+      file_number: data.file_number || '',
+      account_number: data.account_number || '',
+      referral_doc_name: data.referral_doc_name || '',
+      referral_doc_number: data.referral_doc_number || '',
+      patient: patientData || {
+        id: '',
+        title: '',
+        name: '',
+        initials: '',
+        surname: '',
+        dob: '',
+        gender: '',
+        cell_phone: '',
+        additional_name: '',
+        additional_cell: '',
+        email: '',
+        address: ''
       },
-      medical_cover: {
-        type: data.medical_cover?.type || 'medical-aid',
-        same_as_patient: data.medical_cover?.same_as_patient || false,
+      medical_cover: data.medical_cover || {
+        type: 'medical-aid',
+        same_as_patient: false,
         member: {
-          id: data.medical_cover?.member?.id || '',
-          name: data.medical_cover?.member?.name || '',
-          initials: data.medical_cover?.member?.initials || '',
-          surname: data.medical_cover?.member?.surname || '',
-          dob: data.medical_cover?.member?.dob || '',
-          cell: data.medical_cover?.member?.cell || '',
-          email: data.medical_cover?.member?.email || '',
-          address: data.medical_cover?.member?.address || ''
+          id: '',
+          name: '',
+          initials: '',
+          surname: '',
+          dob: '',
+          cell: '',
+          email: '',
+          address: ''
         },
         medical_aid: {
-          name: data.medical_cover?.medical_aid?.name || '',
-          membership_number: data.medical_cover?.medical_aid?.membership_number || '',
-          dependent_code: data.medical_cover?.medical_aid?.dependent_code || ''
+          name: '',
+          membership_number: '',
+          dependent_code: ''
         }
       }
     };
-
+    
     console.log(chalk.green('✅ API: New file created successfully'));
     return NextResponse.json(responseData);
   } catch (error) {
