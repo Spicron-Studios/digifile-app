@@ -2,43 +2,94 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import prisma from '@/app/lib/prisma';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Card } from '@/app/components/ui/card';
 import { v4 as uuidv4 } from 'uuid';
+import { useParams, useRouter } from 'next/navigation';
 
 export default function FileDataListPage() {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const { uid } = useParams();
+  const router = useRouter();
+
   useEffect(() => {
     async function fetchFiles() {
+      console.log('%c🚀 Frontend: Starting file fetch', 'color: blue; font-weight: bold');
       try {
         const response = await fetch('/api/files');
+        console.log(`%c📡 Frontend: API response status: ${response.status}`, 'color: cyan');
+        
         const data = await response.json();
-        setFiles(data);
+        console.log('%c📦 Frontend: Raw response data:', 'color: green', data);
+        console.log(`%c🔍 Frontend: Is data an array? ${Array.isArray(data)}`, 'color: green');
+        console.log(`%c📊 Frontend: Data length: ${Array.isArray(data) ? data.length : "N/A"}`, 'color: green');
+        
+        if (Array.isArray(data)) {
+          const withPatient = data.filter(file => file.patient?.id || file.patient?.name);
+          const withoutPatient = data.filter(file => !file.patient?.id && !file.patient?.name);
+          console.log(`%c👤 Frontend: Files with patient data: ${withPatient.length}`, 'color: orange');
+          console.log(`%c🚶 Frontend: Files without patient data: ${withoutPatient.length}`, 'color: orange');
+        }
+        
+        // Ensure we always have an array
+        setFiles(Array.isArray(data) ? data : []);
+        console.log('%c✅ Frontend: State updated with file data', 'color: green; font-weight: bold');
       } catch (error) {
-        console.error("Failed to fetch files:", error);
+        console.error('%c❌ Frontend: Failed to fetch files:', 'color: red; font-weight: bold', error);
+        setFiles([]);
       } finally {
         setLoading(false);
+        console.log('%c🏁 Frontend: Loading state set to false', 'color: blue');
       }
     }
     
     fetchFiles();
   }, []);
   
-  const filteredFiles = files.filter(file => 
-    file.file_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    file.account_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    file.patient?.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    file.patient?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Make sure we have an array before filtering
+  console.log('%c📂 Frontend: Current files state before filtering:', 'color: purple', files);
+  console.log(`%c🔍 Frontend: Is files state an array? ${Array.isArray(files)}`, 'color: purple');
+
+  const filteredFiles = Array.isArray(files) 
+    ? files.filter(file => {
+        // Handle case where search query is empty (show all files)
+        if (!searchQuery) return true;
+        
+        // Define what fields we're searching in, handling possible null/undefined values
+        const fileNumber = file.file_number?.toLowerCase() || '';
+        const accountNumber = file.account_number?.toLowerCase() || '';
+        const patientId = file.patient?.id?.toLowerCase() || '';
+        const patientName = file.patient?.name?.toLowerCase() || '';
+        
+        const query = searchQuery.toLowerCase();
+        
+        const matchesFileNumber = fileNumber.includes(query);
+        const matchesAccountNumber = accountNumber.includes(query);
+        const matchesPatientId = patientId.includes(query);
+        const matchesPatientName = patientName.includes(query);
+        
+        if (searchQuery) {
+          console.log('%c🔎 Frontend: Filtering file:', 'color: orange', {
+            uid: file.uid,
+            file_number: file.file_number,
+            matchesFileNumber,
+            matchesAccountNumber,
+            matchesPatientId,
+            matchesPatientName
+          });
+        }
+        
+        return matchesFileNumber || matchesAccountNumber || matchesPatientId || matchesPatientName;
+      })
+    : [];
+
+  console.log(`%c📊 Frontend: Filtered files count: ${filteredFiles.length}`, 'color: green; font-weight: bold');
   
   const handleCreateNew = () => {
-    const newId = uuidv4();
-    window.location.href = `/sites/file-data/${newId}`;
+    window.location.href = `/sites/file-data/new-record`;
   };
   
   return (
