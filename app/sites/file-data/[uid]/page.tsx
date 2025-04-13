@@ -50,6 +50,12 @@ export default function FileDataPage() {
     day: ''
   });
   
+  // Add new states for member info
+  const [memberGender, setMemberGender] = useState('');
+
+  // Add state for medical schemes
+  const [medicalSchemes, setMedicalSchemes] = useState([]);
+
   // Initialize date parts from file data if available
   useEffect(() => {
     if (file?.patient?.dob && typeof file.patient.dob === 'string') {
@@ -309,6 +315,155 @@ export default function FileDataPage() {
     }));
   };
 
+  // Handle member input changes - similar to handlePatientInputChange
+  const handleMemberInputChange = (field, value) => {
+    console.log(`Updating medical_cover.member.${field} to:`, value);
+    
+    // Special handling for ID number - extract and populate date of birth
+    if (field === 'id' && value.length >= 6) {
+      const idNumber = value;
+      const yearPart = idNumber.substring(0, 2);
+      const monthPart = idNumber.substring(2, 4);
+      const dayPart = idNumber.substring(4, 6);
+      
+      // Determine the century
+      const currentYear = new Date().getFullYear();
+      const currentCentury = Math.floor(currentYear / 100);
+      const currentYearLastTwo = currentYear % 100;
+      
+      // If the year part is greater than the current year's last two digits,
+      // it's likely from the previous century
+      const fullYear = parseInt(yearPart) > currentYearLastTwo
+        ? `${currentCentury - 1}${yearPart}`
+        : `${currentCentury}${yearPart}`;
+      
+      // Update date of birth fields
+      setMemberDateOfBirth({
+        year: fullYear,
+        month: monthPart,
+        day: dayPart
+      });
+      
+      // Update the file state with the extracted DOB
+      setFile(prevFile => ({
+        ...prevFile,
+        medical_cover: {
+          ...prevFile.medical_cover,
+          member: {
+            ...prevFile.medical_cover?.member,
+            [field]: value,
+            dob: `${fullYear}/${monthPart}/${dayPart}`
+          }
+        }
+      }));
+      return;
+    }
+    
+    // Special handling for name - auto-generate initials
+    if (field === 'name' || field === 'surname') {
+      setFile(prevFile => {
+        const newName = field === 'name' ? value : prevFile.medical_cover?.member?.name || '';
+        const newSurname = field === 'surname' ? value : prevFile.medical_cover?.member?.surname || '';
+        
+        // Generate initials from name and surname
+        let initials = '';
+        if (newName) {
+          // Split by spaces in case there's a middle name
+          const nameParts = newName.split(' ');
+          nameParts.forEach(part => {
+            if (part.trim()) {
+              initials += part.charAt(0).toUpperCase() + '.';
+            }
+          });
+        }
+        
+        if (newSurname) {
+          initials += newSurname.charAt(0).toUpperCase() + '.';
+        }
+        
+        return {
+          ...prevFile,
+          medical_cover: {
+            ...prevFile.medical_cover,
+            member: {
+              ...prevFile.medical_cover?.member,
+              [field]: value,
+              initials: initials.trim()
+            }
+          }
+        };
+      });
+      return;
+    }
+    
+    // Standard handling for other fields
+    setFile(prevFile => ({
+      ...prevFile,
+      medical_cover: {
+        ...prevFile.medical_cover,
+        member: {
+          ...prevFile.medical_cover?.member,
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  // Function to handle select changes for member data - similar to handlePatientSelectChange
+  const handleMemberSelectChange = (field, value) => {
+    console.log(`Updating medical_cover.member.${field} to:`, value);
+    
+    // Special handling for gender based field
+    if (field === 'title') {
+      // If title is changed, update gender accordingly
+      const gender = value === 'Mr' ? 'male' : value === 'Mrs' ? 'female' : memberGender || '';
+      setMemberGender(gender);
+      
+      setFile(prevFile => ({
+        ...prevFile,
+        medical_cover: {
+          ...prevFile.medical_cover,
+          member: {
+            ...prevFile.medical_cover?.member,
+            [field]: value,
+            gender: gender
+          }
+        }
+      }));
+      return;
+    }
+    
+    // Standard handling for other fields
+    setFile(prevFile => ({
+      ...prevFile,
+      medical_cover: {
+        ...prevFile.medical_cover,
+        member: {
+          ...prevFile.medical_cover?.member,
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  // Function to handle medical scheme selection
+  const handleMedicalSchemeChange = (schemeId) => {
+    console.log('Selected medical scheme:', schemeId);
+    
+    setFile(prevFile => ({
+      ...prevFile,
+      medical_cover: {
+        ...prevFile.medical_cover,
+        medical_aid: {
+          ...prevFile.medical_cover?.medical_aid,
+          scheme_id: schemeId,
+          name: medicalSchemes.find(scheme => scheme.uid === schemeId)?.scheme_name || ''
+        }
+      }
+    }));
+  };
+
+  // Get medical schemes from the file data response instead of a separate API call
   useEffect(() => {
     async function fetchFileData() {
       if (isNewRecord) {
@@ -316,14 +471,38 @@ export default function FileDataPage() {
         const newFileNumber = `F${new Date().getFullYear()}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
         const newAccountNumber = `A${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
         
-        setFile({
-          file_number: newFileNumber,
-          account_number: newAccountNumber,
-          patient: {
-            name: '',
-            gender: '',
+        try {
+          // Even for new records, fetch medical schemes
+          const response = await fetch(`/api/files/new`);
+          const data = await response.json();
+          
+          setFile({
+            file_number: newFileNumber,
+            account_number: newAccountNumber,
+            patient: {
+              name: '',
+              gender: '',
+            },
+            medical_cover: data.medical_cover
+          });
+          
+          // Set medical schemes from the response
+          if (data.medical_schemes) {
+            setMedicalSchemes(data.medical_schemes);
           }
-        });
+          
+        } catch (error) {
+          console.error('Failed to fetch medical schemes for new record:', error);
+          setFile({
+            file_number: newFileNumber,
+            account_number: newAccountNumber,
+            patient: {
+              name: '',
+              gender: '',
+            }
+          });
+        }
+        
         setLoading(false);
         return;
       }
@@ -332,6 +511,12 @@ export default function FileDataPage() {
         const response = await fetch(`/api/files/${uid}`);
         const data = await response.json();
         setFile(data);
+        
+        // Set medical schemes from the response
+        if (data.medical_schemes) {
+          setMedicalSchemes(data.medical_schemes);
+        }
+        
       } catch (error) {
         console.error('Failed to fetch file data:', error);
       } finally {
@@ -646,27 +831,63 @@ export default function FileDataPage() {
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="medical-aid-name">Medical Aid</Label>
-                            <Select>
+                            <Select 
+                              value={file?.medical_cover?.medical_aid?.scheme_id || ''}
+                              onValueChange={handleMedicalSchemeChange}
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select medical aid" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="discovery">Discovery Health</SelectItem>
-                                <SelectItem value="momentum">Momentum Health</SelectItem>
-                                <SelectItem value="bonitas">Bonitas</SelectItem>
-                                <SelectItem value="medihelp">Medihelp</SelectItem>
+                                {medicalSchemes.map(scheme => (
+                                  <SelectItem key={scheme.uid} value={scheme.uid}>
+                                    {scheme.scheme_name}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
                           
                           <div className="space-y-2">
                             <Label htmlFor="membership-number">Membership Number</Label>
-                            <Input id="membership-number" placeholder="Enter membership number" />
+                            <Input 
+                              id="membership-number" 
+                              placeholder="Enter membership number" 
+                              value={file?.medical_cover?.medical_aid?.membership_number || ''}
+                              onChange={(e) => {
+                                setFile(prevFile => ({
+                                  ...prevFile,
+                                  medical_cover: {
+                                    ...prevFile.medical_cover,
+                                    medical_aid: {
+                                      ...prevFile.medical_cover?.medical_aid,
+                                      membership_number: e.target.value
+                                    }
+                                  }
+                                }));
+                              }}
+                            />
                           </div>
                           
                           <div className="space-y-2">
                             <Label htmlFor="dependent-code">Patient Dependent Code</Label>
-                            <Input id="dependent-code" placeholder="Enter dependent code" />
+                            <Input 
+                              id="dependent-code" 
+                              placeholder="Enter dependent code" 
+                              value={file?.medical_cover?.medical_aid?.dependent_code || ''}
+                              onChange={(e) => {
+                                setFile(prevFile => ({
+                                  ...prevFile,
+                                  medical_cover: {
+                                    ...prevFile.medical_cover,
+                                    medical_aid: {
+                                      ...prevFile.medical_cover?.medical_aid,
+                                      dependent_code: e.target.value
+                                    }
+                                  }
+                                }));
+                              }}
+                            />
                           </div>
                         </div>
                         
@@ -686,22 +907,58 @@ export default function FileDataPage() {
                             <div className="space-y-4">
                               <div className="space-y-2">
                                 <Label htmlFor="member-id">ID Number</Label>
-                                <Input id="member-id" placeholder="Enter ID number" />
+                                <Input 
+                                  id="member-id" 
+                                  placeholder="Enter ID number" 
+                                  value={file?.medical_cover?.member?.id || ''}
+                                  onChange={(e) => handleMemberInputChange('id', e.target.value)}
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="member-title">Title</Label>
+                                <Select 
+                                  value={file?.medical_cover?.member?.title || ''} 
+                                  onValueChange={(value) => handleMemberSelectChange('title', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select title" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Mr">Mr</SelectItem>
+                                    <SelectItem value="Mrs">Mrs</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
                               
                               <div className="space-y-2">
                                 <Label htmlFor="member-name">Name</Label>
-                                <Input id="member-name" placeholder="Enter name" />
+                                <Input 
+                                  id="member-name" 
+                                  placeholder="Enter name" 
+                                  value={file?.medical_cover?.member?.name || ''}
+                                  onChange={(e) => handleMemberInputChange('name', e.target.value)}
+                                />
                               </div>
                               
                               <div className="space-y-2">
                                 <Label htmlFor="member-initials">Initials</Label>
-                                <Input id="member-initials" placeholder="Enter initials" />
+                                <Input 
+                                  id="member-initials" 
+                                  placeholder="Auto-generated from name" 
+                                  value={file?.medical_cover?.member?.initials || ''}
+                                  readOnly
+                                />
                               </div>
                               
                               <div className="space-y-2">
                                 <Label htmlFor="member-surname">Surname</Label>
-                                <Input id="member-surname" placeholder="Enter surname" />
+                                <Input 
+                                  id="member-surname" 
+                                  placeholder="Enter surname" 
+                                  value={file?.medical_cover?.member?.surname || ''}
+                                  onChange={(e) => handleMemberInputChange('surname', e.target.value)}
+                                />
                               </div>
                               
                               <div className="space-y-2">
@@ -746,8 +1003,29 @@ export default function FileDataPage() {
                               </div>
                               
                               <div className="space-y-2">
+                                <Label htmlFor="member-gender">Gender</Label>
+                                <Select 
+                                  value={file?.medical_cover?.member?.gender || ''} 
+                                  onValueChange={(value) => handleMemberSelectChange('gender', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select gender" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="male">Male</SelectItem>
+                                    <SelectItem value="female">Female</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="space-y-2">
                                 <Label htmlFor="member-cell">Cell Number</Label>
-                                <Input id="member-cell" placeholder="Enter cell number" />
+                                <Input 
+                                  id="member-cell" 
+                                  placeholder="Enter cell number" 
+                                  value={file?.medical_cover?.member?.cell || ''}
+                                  onChange={(e) => handleMemberInputChange('cell', e.target.value)}
+                                />
                               </div>
                               
                               <div className="space-y-2">

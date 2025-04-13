@@ -17,6 +17,10 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Fetch medical schemes
+    const medicalSchemes = await fetchMedicalSchemes(session.user.orgId);
+    console.log(chalk.cyan(`🏥 API: Fetched ${medicalSchemes.length} medical schemes`));
+
     // For new files or if no uid is provided, return a template
     if (!params.uid || params.uid === 'new') {
       console.log(chalk.yellow('📄 API: New file template requested'));
@@ -52,11 +56,13 @@ export async function GET(
             address: ''
           },
           medical_aid: {
+            scheme_id: '',
             name: '',
             membership_number: '',
             dependent_code: ''
           }
-        }
+        },
+        medical_schemes: medicalSchemes // Added medical schemes to response
       });
     }
 
@@ -150,11 +156,13 @@ export async function GET(
           address: ''
         },
         medical_aid: {
+          scheme_id: medicalAid?.medical_scheme_id || '',
           name: medicalAid?.medical_scheme?.scheme_name || '',
           membership_number: medicalAid?.membership_number || '',
           dependent_code: medicalAid?.patient_dependant_code || ''
         }
-      }
+      },
+      medical_schemes: medicalSchemes // Added medical schemes to response
     };
 
     console.log(chalk.green('✅ API: File data retrieved successfully'));
@@ -162,6 +170,31 @@ export async function GET(
   } catch (error) {
     console.error(chalk.red('💥 API: Error fetching file:'), error);
     return NextResponse.json({ error: 'Failed to fetch file' }, { status: 500 });
+  }
+}
+
+// Helper function to fetch medical schemes
+async function fetchMedicalSchemes(orgId: string) {
+  try {
+    // Fetch active medical schemes for the organization
+    const schemes = await prisma.medical_scheme.findMany({
+      where: {
+        active: true,
+        orgid: orgId
+      },
+      select: {
+        uid: true,
+        scheme_name: true
+      },
+      orderBy: {
+        scheme_name: 'asc'
+      }
+    });
+    
+    return schemes;
+  } catch (error) {
+    console.error(chalk.red('💥 API: Error fetching medical schemes:'), error);
+    return [];
   }
 }
 
