@@ -463,6 +463,22 @@ export default function FileDataPage() {
     }));
   };
 
+  // Function to handle injury on duty input changes
+  const handleInjuryInputChange = (field, value) => {
+    console.log(`Updating medical_cover.injury_on_duty.${field} to:`, value);
+    
+    setFile(prevFile => ({
+      ...prevFile,
+      medical_cover: {
+        ...prevFile.medical_cover,
+        injury_on_duty: {
+          ...prevFile.medical_cover?.injury_on_duty,
+          [field]: value
+        }
+      }
+    }));
+  };
+
   // Get medical schemes from the file data response instead of a separate API call
   useEffect(() => {
     async function fetchFileData() {
@@ -1063,22 +1079,43 @@ export default function FileDataPage() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="company-name">Name of Company</Label>
-                          <Input id="company-name" placeholder="Enter company name" />
+                          <Input 
+                            id="company-name" 
+                            placeholder="Enter company name"
+                            value={file?.medical_cover?.injury_on_duty?.company_name || ''}
+                            onChange={(e) => handleInjuryInputChange('company_name', e.target.value)}
+                          />
                         </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="contact-person">Contact Person</Label>
-                          <Input id="contact-person" placeholder="Enter contact person name" />
+                          <Input 
+                            id="contact-person" 
+                            placeholder="Enter contact person name"
+                            value={file?.medical_cover?.injury_on_duty?.contact_person || ''}
+                            onChange={(e) => handleInjuryInputChange('contact_person', e.target.value)}
+                          />
                         </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="contact-number">Contact Number</Label>
-                          <Input id="contact-number" placeholder="Enter contact number" />
+                          <Input 
+                            id="contact-number" 
+                            placeholder="Enter contact number"
+                            value={file?.medical_cover?.injury_on_duty?.contact_number || ''}
+                            onChange={(e) => handleInjuryInputChange('contact_number', e.target.value)}
+                          />
                         </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="contact-email">Contact Email</Label>
-                          <Input id="contact-email" type="email" placeholder="Enter contact email" />
+                          <Input 
+                            id="contact-email" 
+                            type="email" 
+                            placeholder="Enter contact email"
+                            value={file?.medical_cover?.injury_on_duty?.contact_email || ''}
+                            onChange={(e) => handleInjuryInputChange('contact_email', e.target.value)}
+                          />
                         </div>
                       </div>
                     )}
