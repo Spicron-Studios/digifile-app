@@ -53,6 +53,10 @@ export async function handleGetFileData(uid: string, orgId: string) {
               dependent_code: ''
             }
           },
+          notes: {
+            file_notes: [],
+            clinical_notes: []
+          },
           medical_schemes: medicalSchemes // Added medical schemes to response
         },
         status: 200
@@ -77,6 +81,21 @@ export async function handleGetFileData(uid: string, orgId: string) {
             patient: {
               where: {
                 active: true
+              }
+            },
+            tab_notes: {
+              where: {
+                active: true
+              },
+              include: {
+                tab_files: {
+                  where: {
+                    active: true
+                  }
+                }
+              },
+              orderBy: {
+                time_stamp: 'desc'
               }
             }
           }
@@ -156,6 +175,38 @@ export async function handleGetFileData(uid: string, orgId: string) {
       formattedMemberDob = `${dob.getFullYear()}/${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}`;
     }
 
+    // Process tab_notes and tab_files
+    // Separate notes by type (file_notes or clinical_notes)
+    const fileNotes = [];
+    const clinicalNotes = [];
+    
+    // If filePatient exists, we can collect its tab_notes
+    if (filePatient && filePatient.tab_notes) {
+      for (const note of filePatient.tab_notes) {
+        const noteObj = {
+          uid: note.uid,
+          time_stamp: note.time_stamp,
+          notes: note.notes,
+          tab_type: note.tab_type,
+          files: note.tab_files.map(file => ({
+            uid: file.uid,
+            file_name: file.file_name,
+            file_type: file.file_type,
+            file_location: file.file_location
+          }))
+        };
+        
+        // Sort notes based on tab_type
+        if (note.tab_type === 'file') {
+          fileNotes.push(noteObj);
+        } else if (note.tab_type === 'clinical') {
+          clinicalNotes.push(noteObj);
+        }
+      }
+    }
+
+    console.log(chalk.cyan(`📝 API: Fetched ${fileNotes.length} file notes and ${clinicalNotes.length} clinical notes`));
+
     // Return the file data with expanded fields
     const fileData = {
       uid: fileInfo.uid,
@@ -222,10 +273,16 @@ export async function handleGetFileData(uid: string, orgId: string) {
           contact_email: ''
         }
       },
+      notes: {
+        file_notes: fileNotes,
+        clinical_notes: clinicalNotes
+      },
       medical_schemes: medicalSchemes // From existing code
     };
 
     console.log(chalk.green('✅ API: File data retrieved successfully'));
+    console.log(JSON.stringify(fileData, null, 2));
+    
     return { data: fileData, status: 200 };
   } catch (error) {
     console.error(chalk.red('💥 API: Error fetching file:'), error);
