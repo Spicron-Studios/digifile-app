@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { ChevronLeft, ChevronRight, RefreshCcw } from 'lucide-react'
+import * as React from 'react';
+import { ChevronLeft, ChevronRight, RefreshCcw } from 'lucide-react';
 import {
   add,
   eachDayOfInterval,
@@ -13,70 +13,75 @@ import {
   isSameDay,
   isSameMonth,
   isToday,
-  startOfDay,
   startOfMonth,
   startOfToday,
   startOfWeek,
-} from "date-fns"
-import { Account, CalendarEvent, ViewType } from "@/app/types/calendar"
-import { Button } from "@/app/components/ui/button"
-import { AccountSelector } from "./account-selector/account-selector"
-import { cn } from "@/app/lib/utils"
-import { AppointmentModal } from "@/app/components/ui/appointment/appointment-modal"
-import { useState } from "react"
-import { formatTimeToLocal } from "@/app/lib/utils";
+} from 'date-fns';
+import { Account, CalendarEvent, ViewType } from '@/app/types/calendar';
+import { Button } from '@/app/components/ui/button';
+import { AccountSelector } from './account-selector/account-selector';
+import { cn } from '@/app/lib/utils';
+import { AppointmentModal } from '@/app/components/ui/appointment/appointment-modal';
+import { useState } from 'react';
 
 interface CalendarProps {
-  accounts: Account[]
-  events: CalendarEvent[]
-  refreshData: () => void
-  hasAdminAccess: boolean
-  defaultSelectedAccount?: string
-  selectedAccounts: string[]
-  onToggleAccount: (accountId: string) => void
+  accounts: Account[];
+  events: CalendarEvent[];
+  refreshData: () => void;
+  hasAdminAccess: boolean;
+  defaultSelectedAccount?: string;
+  selectedAccounts: string[];
+  onToggleAccount: (accountId: string) => void;
 }
 
 interface EventDisplayProps {
-  event: CalendarEvent
-  className?: string
-  accounts: Account[]
-  refreshData: () => void
-  style?: React.CSSProperties
+  event: CalendarEvent;
+  className?: string;
+  accounts: Account[];
+  refreshData: () => void;
+  style?: React.CSSProperties;
 }
 
-const EventDisplay = ({ event, className, accounts, refreshData, style }: EventDisplayProps) => {
-  const [showModal, setShowModal] = useState(false)
-  const eventStart = new Date(event.start)
-  const eventEnd = new Date(event.end)
-  
+const EventDisplay = ({
+  event,
+  className,
+  accounts,
+  refreshData,
+  style,
+}: EventDisplayProps) => {
+  const [showModal, setShowModal] = useState(false);
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+
   // Calculate duration in hours for proper sizing
-  const durationHours = (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60)
-  const startHour = eventStart.getHours() + (eventStart.getMinutes() / 60)
-  
-  const eventStyle = {
+  const durationHours =
+    (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
+  const startHour = eventStart.getHours() + eventStart.getMinutes() / 60;
+
+  const eventStyle: React.CSSProperties = {
     ...style,
     top: `${startHour * 48}px`, // 48px is the height of each hour slot
     height: `${durationHours * 48}px`,
-    position: 'absolute',
+    position: 'absolute' as const,
     width: '95%',
-    zIndex: 10
-  }
+    zIndex: 10,
+  };
 
   return (
     <>
       <div
         className={cn(
           `${event.color}`,
-          "px-2 rounded-md truncate",
-          "text-xs font-medium text-white",
-          "hover:opacity-90 cursor-pointer",
+          'px-2 rounded-md truncate',
+          'text-xs font-medium text-white',
+          'hover:opacity-90 cursor-pointer',
           className
         )}
         style={eventStyle}
         title={`${event.accountName}: ${event.title}\n${format(eventStart, 'HH:mm')} - ${format(eventEnd, 'HH:mm')}`}
-        onClick={(e) => {
-          e.stopPropagation()
-          setShowModal(true)
+        onClick={e => {
+          e.stopPropagation();
+          setShowModal(true);
         }}
       >
         <div className="truncate">
@@ -93,87 +98,85 @@ const EventDisplay = ({ event, className, accounts, refreshData, style }: EventD
         />
       )}
     </>
-  )
-}
+  );
+};
 
-export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaultSelectedAccount, selectedAccounts, onToggleAccount }: CalendarProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const today = startOfToday()
-  const [selectedDay, setSelectedDay] = React.useState(today)
-  const [currentDate, setCurrentDate] = React.useState(today)
-  const [view, setView] = React.useState<ViewType>("month")
+export function Calendar({
+  accounts,
+  events,
+  refreshData,
+  selectedAccounts,
+  onToggleAccount,
+}: CalendarProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const today = startOfToday();
+  const [selectedDay, setSelectedDay] = React.useState(today);
+  const [currentDate, setCurrentDate] = React.useState(today);
+  const [view, setView] = React.useState<ViewType>('month');
 
   function previousPeriod() {
-    setCurrentDate((prev) => {
+    setCurrentDate(prev => {
       switch (view) {
-        case "day":
-          return add(prev, { days: -1 })
-        case "week":
-          return add(prev, { weeks: -1 })
-        case "month":
-          return add(prev, { months: -1 })
+        case 'day':
+          return add(prev, { days: -1 });
+        case 'week':
+          return add(prev, { weeks: -1 });
+        case 'month':
+          return add(prev, { months: -1 });
         default:
-          return prev
+          return prev;
       }
-    })
+    });
   }
 
   function nextPeriod() {
-    setCurrentDate((prev) => {
+    setCurrentDate(prev => {
       switch (view) {
-        case "day":
-          return add(prev, { days: 1 })
-        case "week":
-          return add(prev, { weeks: 1 })
-        case "month":
-          return add(prev, { months: 1 })
+        case 'day':
+          return add(prev, { days: 1 });
+        case 'week':
+          return add(prev, { weeks: 1 });
+        case 'month':
+          return add(prev, { months: 1 });
         default:
-          return prev
+          return prev;
       }
-    })
+    });
   }
 
   const days = React.useMemo(() => {
     switch (view) {
-      case "day":
-        return [currentDate]
-      case "week":
+      case 'day':
+        return [currentDate];
+      case 'week':
         return eachDayOfInterval({
           start: startOfWeek(currentDate),
           end: endOfWeek(currentDate),
-        })
-      case "month":
+        });
+      case 'month':
         return eachDayOfInterval({
           start: startOfWeek(startOfMonth(currentDate)),
           end: endOfWeek(endOfMonth(currentDate)),
-        })
+        });
       default:
-        return []
+        return [];
     }
-  }, [currentDate, view])
+  }, [currentDate, view]);
 
-  function toggleAccount(accountId: string) {
-    setSelectedAccounts((current) =>
-      current.includes(accountId)
-        ? current.filter((id) => id !== accountId)
-        : [...current, accountId]
-    )
-  }
-
-  const filteredEvents = events.filter((event) =>
+  const filteredEvents = events.filter(event =>
     selectedAccounts.includes(event.accountId)
-  )
+  );
 
-  const timeSlots = Array.from({ length: 24 }, (_, i) => i)
+  const timeSlots = Array.from({ length: 24 }, (_, i) => i);
 
   const handleRefresh = async () => {
-    setIsRefreshing(true)
+    setIsRefreshing(true);
     try {
-      await refreshData()
+      await refreshData();
     } finally {
-      setIsRefreshing(false)
+      setIsRefreshing(false);
     }
-  }
+  };
 
   return (
     <div className="p-4 h-[800px] flex flex-col">
@@ -184,7 +187,7 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
               accounts={accounts}
               selectedAccounts={selectedAccounts}
               onToggleAccount={onToggleAccount}
-              onAddAccount={(account) => onToggleAccount(account.AccountID)}
+              onAddAccount={account => onToggleAccount(account.AccountID)}
             />
             <Button
               variant="outline"
@@ -193,14 +196,16 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
               className="hover:bg-gray-50"
               disabled={isRefreshing}
             >
-              <RefreshCcw className={cn(
-                "h-4 w-4",
-                isRefreshing && "animate-spin"
-              )} />
+              <RefreshCcw
+                className={cn('h-4 w-4', isRefreshing && 'animate-spin')}
+              />
             </Button>
           </div>
           <div className="flex gap-2">
-            <AppointmentModal accounts={accounts} onAppointmentAdded={handleRefresh} />
+            <AppointmentModal
+              accounts={accounts}
+              onAppointmentAdded={handleRefresh}
+            />
           </div>
         </div>
 
@@ -215,7 +220,10 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <h2 className="text-lg font-semibold text-gray-800">
-              {format(currentDate, view === "day" ? "MMMM d, yyyy" : "MMMM yyyy")}
+              {format(
+                currentDate,
+                view === 'day' ? 'MMMM d, yyyy' : 'MMMM yyyy'
+              )}
             </h2>
             <Button
               variant="outline"
@@ -228,29 +236,29 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
           </div>
           <div className="flex gap-2 bg-gray-100 p-1 rounded-md">
             <Button
-              variant={view === "day" ? "default" : "ghost"}
-              onClick={() => setView("day")}
+              variant={view === 'day' ? 'default' : 'ghost'}
+              onClick={() => setView('day')}
               className="h-8"
             >
               Day
             </Button>
             <Button
-              variant={view === "week" ? "default" : "ghost"}
-              onClick={() => setView("week")}
+              variant={view === 'week' ? 'default' : 'ghost'}
+              onClick={() => setView('week')}
               className="h-8"
             >
               Week
             </Button>
             <Button
-              variant={view === "month" ? "default" : "ghost"}
-              onClick={() => setView("month")}
+              variant={view === 'month' ? 'default' : 'ghost'}
+              onClick={() => setView('month')}
               className="h-8"
             >
               Month
             </Button>
           </div>
         </div>
-        {view === "month" ? (
+        {view === 'month' ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-lg shadow-sm">
             <div className="grid grid-cols-7 gap-px text-sm font-medium text-gray-600 bg-gray-50 border-b">
               <div className="p-2 text-center">Sun</div>
@@ -266,38 +274,39 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
                 <div
                   key={day.toString()}
                   className={cn(
-                    "relative min-h-[120px] py-2 px-3 hover:bg-muted/50 cursor-pointer border-b border-r",
+                    'relative min-h-[120px] py-2 px-3 hover:bg-muted/50 cursor-pointer border-b border-r',
                     dayIdx === 0 && colStartClasses[getDay(day)],
-                    !isSameMonth(day, currentDate) && "text-muted-foreground",
-                    (isEqual(day, selectedDay) || isToday(day)) && "bg-muted/50"
+                    !isSameMonth(day, currentDate) && 'text-muted-foreground',
+                    (isEqual(day, selectedDay) || isToday(day)) && 'bg-muted/50'
                   )}
                   onClick={() => setSelectedDay(day)}
                 >
                   <time
-                    dateTime={format(day, "yyyy-MM-dd")}
+                    dateTime={format(day, 'yyyy-MM-dd')}
                     className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full",
-                      isToday(day) && "bg-primary text-primary-foreground",
+                      'flex h-6 w-6 items-center justify-center rounded-full',
+                      isToday(day) && 'bg-primary text-primary-foreground',
                       isEqual(day, selectedDay) &&
                         !isToday(day) &&
-                        "bg-muted-foreground text-muted-foreground-foreground"
+                        'bg-muted-foreground text-muted-foreground-foreground'
                     )}
                   >
-                    {format(day, "d")}
+                    {format(day, 'd')}
                   </time>
                   {filteredEvents
-                    .filter((event) => isSameDay(event.start, day))
-                    .filter((event, index, self) => 
-                      index === self.findIndex((e) => e.id === event.id)
+                    .filter(event => isSameDay(event.start, day))
+                    .filter(
+                      (event, index, self) =>
+                        index === self.findIndex(e => e.id === event.id)
                     )
-                    .map((event) => (
+                    .map(event => (
                       <EventDisplay
                         key={event.id}
                         event={event}
                         className={cn(
-                          "mt-1 px-1 py-0.5 text-xs rounded truncate",
+                          'mt-1 px-1 py-0.5 text-xs rounded truncate',
                           event.color,
-                          "text-white"
+                          'text-white'
                         )}
                         accounts={accounts}
                         refreshData={refreshData}
@@ -311,7 +320,7 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
           <div className="flex-1 overflow-hidden">
             <div className="grid grid-cols-[auto,1fr] gap-4 h-full">
               <div className="w-16">
-                {timeSlots.map((hour) => (
+                {timeSlots.map(hour => (
                   <div key={hour} className="text-right pr-2 h-12">
                     {format(new Date(2024, 0, 1, hour), 'HH:mm')}
                   </div>
@@ -319,18 +328,25 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
               </div>
               <div className="relative">
                 <div className="grid grid-cols-7 gap-2 mb-2">
-                  {days.map((day) => (
-                    <div key={day.toString()} className="text-center font-semibold">
-                      {format(day, "EEE")}
+                  {days.map(day => (
+                    <div
+                      key={day.toString()}
+                      className="text-center font-semibold"
+                    >
+                      {format(day, 'EEE')}
                       <br />
-                      {format(day, "d")}
+                      {format(day, 'd')}
                     </div>
                   ))}
                 </div>
                 <div className="grid grid-cols-7 gap-2">
-                  {days.map((day) => (
-                    <div key={day.toString()} className="relative" style={{ height: `${24 * 48}px` }}>
-                      {timeSlots.map((hour) => (
+                  {days.map(day => (
+                    <div
+                      key={day.toString()}
+                      className="relative"
+                      style={{ height: `${24 * 48}px` }}
+                    >
+                      {timeSlots.map(hour => (
                         <div
                           key={hour}
                           className="absolute w-full border-t border-gray-200"
@@ -356,16 +372,15 @@ export function Calendar({ accounts, events, refreshData, hasAdminAccess, defaul
         )}
       </div>
     </div>
-  )
+  );
 }
 
 const colStartClasses = [
-  "",
-  "col-start-2",
-  "col-start-3",
-  "col-start-4",
-  "col-start-5",
-  "col-start-6",
-  "col-start-7",
-]
-
+  '',
+  'col-start-2',
+  'col-start-3',
+  'col-start-4',
+  'col-start-5',
+  'col-start-6',
+  'col-start-7',
+];

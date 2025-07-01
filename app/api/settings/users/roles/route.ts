@@ -1,39 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/prisma'
-import { auth } from '@/app/lib/auth'
+import prisma from '@/app/lib/prisma';
+import {
+  withAuth,
+  createSuccessResponse,
+  createErrorResponse,
+} from '@/app/lib/api-auth';
 
-// Get all available roles for the organization
-export async function GET() {
+/**
+ * GET /api/settings/users/roles
+ * Fetch all available roles for the organization
+ */
+async function getRolesHandler() {
   try {
-    const session = await auth()
-    if (!session?.user?.orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    console.log("[api/settings/users/roles] Getting all roles for organization " + session.user.orgId);
-    // Fetch all roles for the organization
+    // Fetch all active roles for the organization
     const roles = await prisma.roles.findMany({
       where: {
-        active: true
+        active: true,
       },
       select: {
         uid: true,
         role_name: true,
-        description: true
-      }
-    })
+        description: true,
+      },
+    });
 
-    console.log("[api/settings/users/roles] Roles found:", roles)
-
-    return NextResponse.json(roles)
+    return createSuccessResponse(roles);
   } catch (error) {
-    console.error('Failed to fetch roles:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch roles' },
-      { status: 500 }
-    )
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    return createErrorResponse(
+      `Failed to fetch roles: ${errorMessage}`,
+      500,
+      'DATABASE_ERROR'
+    );
   }
-} 
+}
+
+export const GET = withAuth(getRolesHandler, {
+  loggerContext: 'api/settings/users/roles/route.ts',
+});

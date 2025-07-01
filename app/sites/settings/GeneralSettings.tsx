@@ -1,241 +1,275 @@
-'use client'
+'use client';
 
-import { useState, useEffect, FormEvent } from "react"
-import { Upload } from "lucide-react"
-import Image from "next/image"
-import { Button } from "@/app/components/ui/button"
-import { Card } from "@/app/components/ui/card"
-import { Input } from "@/app/components/ui/input"
-import { ScrollArea } from "@/app/components/ui/scroll-area"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
-import { ConsentModal } from "@/app/components/ui/consent-modal"
-import { toast } from "sonner"
-import { createClient } from '@supabase/supabase-js'
+import { useState, useEffect, FormEvent } from 'react';
+import { Upload } from 'lucide-react';
+import Image from 'next/image';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
+import { ConsentModal } from '@/app/components/ui/consent-modal';
+import { toast } from 'sonner';
+import { createClient } from '@supabase/supabase-js';
 
 type OrganizationInfo = {
-  uid: string
-  practice_name: string | null
-  practice_type: string | null
-  bhf_number: string | null
-  hpcsa: string | null
-  vat_no: string | null
-  address: string | null
-  postal: string | null
-  practice_telephone: string | null
-  accounts_telephone: string | null
-  cell: string | null
-  fax: string | null
-  email: string | null
-}
+  uid: string;
+  practice_name: string | null;
+  practice_type: string | null;
+  bhf_number: string | null;
+  hpcsa: string | null;
+  vat_no: string | null;
+  address: string | null;
+  postal: string | null;
+  practice_telephone: string | null;
+  accounts_telephone: string | null;
+  cell: string | null;
+  fax: string | null;
+  email: string | null;
+};
 
 type PracticeType = {
-  uuid: string
-  codes: string | null
-  name: string | null
-}
+  uuid: string;
+  codes: string | null;
+  name: string | null;
+};
 
 // Add Supabase client initialization
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+);
 
 export function GeneralSettings() {
-  const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [logoUrl, setLogoUrl] = useState("/placeholder.svg?height=200&width=200")
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedConsent, setSelectedConsent] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [practiceTypes, setPracticeTypes] = useState<PracticeType[]>([])
-  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState(
+    '/placeholder.svg?height=200&width=200'
+  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedConsent, setSelectedConsent] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [practiceTypes, setPracticeTypes] = useState<PracticeType[]>([]);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   // Fetch organization info
   useEffect(() => {
     const fetchOrgInfo = async () => {
       try {
-        setError(null)
-        const response = await fetch('/api/settings/organization')
-        const data = await response.json()
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch organization info')
-        }
-        
-        setOrgInfo(data)
-      } catch (error) {
-        console.error('Error fetching organization info:', error)
-        setError(error instanceof Error ? error.message : 'An error occurred')
-      } finally {
-        setIsLoading(false)
-      }
-    }
+        setError(null);
+        const response = await fetch('/api/settings/organization');
+        const data = await response.json();
 
-    fetchOrgInfo()
-  }, [])
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch organization info');
+        }
+
+        setOrgInfo(data);
+      } catch (error) {
+        console.error('Error fetching organization info:', error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrgInfo();
+  }, []);
 
   useEffect(() => {
     const fetchPracticeTypes = async () => {
       try {
-        const response = await fetch('/api/practice-types')
-        const data = await response.json()
+        const response = await fetch('/api/practice-types');
+        const data = await response.json();
         if (response.ok) {
-          setPracticeTypes(data)
+          setPracticeTypes(data);
         }
       } catch (error) {
-        console.error('Error fetching practice types:', error)
+        console.error('Error fetching practice types:', error);
       }
-    }
+    };
 
-    fetchPracticeTypes()
-  }, [])
+    fetchPracticeTypes();
+  }, []);
 
   // Fetch logo on component mount
   useEffect(() => {
     const fetchLogo = async () => {
-      if (!orgInfo?.uid) return
-      
+      if (!orgInfo?.uid) return;
+
       const { data } = supabase.storage
         .from('DigiFile_Public')
-        .getPublicUrl(`${orgInfo.uid}/logo/${orgInfo.uid}-logo.jpg`)
+        .getPublicUrl(`${orgInfo.uid}/logo/${orgInfo.uid}-logo.jpg`);
 
       if (data?.publicUrl) {
-        setLogoUrl(data.publicUrl)
+        setLogoUrl(data.publicUrl);
       }
-    }
+    };
 
-    fetchLogo()
-  }, [orgInfo?.uid])
+    fetchLogo();
+  }, [orgInfo?.uid]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!orgInfo?.uid) return
+    e.preventDefault();
+    if (!orgInfo?.uid) return;
 
     try {
       // Handle logo upload if new file was selected
       if (logoFile) {
-        const formData = new FormData()
-        formData.append('file', logoFile)
+        const formData = new FormData();
+        formData.append('file', logoFile);
 
-        const uploadResponse = await fetch(`/api/settings/organization/${orgInfo.uid}/logo`, {
-          method: 'PUT',
-          body: formData
-        })
+        const uploadResponse = await fetch(
+          `/api/settings/organization/${orgInfo.uid}/logo`,
+          {
+            method: 'PUT',
+            body: formData,
+          }
+        );
 
         if (!uploadResponse.ok) {
-          const error = await uploadResponse.json()
-          throw new Error(error.error || 'Failed to upload logo')
+          const error = await uploadResponse.json();
+          throw new Error(error.error || 'Failed to upload logo');
         }
 
-        const { url: newLogoUrl } = await uploadResponse.json()
-        setLogoUrl(newLogoUrl)
+        const { url: newLogoUrl } = await uploadResponse.json();
+        setLogoUrl(newLogoUrl);
       }
 
       // Rest of the organization update logic
-      const response = await fetch(`/api/settings/organization/${orgInfo.uid}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          practice_name: orgInfo.practice_name,
-          practice_type: orgInfo.practice_type,
-          bhf_no: orgInfo.bhf_number,
-          vat_no: orgInfo.vat_no,
-          address_physical: orgInfo.address,
-          postal: orgInfo.postal,
-          practice: orgInfo.practice_telephone,
-          accounts: orgInfo.accounts_telephone,
-          cell_no: orgInfo.cell,
-          fax: orgInfo.fax,
-          email: orgInfo.email
-        }),
-      })
+      const response = await fetch(
+        `/api/settings/organization/${orgInfo.uid}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            practice_name: orgInfo.practice_name,
+            practice_type: orgInfo.practice_type,
+            bhf_no: orgInfo.bhf_number,
+            vat_no: orgInfo.vat_no,
+            address_physical: orgInfo.address,
+            postal: orgInfo.postal,
+            practice: orgInfo.practice_telephone,
+            accounts: orgInfo.accounts_telephone,
+            cell_no: orgInfo.cell,
+            fax: orgInfo.fax,
+            email: orgInfo.email,
+          }),
+        }
+      );
 
-      const responseData = await response.json()
-      
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to update organization info')
+        throw new Error(
+          responseData.error || 'Failed to update organization info'
+        );
       }
-      
-      setOrgInfo(responseData)
-      toast.success('Organization information updated successfully')
+
+      setOrgInfo(responseData);
+      toast.success('Organization information updated successfully');
     } catch (error) {
-      console.error('Error updating organization info:', error)
-      toast.error(error instanceof Error ? error.message : 'An error occurred while updating')
+      console.error('Error updating organization info:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'An error occurred while updating'
+      );
     }
-  }
+  };
 
   const handleInputChange = (field: keyof OrganizationInfo, value: string) => {
-    if (!orgInfo) return
+    if (!orgInfo) return;
     setOrgInfo(prev => ({
       ...prev!,
-      [field]: value
-    }))
-  }
+      [field]: value,
+    }));
+  };
 
-  const handleFileUpload = async (file: File, type: 'logo' | 'consent', consentNumber?: number) => {
-    if (!orgInfo?.uid) return
+  const handleFileUpload = async (
+    file: File,
+    type: 'logo' | 'consent',
+    consentNumber?: number
+  ) => {
+    if (!orgInfo?.uid) return;
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', type)
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
     if (type === 'consent' && consentNumber) {
-      formData.append('consentNumber', consentNumber.toString())
+      formData.append('consentNumber', consentNumber.toString());
     }
 
     try {
-      const uploadResponse = await fetch(`/api/settings/organization/${orgInfo.uid}/upload`, {
-        method: 'PUT',
-        body: formData
-      })
+      const uploadResponse = await fetch(
+        `/api/settings/organization/${orgInfo.uid}/upload`,
+        {
+          method: 'PUT',
+          body: formData,
+        }
+      );
 
       if (!uploadResponse.ok) {
-        const error = await uploadResponse.json()
-        throw new Error(error.error || 'Failed to upload file')
+        const error = await uploadResponse.json();
+        throw new Error(error.error || 'Failed to upload file');
       }
 
-      const { url: newUrl } = await uploadResponse.json()
-      
+      const { url: newUrl } = await uploadResponse.json();
+
       if (type === 'logo') {
-        setLogoUrl(newUrl)
+        setLogoUrl(newUrl);
       }
-      
-      toast.success(`${type === 'logo' ? 'Logo' : 'Consent document'} uploaded successfully`)
+
+      toast.success(
+        `${type === 'logo' ? 'Logo' : 'Consent document'} uploaded successfully`
+      );
     } catch (error) {
-      console.error('Upload error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to upload file')
+      console.error('Upload error:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to upload file'
+      );
     }
-  }
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      setLogoFile(file)
-      const url = URL.createObjectURL(file)
-      setLogoUrl(url)
-      handleFileUpload(file, 'logo')
+      setLogoFile(file);
+      const url = URL.createObjectURL(file);
+      setLogoUrl(url);
+      handleFileUpload(file, 'logo');
     }
-  }
+  };
 
-  const handleConsentFileUpload = (event: React.ChangeEvent<HTMLInputElement>, consentNumber: number) => {
-    const file = event.target.files?.[0]
+  const handleConsentFileUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    consentNumber: number
+  ) => {
+    const file = event.target.files?.[0];
     if (file) {
-      handleFileUpload(file, 'consent', consentNumber)
+      handleFileUpload(file, 'consent', consentNumber);
     }
-  }
+  };
 
   const openModal = (consentNumber: number) => {
-    setSelectedConsent(consentNumber)
-    setIsModalOpen(true)
-  }
+    setSelectedConsent(consentNumber);
+    setIsModalOpen(true);
+  };
 
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-gray-500">Loading organization information...</div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -243,7 +277,7 @@ export function GeneralSettings() {
       <div className="flex h-full items-center justify-center">
         <div className="text-red-500">Error: {error}</div>
       </div>
-    )
+    );
   }
 
   if (!orgInfo) {
@@ -251,7 +285,7 @@ export function GeneralSettings() {
       <div className="flex h-full items-center justify-center">
         <div className="text-gray-500">No organization information found.</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -273,7 +307,7 @@ export function GeneralSettings() {
                       className="h-full w-full object-cover"
                       unoptimized
                       onError={() => {
-                        setLogoUrl("/placeholder.svg?height=200&width=200")
+                        setLogoUrl('/placeholder.svg?height=200&width=200');
                       }}
                     />
                   </div>
@@ -299,13 +333,15 @@ export function GeneralSettings() {
                 <div className="pt-4">
                   <Select
                     value={orgInfo?.practice_type || ''}
-                    onValueChange={(value) => handleInputChange('practice_type', value)}
+                    onValueChange={value =>
+                      handleInputChange('practice_type', value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Practice Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {practiceTypes.map((type) => (
+                      {practiceTypes.map(type => (
                         <SelectItem key={type.uuid} value={type.uuid}>
                           {type.codes} - {type.name}
                         </SelectItem>
@@ -317,46 +353,62 @@ export function GeneralSettings() {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="practice-name" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="practice-name"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Practice Name
                   </label>
                   <Input
                     id="practice-name"
                     value={orgInfo?.practice_name || ''}
-                    onChange={(e) => handleInputChange('practice_name', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('practice_name', e.target.value)
+                    }
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="bhf-number" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="bhf-number"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     BHF Number
                   </label>
                   <Input
                     id="bhf-number"
                     value={orgInfo?.bhf_number || ''}
-                    onChange={(e) => handleInputChange('bhf_number', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('bhf_number', e.target.value)
+                    }
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="hpcsa" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="hpcsa"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     HPCSA Number
                   </label>
                   <Input
                     id="hpcsa"
                     value={orgInfo?.hpcsa || ''}
-                    onChange={(e) => handleInputChange('hpcsa', e.target.value)}
+                    onChange={e => handleInputChange('hpcsa', e.target.value)}
                     className="mt-1"
                   />
                 </div>
                 <div className="pt-4">
-                  <label htmlFor="vat-number" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="vat-number"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     VAT No.
                   </label>
                   <Input
                     id="vat-number"
                     value={orgInfo?.vat_no || ''}
-                    onChange={(e) => handleInputChange('vat_no', e.target.value)}
+                    onChange={e => handleInputChange('vat_no', e.target.value)}
                     className="mt-1"
                   />
                 </div>
@@ -369,47 +421,61 @@ export function GeneralSettings() {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="address"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Address Physical
                   </label>
                   <Input
                     id="address"
                     value={orgInfo?.address || ''}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    onChange={e => handleInputChange('address', e.target.value)}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="practice_telephone " className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="practice_telephone "
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Practice
                   </label>
                   <Input
                     id="practice_telephone"
-                    value={orgInfo?.practice_telephone  || ''}
-                    onChange={(e) => handleInputChange('practice_telephone', e.target.value)}
+                    value={orgInfo?.practice_telephone || ''}
+                    onChange={e =>
+                      handleInputChange('practice_telephone', e.target.value)
+                    }
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="cell" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="cell"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Cell Number
                   </label>
                   <Input
                     id="cell"
                     value={orgInfo?.cell || ''}
-                    onChange={(e) => handleInputChange('cell', e.target.value)}
+                    onChange={e => handleInputChange('cell', e.target.value)}
                     type="tel"
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="fax" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="fax"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Fax
                   </label>
                   <Input
                     id="fax"
                     value={orgInfo?.fax || ''}
-                    onChange={(e) => handleInputChange('fax', e.target.value)}
+                    onChange={e => handleInputChange('fax', e.target.value)}
                     className="mt-1"
                   />
                 </div>
@@ -417,35 +483,46 @@ export function GeneralSettings() {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="postal" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="postal"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Postal Address
                   </label>
                   <Input
                     id="postal"
                     value={orgInfo?.postal || ''}
-                    onChange={(e) => handleInputChange('postal', e.target.value)}
+                    onChange={e => handleInputChange('postal', e.target.value)}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="accounts_telephone" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="accounts_telephone"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Accounts
                   </label>
                   <Input
                     id="accounts_telephone"
                     value={orgInfo?.accounts_telephone || ''}
-                    onChange={(e) => handleInputChange('accounts_telephone', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('accounts_telephone', e.target.value)
+                    }
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Email
                   </label>
                   <Input
                     id="email"
                     value={orgInfo?.email || ''}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onChange={e => handleInputChange('email', e.target.value)}
                     type="email"
                     className="mt-1"
                   />
@@ -458,8 +535,11 @@ export function GeneralSettings() {
           <Card className="p-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Consent Documents</h3>
-              {[1, 2, 3].map((consentNumber) => (
-                <div key={consentNumber} className="flex items-center justify-between">
+              {[1, 2, 3].map(consentNumber => (
+                <div
+                  key={consentNumber}
+                  className="flex items-center justify-between"
+                >
                   <span className="text-sm font-medium text-gray-700">
                     Consent {consentNumber}
                   </span>
@@ -477,7 +557,9 @@ export function GeneralSettings() {
                         accept=".txt"
                         id={`consent-${consentNumber}-upload`}
                         className="sr-only"
-                        onChange={(e) => handleConsentFileUpload(e, consentNumber)}
+                        onChange={e =>
+                          handleConsentFileUpload(e, consentNumber)
+                        }
                       />
                       <label htmlFor={`consent-${consentNumber}-upload`}>
                         <Button variant="outline" type="button" asChild>
@@ -494,12 +576,10 @@ export function GeneralSettings() {
             </div>
           </Card>
 
-        {/* Save Changes Button */}
-        <div className="flex justify-end">
-          <Button type="submit">
-            Save Changes
-          </Button>
-        </div>
+          {/* Save Changes Button */}
+          <div className="flex justify-end">
+            <Button type="submit">Save Changes</Button>
+          </div>
         </form>
       </div>
 
@@ -512,5 +592,5 @@ export function GeneralSettings() {
         />
       )}
     </div>
-  )
+  );
 }

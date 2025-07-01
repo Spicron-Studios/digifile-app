@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Create organization
     const organization = await prisma.organization_info.create({
       data: {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     });
 
     // Create user
-    const user = await prisma.users.create({
+    await prisma.users.create({
       data: {
         uid: uuidv4(),
         first_name: data.userCreation.firstName,
@@ -46,9 +46,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: 'Registration failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
   }
-} 
+}

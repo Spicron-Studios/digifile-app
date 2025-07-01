@@ -1,25 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/prisma'
-import { auth } from '@/app/lib/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/prisma';
+import { auth } from '@/app/lib/auth';
+import { Logger } from '@/app/lib/logger';
 
 // Get roles for a specific user
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: { uid: string } }
-) {
+): Promise<NextResponse> {
+  const logger = Logger.getInstance();
+  await logger.init();
+
   try {
-    const { uid } = await Promise.resolve(context.params)
-    
-    const session = await auth()
+    const { uid } = await Promise.resolve(context.params);
+
+    const session = await auth();
     if (!session?.user?.orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    } 
+      await logger.warning(
+        'api/settings/users/[uid]/roles/route.ts',
+        'Unauthorized access attempt to user roles'
+      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Fetch user roles using $queryRaw
-    const userRoles = await prisma.$queryRaw`
+    const userRoles =
+      (await prisma.$queryRaw`
         SELECT 
         ur.uid,
         r.uid AS role_uid,
@@ -33,28 +39,31 @@ export async function GET(
         ur.userid = ${uid}::uuid AND
         ur.orgid = ${session.user.orgId}::uuid AND
         ur.active = true
-    ` || []  // Default to empty array if null
+    `) || []; // Default to empty array if null
 
     // Transform the result to match the expected shape, handling null case
-    const roles = Array.isArray(userRoles) 
+    const roles = Array.isArray(userRoles)
       ? userRoles.map((ur: any) => ({
           uid: ur.role_uid || '',
           role_name: ur.role_name || '',
-          description: ur.description || null
+          description: ur.description || null,
         }))
-      : []
+      : [];
 
-    return NextResponse.json(roles)
+    await logger.info(
+      'api/settings/users/[uid]/roles/route.ts',
+      `Retrieved ${roles.length} roles for user ${uid}`
+    );
+    return NextResponse.json(roles);
   } catch (error) {
-    if (error) {
-        console.error('Failed to fetch user roles:', error)
-      } else {
-        console.error('Failed to fetch user roles: Unknown error')
-      }
+    await logger.error(
+      'api/settings/users/[uid]/roles/route.ts',
+      `Failed to fetch user roles: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     return NextResponse.json(
       { error: 'Failed to fetch user roles' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -62,64 +71,79 @@ export async function GET(
 export async function PUT(
   request: NextRequest,
   context: { params: { uid: string } }
-) {
+): Promise<NextResponse> {
+  const logger = Logger.getInstance();
+  await logger.init();
 
-    console.log("Hello World");
   try {
-    const { uid } = await Promise.resolve(context.params)
-    
-    const session = await auth()
+    const { uid } = await Promise.resolve(context.params);
+
+    const session = await auth();
     if (!session?.user?.orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      await logger.warning(
+        'api/settings/users/[uid]/roles/route.ts',
+        'Unauthorized access attempt to update user roles'
+      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { roleIds, action } = await request.json()
+    const { roleIds, action } = await request.json();
 
     if (!Array.isArray(roleIds) || !['add', 'remove'].includes(action)) {
+      await logger.warning(
+        'api/settings/users/[uid]/roles/route.ts',
+        'Invalid request body for role update'
+      );
       return NextResponse.json(
         { error: 'Invalid request body' },
         { status: 400 }
-      )
+      );
     }
 
-    console.log("Jan, what is this?")
+    await logger.info(
+      'api/settings/users/[uid]/roles/route.ts',
+      `Processing role ${action} for user ${uid}`
+    );
     if (action === 'add') {
-
-        console.log("Adding Role");
+      await logger.debug(
+        'api/settings/users/[uid]/roles/route.ts',
+        'Adding role to user'
+      );
 
       // Check for existing role (active or inactive)
       const existingRole = await prisma.user_roles.findFirst({
         where: {
-          userid: uid, 
+          userid: uid,
           roleid: roleIds[0],
           orgid: session.user.orgId,
-        }
-      })
-
-      console.log("Existing Role:", existingRole);
+        },
+      });
 
       if (existingRole) {
         // Update existing role to active
-
-        console.log("Updating Existing Role");
+        await logger.debug(
+          'api/settings/users/[uid]/roles/route.ts',
+          `Updating existing role ${roleIds[0]} for user ${uid}`
+        );
         await prisma.user_roles.update({
           where: {
-            uid: existingRole.uid
+            uid: existingRole.uid,
           },
           data: {
             active: true,
-            last_edit: new Date()
-          }
-        })
+            last_edit: new Date(),
+          },
+        });
 
-        console.log("Existing Role Updated");
-
+        await logger.info(
+          'api/settings/users/[uid]/roles/route.ts',
+          'Existing role updated successfully'
+        );
       } else {
-
-        console.log("Creating New Role");
+        await logger.debug(
+          'api/settings/users/[uid]/roles/route.ts',
+          `Creating new role ${roleIds[0]} for user ${uid}`
+        );
         // Create new user role record
         await prisma.user_roles.create({
           data: {
@@ -130,37 +154,44 @@ export async function PUT(
             active: true,
             date_created: new Date(),
             last_edit: new Date(),
-            locked: false
-          }
-        })
+            locked: false,
+          },
+        });
 
-        console.log("New Role Created");
+        await logger.info(
+          'api/settings/users/[uid]/roles/route.ts',
+          'New role created successfully'
+        );
       }
     } else {
+      await logger.debug(
+        'api/settings/users/[uid]/roles/route.ts',
+        `Removing roles ${roleIds.join(', ')} from user ${uid}`
+      );
 
-        console.log("Removing Role");
-        
       // Set role to inactive
       await prisma.user_roles.updateMany({
         where: {
           userid: uid,
           roleid: { in: roleIds },
           orgid: session.user.orgId,
-          active: true
+          active: true,
         },
         data: {
           active: false,
-          last_edit: new Date()
-        }
-      })
+          last_edit: new Date(),
+        },
+      });
 
-      console.log("Role Removed");
+      await logger.info(
+        'api/settings/users/[uid]/roles/route.ts',
+        'Roles removed successfully'
+      );
     }
 
-    console.log("Jan, Add and Remove worked?")
-
     // Fetch updated roles with role details
-    const updatedUserRoles = await prisma.$queryRaw`
+    const updatedUserRoles =
+      (await prisma.$queryRaw`
     SELECT 
     ur.uid,
     r.uid AS role_uid,
@@ -174,26 +205,30 @@ export async function PUT(
     ur.userid = ${uid}::uuid AND
     ur.orgid = ${session.user.orgId}::uuid AND
     ur.active = true
-` || []
-
-    console.log("Jan, Updated User Roles:", updatedUserRoles);
+`) || [];
 
     // Transform the result to return just the role details
-    const roles = Array.isArray(updatedUserRoles) 
+    const roles = Array.isArray(updatedUserRoles)
       ? updatedUserRoles.map((ur: any) => ({
           uid: ur.role_uid || '',
           role_name: ur.role_name || '',
-          description: ur.description || null
+          description: ur.description || null,
         }))
-      : []
+      : [];
 
-    return NextResponse.json(roles)
-
+    await logger.info(
+      'api/settings/users/[uid]/roles/route.ts',
+      `Role update completed. User now has ${roles.length} active roles`
+    );
+    return NextResponse.json(roles);
   } catch (error) {
-    console.error('Failed to update user roles:', error)
+    await logger.error(
+      'api/settings/users/[uid]/roles/route.ts',
+      `Failed to update user roles: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     return NextResponse.json(
       { error: 'Failed to update user roles' },
       { status: 500 }
-    )
+    );
   }
-} 
+}

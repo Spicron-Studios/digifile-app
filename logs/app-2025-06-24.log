@@ -1,0 +1,138 @@
+[2025-06-24 05:14:13.354] (INFO) - api/files/route.ts - GET /api/files endpoint called
+[2025-06-24 05:14:13.360] (INFO) - api/files/route.ts - Fetching files for organization ID: d290f1ee-6c54-4b01-90e6-d701748f0851
+[2025-06-24 05:14:16.509] (INFO) - api/files/route.ts - Raw query result count: 3
+[2025-06-24 05:14:16.509] (DEBUG) - api/files/route.ts - Files with patients: 3
+[2025-06-24 05:14:16.509] (DEBUG) - api/files/route.ts - Files without patients: 0
+[2025-06-24 05:14:16.510] (DEBUG) - api/files/route.ts - Sample file_info record: {"uid":"be5097a3-000b-4d05-8e2d-bf7ea007205c","file_number":"F20258116","account_number":"A688165","has_patient_relations":true}
+[2025-06-24 05:14:16.510] (INFO) - api/files/route.ts - Transformed response count: 3
+[2025-06-24 05:14:16.510] (DEBUG) - api/files/route.ts - Files with patient info: 3
+[2025-06-24 05:14:16.510] (DEBUG) - api/files/route.ts - Files without patient info: 0
+[2025-06-24 05:14:16.510] (DEBUG) - api/files/route.ts - Sample transformed record: {"uid":"be5097a3-000b-4d05-8e2d-bf7ea007205c","file_number":"F20258116","account_number":"A688165","patient":{"id":"9806255092083","name":"Jan Hendrik de Jager","gender":"male"}}
+[2025-06-24 05:14:17.909] (INFO) - api/files/[uid]/db_read.ts - Getting file data for UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-06-24 05:14:18.289] (DEBUG) - api/files/[uid]/db_read.ts - 🏥 API: Fetched 2 medical schemes
+[2025-06-24 05:14:18.289] (INFO) - api/files/[uid]/db_read.ts - 🏢 API: Fetching file with UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-06-24 05:14:20.494] (DEBUG) - api/files/[uid]/db_read.ts - 📝 API: Fetched 0 file notes and 0 clinical notes
+[2025-06-24 05:14:20.494] (INFO) - api/files/[uid]/db_read.ts - ✅ API: File data retrieved successfully
+[2025-06-24 05:14:20.495] (DEBUG) - api/files/[uid]/db_read.ts - {
+  "uid": "be5097a3-000b-4d05-8e2d-bf7ea007205c",
+  "file_number": "F20258116",
+  "account_number": "A688165",
+  "patient": {
+    "id": "9806255092083",
+    "title": "Mr",
+    "name": "Jan Hendrik de Jager",
+    "initials": "Jan Hendrik",
+    "surname": "de Jager",
+    "dob": "1998/06/22",
+    "gender": "male",
+    "cell_phone": "0739609003",
+    "additional_name": "Persoon",
+    "additional_cell": "0987651234",
+    "email": "jandejager003@gmail.com",
+    "address": "281 Kruger Ave"
+  },
+  "medical_cover": {
+    "type": "private",
+    "same_as_patient": false,
+    "member": {
+      "id": "",
+      "name": "",
+      "initials": "",
+      "surname": "",
+      "dob": "",
+      "cell": "",
+      "email": "",
+      "address": ""
+    },
+    "medical_aid": {
+      "scheme_id": "",
+      "name": "",
+      "membership_number": "",
+      "dependent_code": ""
+    },
+    "injury_on_duty": {
+      "company_name": "",
+      "contact_person": "",
+      "contact_number": "",
+      "contact_email": ""
+    }
+  },
+  "notes": {
+    "file_notes": [],
+    "clinical_notes": []
+  },
+  "medical_schemes": [
+    {
+      "uid": "8f58a215-d564-49c0-95b2-40e0c9ecf815",
+      "scheme_name": "Discovery"
+    },
+    {
+      "uid": "3e5e55cf-4ef3-4a08-be9d-51316a63ad25",
+      "scheme_name": "Momentum"
+    }
+  ]
+}
+[2025-06-24 05:14:20.602] (INFO) - api/files/[uid]/db_read.ts - Getting file data for UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-06-24 05:14:20.783] (DEBUG) - api/files/[uid]/db_read.ts - 🏥 API: Fetched 2 medical schemes
+[2025-06-24 05:14:20.783] (INFO) - api/files/[uid]/db_read.ts - 🏢 API: Fetching file with UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-06-24 05:14:21.898] (DEBUG) - api/files/[uid]/db_read.ts - 📝 API: Fetched 0 file notes and 0 clinical notes
+[2025-06-24 05:14:21.899] (INFO) - api/files/[uid]/db_read.ts - ✅ API: File data retrieved successfully
+[2025-06-24 05:14:21.899] (DEBUG) - api/files/[uid]/db_read.ts - {
+  "uid": "be5097a3-000b-4d05-8e2d-bf7ea007205c",
+  "file_number": "F20258116",
+  "account_number": "A688165",
+  "patient": {
+    "id": "9806255092083",
+    "title": "Mr",
+    "name": "Jan Hendrik de Jager",
+    "initials": "Jan Hendrik",
+    "surname": "de Jager",
+    "dob": "1998/06/22",
+    "gender": "male",
+    "cell_phone": "0739609003",
+    "additional_name": "Persoon",
+    "additional_cell": "0987651234",
+    "email": "jandejager003@gmail.com",
+    "address": "281 Kruger Ave"
+  },
+  "medical_cover": {
+    "type": "private",
+    "same_as_patient": false,
+    "member": {
+      "id": "",
+      "name": "",
+      "initials": "",
+      "surname": "",
+      "dob": "",
+      "cell": "",
+      "email": "",
+      "address": ""
+    },
+    "medical_aid": {
+      "scheme_id": "",
+      "name": "",
+      "membership_number": "",
+      "dependent_code": ""
+    },
+    "injury_on_duty": {
+      "company_name": "",
+      "contact_person": "",
+      "contact_number": "",
+      "contact_email": ""
+    }
+  },
+  "notes": {
+    "file_notes": [],
+    "clinical_notes": []
+  },
+  "medical_schemes": [
+    {
+      "uid": "8f58a215-d564-49c0-95b2-40e0c9ecf815",
+      "scheme_name": "Discovery"
+    },
+    {
+      "uid": "3e5e55cf-4ef3-4a08-be9d-51316a63ad25",
+      "scheme_name": "Momentum"
+    }
+  ]
+}

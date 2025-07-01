@@ -1,36 +1,44 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/app/lib/prisma'
-import { auth } from '@/app/lib/auth'
+import prisma from '@/app/lib/prisma';
+import {
+  withAuth,
+  AuthenticatedRequest,
+  createSuccessResponse,
+  createErrorResponse,
+} from '@/app/lib/api-auth';
+import { validateOrganization } from '@/app/lib/api-validation';
 
-export async function GET() {
+/**
+ * GET /api/settings/organization
+ * Fetch organization information for the authenticated user's organization
+ */
+async function getOrganizationHandler(request: AuthenticatedRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No organization ID found' }, 
-        { status: 401 }
-      )
-    }
-
     const orgInfo = await prisma.organization_info.findFirst({
       where: {
-        uid: session.user.orgId
-      }
-    })
+        uid: request.auth.user.orgId,
+        active: true,
+      },
+    });
 
     if (!orgInfo) {
-      return NextResponse.json(
-        { error: 'Organization not found' },
-        { status: 404 }
-      )
+      return createErrorResponse('Organization not found', 404, 'NOT_FOUND');
     }
 
-    return NextResponse.json(orgInfo)
+    // Validate the response data
+    const validatedOrgInfo = validateOrganization(orgInfo);
+
+    return createSuccessResponse(validatedOrgInfo);
   } catch (error) {
-    console.error('Failed to fetch organization info:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch organization info' },
-      { status: 500 }
-    )
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    return createErrorResponse(
+      `Failed to fetch organization info: ${errorMessage}`,
+      500,
+      'DATABASE_ERROR'
+    );
   }
-} 
+}
+
+export const GET = withAuth(getOrganizationHandler, {
+  loggerContext: 'api/settings/organization/route.ts',
+});

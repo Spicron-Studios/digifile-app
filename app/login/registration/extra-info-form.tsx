@@ -1,13 +1,9 @@
-'use client'
+'use client';
 
-import { useState, useRef } from 'react'
-import Image from 'next/image'
-import { Button } from "@/app/components/ui/button"
-import { ConsentRow } from './components/consent-row'
-
-interface ConsentFile {
-  content: string | null
-}
+import { useRef } from 'react';
+import Image from 'next/image';
+import { Button } from '@/app/components/ui/button';
+import { ConsentRow } from './components/consent-row';
 
 interface ExtraInfoFormProps {
   value: {
@@ -18,31 +14,31 @@ interface ExtraInfoFormProps {
 }
 
 export function ExtraInfoForm({ value, onChange }: ExtraInfoFormProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
         onChange({
           ...value,
           logo: reader.result as string,
         });
-      }
-      reader.readAsDataURL(file)
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handleConsentUpload = (index: number) => async (file: File) => {
-    const text = await file.text()
-    const updatedConsents = [...value.consents]
-    updatedConsents[index] = { content: text }
+    const text = await file.text();
+    const updatedConsents = [...value.consents];
+    updatedConsents[index] = { content: text };
     onChange({
       ...value,
       consents: updatedConsents,
     });
-  }
+  };
 
   return (
     <div className="space-y-8 p-4">
@@ -69,9 +65,7 @@ export function ExtraInfoForm({ value, onChange }: ExtraInfoFormProps) {
             accept="image/*"
             className="hidden"
           />
-          <Button 
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <Button onClick={() => fileInputRef.current?.click()}>
             {value.logo ? 'Change Logo' : 'Upload Logo'}
           </Button>
         </div>
@@ -89,6 +83,5 @@ export function ExtraInfoForm({ value, onChange }: ExtraInfoFormProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }
-
