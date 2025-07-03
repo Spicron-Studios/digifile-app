@@ -94,13 +94,13 @@ export async function GET() {
     await logger.debug(FILE_NAME, 'Database connection successful');
 
     // Build the where clause based on user role
-    const whereClause = {
+    const whereClause: any = {
       AND: [{ active: true }, { orgid: session.user.orgId }],
     };
 
     // If not admin/organizer, only show the user's own calendar
     if (!isAdmin && !isOrganizer) {
-      whereClause.AND.push({ uid: session.user.id } as any);
+      whereClause.AND.push({ uid: session.user.id });
     }
 
     const users = await prisma.users.findMany({ where: whereClause });
@@ -118,7 +118,7 @@ export async function GET() {
     const userCalendarEntries = await prisma.user_calendar_entries.findMany({
       where: {
         active: true,
-        orgid: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
+        orgid: session.user.orgId,
         user_uid: {
           in: users.map(user => user.uid),
         },
@@ -182,16 +182,22 @@ export async function GET() {
     }));
 
     const events: CalendarEvent[] = accounts.flatMap((account, accountIndex) =>
-      account['Calendar-Entries'].map(entry => ({
-        id: entry.uid,
-        title: entry.title,
-        description: entry.description,
-        start: new Date(entry.startdate),
-        end: new Date(entry.enddate),
-        accountId: account.AccountID,
-        accountName: account.Name,
-        color: COLORS[accountIndex % COLORS.length] || 'bg-gray-500',
-      }))
+      account['Calendar-Entries'].map(entry => {
+        // Ensure proper date parsing - the dates from DB are in UTC
+        const startDate = new Date(entry.startdate);
+        const endDate = new Date(entry.enddate);
+
+        return {
+          id: entry.uid,
+          title: entry.title,
+          description: entry.description,
+          start: startDate,
+          end: endDate,
+          accountId: account.AccountID,
+          accountName: account.Name,
+          color: COLORS[accountIndex % COLORS.length] || 'bg-gray-500',
+        };
+      })
     );
 
     await logger.info(FILE_NAME, 'Calendar data successfully retrieved');
