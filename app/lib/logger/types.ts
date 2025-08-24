@@ -1,9 +1,7 @@
 export type LogLevel = 'ERROR' | 'WARNING' | 'INFO' | 'DEBUG';
 
 export interface LoggerConfig {
-  logLevels: {
-    [key in LogLevel]: boolean;
-  };
+  logLevels: Record<LogLevel, boolean>;
   maxFileSize: number; // in bytes
   maxLogFiles: number;
   logDirectory: string;

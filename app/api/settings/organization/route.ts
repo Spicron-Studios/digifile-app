@@ -1,4 +1,4 @@
-import prisma from '@/app/lib/prisma';
+import db, { organizationInfo } from '@/app/lib/drizzle';
 import {
   withAuth,
   AuthenticatedRequest,
@@ -6,6 +6,7 @@ import {
   createErrorResponse,
 } from '@/app/lib/api-auth';
 import { validateOrganization } from '@/app/lib/api-validation';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * GET /api/settings/organization
@@ -13,16 +14,22 @@ import { validateOrganization } from '@/app/lib/api-validation';
  */
 async function getOrganizationHandler(request: AuthenticatedRequest) {
   try {
-    const orgInfo = await prisma.organization_info.findFirst({
-      where: {
-        uid: request.auth.user.orgId,
-        active: true,
-      },
-    });
+    const orgInfoResults = await db
+      .select()
+      .from(organizationInfo)
+      .where(
+        and(
+          eq(organizationInfo.uid, request.auth.user.orgId),
+          eq(organizationInfo.active, true)
+        )
+      )
+      .limit(1);
 
-    if (!orgInfo) {
+    if (orgInfoResults.length === 0) {
       return createErrorResponse('Organization not found', 404, 'NOT_FOUND');
     }
+
+    const orgInfo = orgInfoResults[0];
 
     // Validate the response data
     const validatedOrgInfo = validateOrganization(orgInfo);

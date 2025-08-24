@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/app/lib/prisma';
+import db, { fileInfo, fileinfoPatient, patient } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
 import { Logger } from '@/app/lib/logger';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET(): Promise<NextResponse> {
   const logger = Logger.getInstance();
@@ -24,29 +25,35 @@ export async function GET(): Promise<NextResponse> {
       `Fetching files for organization ID: ${session.user.orgId}`
     );
 
-    // Query directly from file_info table - this is the main table
-    // All files should be fetched even if there is no associated patient
-    const fileInfos = await prisma.file_info.findMany({
-      where: {
-        active: true,
-        orgid: session.user.orgId,
-      },
-      include: {
-        // Include the relationship to patient through fileinfo_patient
-        fileinfo_patient: {
-          where: {
-            active: true,
-          },
-          include: {
-            patient: {
-              where: {
-                active: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    // Query with left joins to get files with or without patients
+    const fileInfos = await db
+      .select({
+        uid: fileInfo.uid,
+        file_number: fileInfo.fileNumber,
+        account_number: fileInfo.accountNumber,
+        patient_id: patient.id,
+        patient_name: patient.name,
+        patient_gender: patient.gender,
+        has_patient: fileinfoPatient.uid,
+      })
+      .from(fileInfo)
+      .leftJoin(
+        fileinfoPatient,
+        and(
+          eq(fileinfoPatient.fileid, fileInfo.uid),
+          eq(fileinfoPatient.active, true)
+        )
+      )
+      .leftJoin(
+        patient,
+        and(
+          eq(patient.uid, fileinfoPatient.patientid),
+          eq(patient.active, true)
+        )
+      )
+      .where(
+        and(eq(fileInfo.active, true), eq(fileInfo.orgid, session.user.orgId))
+      );
 
     await logger.info(
       'api/files/route.ts',
@@ -54,12 +61,8 @@ export async function GET(): Promise<NextResponse> {
     );
 
     if (fileInfos.length > 0) {
-      const filesWithPatients = fileInfos.filter(
-        f => f.fileinfo_patient.length > 0
-      );
-      const filesWithoutPatients = fileInfos.filter(
-        f => f.fileinfo_patient.length === 0
-      );
+      const filesWithPatients = fileInfos.filter(f => f.has_patient);
+      const filesWithoutPatients = fileInfos.filter(f => !f.has_patient);
 
       await logger.debug(
         'api/files/route.ts',
@@ -77,7 +80,7 @@ export async function GET(): Promise<NextResponse> {
             uid: fileInfos[0].uid,
             file_number: fileInfos[0].file_number,
             account_number: fileInfos[0].account_number,
-            has_patient_relations: fileInfos[0].fileinfo_patient.length > 0,
+            has_patient_relations: !!fileInfos[0].has_patient,
           })}`
         );
       }
@@ -86,25 +89,16 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Transform data to handle cases where patient info might not exist
-    const files = fileInfos.map(fileInfo => {
-      // Get the first linked patient if it exists
-      const filePatient =
-        fileInfo.fileinfo_patient.length > 0
-          ? fileInfo.fileinfo_patient[0]
-          : null;
-      const patient = filePatient?.patient || null;
-
-      return {
-        uid: fileInfo.uid,
-        file_number: fileInfo.file_number || '',
-        account_number: fileInfo.account_number || '',
-        patient: {
-          id: patient?.id || '',
-          name: patient?.name || '',
-          gender: patient?.gender || '',
-        },
-      };
-    });
+    const files = fileInfos.map(fileRecord => ({
+      uid: fileRecord.uid,
+      file_number: fileRecord.file_number || '',
+      account_number: fileRecord.account_number || '',
+      patient: {
+        id: fileRecord.patient_id || '',
+        name: fileRecord.patient_name || '',
+        gender: fileRecord.patient_gender || '',
+      },
+    }));
 
     await logger.info(
       'api/files/route.ts',

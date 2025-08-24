@@ -102,5 +102,5 @@ export interface UploadedFile {
   content: string | ArrayBuffer | null;
 }
 
-export type HandleInputChange = (field: string, value: string) => void;
-export type HandleSelectChange = (field: string, value: string) => void;
+export type HandleInputChange = (_field: string, _value: string) => void;
+export type HandleSelectChange = (_field: string, _value: string) => void;

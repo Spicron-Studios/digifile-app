@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-import prisma from '@/app/lib/prisma';
+import db, { tabNotes, tabFiles } from '@/app/lib/drizzle';
 import { Logger } from '@/app/lib/logger';
 
 // Initialize Supabase client
@@ -32,27 +32,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const noteUid = uuidv4();
     await logger.debug(
       'api/files/notes/route.ts',
-      `Creating note with fileInfoPatientId: ${data.fileInfoPatientId}`
+      `Creating note with fileinfoPatientId: ${data.fileInfoPatientId}`
     );
 
-    const newNote = await prisma.tab_notes.create({
-      data: {
+    const newNote = await db
+      .insert(tabNotes)
+      .values({
         uid: noteUid,
         orgid: data.orgId,
-        fileinfo_patient_id: data.fileInfoPatientId,
+        fileinfoPatientId: data.fileInfoPatientId,
         personid: data.patientId,
-        time_stamp: new Date(data.timeStamp),
+        timeStamp: new Date(data.timeStamp),
         notes: data.notes,
-        tab_type: data.tabType, // 'file' or 'clinical'
+        tabType: data.tabType, // 'file' or 'clinical'
         active: true,
-        date_created: new Date(),
-        last_edit: new Date(),
-      },
-    });
+        dateCreated: new Date(),
+        lastEdit: new Date(),
+        locked: false,
+      })
+      .returning();
 
     await logger.info(
       'api/files/notes/route.ts',
-      `Note created with UID: ${newNote.uid}`
+      `Note created with UID: ${newNote[0].uid}`
     );
 
     // Handle file uploads
@@ -97,25 +99,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
           // Create record in tab_files
           const fileUid = uuidv4();
-          const fileRecord = await prisma.tab_files.create({
-            data: {
+          const fileRecord = await db
+            .insert(tabFiles)
+            .values({
               uid: fileUid,
               orgid: data.orgId,
-              tab_notes_id: noteUid,
-              file_name: fileData.name,
-              file_type: fileData.type,
-              file_location: storageLocation,
+              tabNotesId: noteUid,
+              fileName: fileData.name,
+              fileType: fileData.type,
+              fileLocation: storageLocation,
               active: true,
-              date_created: new Date(),
-              last_edit: new Date(),
-            },
-          });
+              dateCreated: new Date(),
+              lastEdit: new Date(),
+              locked: false,
+            })
+            .returning();
 
           fileRecords.push({
-            uid: fileRecord.uid,
-            file_name: fileRecord.file_name,
-            file_type: fileRecord.file_type,
-            file_location: fileRecord.file_location,
+            uid: fileRecord[0].uid,
+            file_name: fileRecord[0].fileName,
+            file_type: fileRecord[0].fileType,
+            file_location: fileRecord[0].fileLocation,
           });
 
           await logger.debug(
@@ -133,10 +137,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Return the complete note data with file records
     const completeNote = {
-      uid: newNote.uid,
-      time_stamp: newNote.time_stamp,
-      notes: newNote.notes,
-      tab_type: newNote.tab_type,
+      uid: newNote[0].uid,
+      time_stamp: newNote[0].timeStamp,
+      notes: newNote[0].notes,
+      tab_type: newNote[0].tabType,
       files: fileRecords,
     };
 

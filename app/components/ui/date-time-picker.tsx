@@ -1,13 +1,13 @@
-"use client"
+'use client';
 
-import React from "react"
-import ReactDatePicker from "react-datepicker"
-import "react-datepicker/dist/react-datepicker.css"
+import React from 'react';
+import ReactDatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface DateTimePickerProps {
-  id: string
-  value?: Date
-  onChange?: (date: Date | null) => void
+  id: string;
+  value?: Date;
+  onChange?: (_date: Date | null) => void;
 }
 
 export function DateTimePicker({ id, value, onChange }: DateTimePickerProps) {
@@ -20,5 +20,5 @@ export function DateTimePicker({ id, value, onChange }: DateTimePickerProps) {
       dateFormat="Pp"
       className="w-full p-2 border rounded"
     />
-  )
+  );
 }

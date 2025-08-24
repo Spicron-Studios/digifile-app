@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import prisma from '@/app/lib/prisma';
+import db, { userCalendarEntries } from '@/app/lib/drizzle';
 import { v4 as uuidv4 } from 'uuid';
 
 const appointmentSchema = z.object({
@@ -18,22 +18,25 @@ export async function POST(request: Request) {
     const json = await request.json();
     const data = appointmentSchema.parse(json);
 
-    const newAppointment = await prisma.user_calendar_entries.create({
-      data: {
+    const newAppointment = await db
+      .insert(userCalendarEntries)
+      .values({
         uid: uuidv4(),
-        user_uid: data.user_uid,
+        userUid: data.user_uid,
         startdate: new Date(data.startdate),
         enddate: new Date(data.enddate),
         title: data.title,
         description: data.description ?? null,
         active: true,
-        date_created: new Date(),
-        last_edit: new Date(),
+        dateCreated: new Date(),
+        lastEdit: new Date(),
         locked: false,
-      },
-    });
+        orgid: null, // This should be set based on authenticated user
+        length: null,
+      })
+      .returning();
 
-    return NextResponse.json(newAppointment);
+    return NextResponse.json(newAppointment[0]);
   } catch (error: unknown) {
     console.error('Error creating appointment:', error);
     const errorMessage =

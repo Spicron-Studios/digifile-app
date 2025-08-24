@@ -13,7 +13,7 @@ interface ErrorBoundaryState {
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ComponentType<ErrorFallbackProps>;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  onError?: (_error: Error, _errorInfo: React.ErrorInfo) => void;
   resetOnPropsChange?: boolean;
   resetKeys?: Array<string | number>;
 }
@@ -193,9 +193,9 @@ export class ErrorBoundary extends React.Component<
 /**
  * Hook for using error boundary in functional components
  */
-export function useErrorHandler(): (error: Error) => void {
-  return React.useCallback((error: Error) => {
-    throw error;
+export function useErrorHandler(): (_error: Error) => void {
+  return React.useCallback((_error: Error) => {
+    throw _error;
   }, []);
 }
 

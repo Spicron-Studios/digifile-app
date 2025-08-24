@@ -1,9 +1,10 @@
-import prisma from '@/app/lib/prisma';
+import db, { roles } from '@/app/lib/drizzle';
 import {
   withAuth,
   createSuccessResponse,
   createErrorResponse,
 } from '@/app/lib/api-auth';
+import { eq } from 'drizzle-orm';
 
 /**
  * GET /api/settings/users/roles
@@ -12,18 +13,16 @@ import {
 async function getRolesHandler() {
   try {
     // Fetch all active roles for the organization
-    const roles = await prisma.roles.findMany({
-      where: {
-        active: true,
-      },
-      select: {
-        uid: true,
-        role_name: true,
-        description: true,
-      },
-    });
+    const rolesList = await db
+      .select({
+        uid: roles.uid,
+        role_name: roles.roleName,
+        description: roles.description,
+      })
+      .from(roles)
+      .where(eq(roles.active, true));
 
-    return createSuccessResponse(roles);
+    return createSuccessResponse(rolesList);
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';

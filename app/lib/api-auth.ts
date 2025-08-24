@@ -24,8 +24,8 @@ export interface ApiResponse<T = any> {
  */
 export async function withAuth<T>(
   handler: (
-    request: AuthenticatedRequest,
-    context?: any
+    _request: AuthenticatedRequest,
+    _context?: any
   ) => Promise<NextResponse<ApiResponse<T>>>,
   options: {
     requireRoles?: string[];
@@ -34,8 +34,8 @@ export async function withAuth<T>(
   } = { loggerContext: 'api' }
 ) {
   return async (
-    request: NextRequest,
-    context?: any
+    _request: NextRequest,
+    _context?: any
   ): Promise<NextResponse<ApiResponse<T>>> => {
     const logger = Logger.getInstance();
     await logger.init();
@@ -43,7 +43,7 @@ export async function withAuth<T>(
     try {
       await logger.info(
         options.loggerContext,
-        `${request.method} ${request.url} - Authentication check started`
+        `${_request.method} ${_request.url} - Authentication check started`
       );
 
       // Get session
@@ -60,11 +60,11 @@ export async function withAuth<T>(
       }
 
       // Check organization access for parameterized routes
-      if (context?.params?.uid && options.allowSelfAccess) {
-        if (session.user.orgId !== context.params.uid) {
+      if (_context?.params?.uid && options.allowSelfAccess) {
+        if (session.user.orgId !== _context.params.uid) {
           await logger.warning(
             options.loggerContext,
-            `Forbidden access attempt - Organization mismatch: ${session.user.orgId} vs ${context.params.uid}`
+            `Forbidden access attempt - Organization mismatch: ${session.user.orgId} vs ${_context.params.uid}`
           );
           return NextResponse.json(
             {
@@ -98,7 +98,7 @@ export async function withAuth<T>(
       }
 
       // Create authenticated request
-      const authenticatedRequest = request as AuthenticatedRequest;
+      const authenticatedRequest = _request as AuthenticatedRequest;
       authenticatedRequest.auth = {
         user: {
           id: session.user.id,
@@ -113,7 +113,7 @@ export async function withAuth<T>(
       );
 
       // Call the handler
-      return await handler(authenticatedRequest, context);
+      return await handler(authenticatedRequest, _context);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -156,7 +156,7 @@ export function createSuccessResponse<T>(
  */
 export async function validateRequestData<T>(
   request: NextRequest,
-  validator: (data: any) => T
+  validator: (_data: any) => T
 ): Promise<{ data: T; error?: never } | { data?: never; error: string }> {
   try {
     const rawData = await request.json();

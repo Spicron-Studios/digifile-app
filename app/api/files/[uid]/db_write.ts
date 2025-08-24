@@ -1,4 +1,12 @@
-import prisma from '@/app/lib/prisma';
+import db, {
+  fileInfo,
+  fileinfoPatient,
+  patient,
+  patientMedicalAid,
+  injuryOnDuty,
+  patientmedicalaidFilePatient,
+} from '@/app/lib/drizzle';
+import { and, eq } from 'drizzle-orm';
 import { Logger } from '@/app/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -27,51 +35,75 @@ export async function handleUpdateFile(
     const fileUid = uid;
 
     // First, check if the file_info record exists
-    const existingFileInfo = await prisma.file_info.findUnique({
-      where: { uid: fileUid },
-      include: {
-        fileinfo_patient: {
-          where: { active: true },
-          include: {
-            patient: true,
-          },
-        },
-      },
-    });
+    const existingFileInfo = await db
+      .select({
+        fileInfo: fileInfo,
+        filePatient: fileinfoPatient,
+        patient: patient,
+      })
+      .from(fileInfo)
+      .leftJoin(
+        fileinfoPatient,
+        and(
+          eq(fileinfoPatient.fileid, fileInfo.uid),
+          eq(fileinfoPatient.active, true)
+        )
+      )
+      .leftJoin(patient, eq(fileinfoPatient.patientid, patient.uid))
+      .where(eq(fileInfo.uid, fileUid))
+      .limit(1);
+
+    const existingRecord = existingFileInfo[0];
 
     await logger.debug(
       'api/files/[uid]/db_write.ts',
-      `Existing file_info found: ${!!existingFileInfo}`
+      `Existing file_info found: ${!!existingRecord}`
     );
-    if (existingFileInfo) {
+    if (existingRecord) {
       await logger.debug(
         'api/files/[uid]/db_write.ts',
-        `Has fileinfo_patient relationships: ${existingFileInfo.fileinfo_patient.length > 0}`
+        `Has fileinfo_patient relationships: ${!!existingRecord.filePatient}`
       );
     }
 
     // Upsert the file_info record
-    const upsertedFileInfo = await prisma.file_info.upsert({
-      where: { uid: fileUid },
-      update: {
-        file_number: data.file_number,
-        account_number: data.account_number,
-        referral_doc_name: data.referral_doc_name,
-        referral_doc_number: data.referral_doc_number,
-        last_edit: new Date(),
-      },
-      create: {
-        uid: fileUid,
-        file_number: data.file_number || '',
-        account_number: data.account_number || '',
-        referral_doc_name: data.referral_doc_name || '',
-        referral_doc_number: data.referral_doc_number || '',
-        orgid: orgId,
-        active: true,
-        date_created: new Date(),
-        last_edit: new Date(),
-      },
-    });
+    let upsertedFileInfo;
+    if (existingRecord?.fileInfo) {
+      // Update existing
+      const updated = await db
+        .update(fileInfo)
+        .set({
+          fileNumber: data.file_number,
+          accountNumber: data.account_number,
+          referralDocName: data.referral_doc_name,
+          referralDocNumber: data.referral_doc_number,
+          lastEdit: new Date(),
+        })
+        .where(eq(fileInfo.uid, fileUid))
+        .returning();
+      upsertedFileInfo = updated[0];
+    } else {
+      // Create new
+      const created = await db
+        .insert(fileInfo)
+        .values({
+          uid: fileUid,
+          fileNumber: data.file_number || '',
+          accountNumber: data.account_number || '',
+          referralDocName: data.referral_doc_name || '',
+          referralDocNumber: data.referral_doc_number || '',
+          orgid: orgId,
+          active: true,
+          dateCreated: new Date(),
+          lastEdit: new Date(),
+        })
+        .returning();
+      upsertedFileInfo = created[0];
+    }
+
+    if (!upsertedFileInfo) {
+      throw new Error('Failed to upsert file info');
+    }
 
     await logger.info(
       'api/files/[uid]/db_write.ts',
@@ -86,31 +118,28 @@ export async function handleUpdateFile(
       );
 
       // Parse date of birth if provided
-      let dobDate = null;
+      let dobDate: string | null = null;
       if (data.patient.dob) {
         const dobParts = data.patient.dob.split('/');
         if (dobParts.length === 3) {
-          dobDate = new Date(
-            parseInt(dobParts[0]), // Year
-            parseInt(dobParts[1]) - 1, // Month (0-indexed)
-            parseInt(dobParts[2]) // Day
-          );
+          const year = parseInt(dobParts[0]);
+          const month = parseInt(dobParts[1]) - 1; // Month (0-indexed)
+          const day = parseInt(dobParts[2]);
+          const dateObj = new Date(year, month, day);
+          const isoString = dateObj.toISOString();
+          dobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
         }
       }
 
       // Find existing fileinfo_patient relationship if any
-      let existingRelation = null;
-      let existingPatient = null;
+      const existingRelation = existingRecord?.filePatient || null;
+      const existingPatient = existingRecord?.patient || null;
 
-      if (existingFileInfo && existingFileInfo.fileinfo_patient.length > 0) {
-        existingRelation = existingFileInfo.fileinfo_patient[0];
-        if (existingRelation) {
-          existingPatient = existingRelation.patient;
-          await logger.debug(
-            'api/files/[uid]/db_write.ts',
-            `Found existing patient relationship with UID: ${existingPatient?.uid}`
-          );
-        }
+      if (existingRelation && existingPatient) {
+        await logger.debug(
+          'api/files/[uid]/db_write.ts',
+          `Found existing patient relationship with UID: ${existingPatient.uid}`
+        );
       }
 
       // Decide whether to update existing patient or create new one
@@ -121,23 +150,23 @@ export async function handleUpdateFile(
           `Updating existing patient with UID: ${existingPatient.uid}`
         );
 
-        await prisma.patient.update({
-          where: { uid: existingPatient.uid },
-          data: {
+        await db
+          .update(patient)
+          .set({
             title: data.patient.title,
             name: data.patient.name,
             initials: data.patient.initials,
             surname: data.patient.surname,
-            date_of_birth: dobDate,
+            dateOfBirth: dobDate,
             gender: data.patient.gender,
-            cell_phone: data.patient.cell_phone,
-            additional_name: data.patient.additional_name,
-            additional_cell: data.patient.additional_cell,
+            cellPhone: data.patient.cell_phone,
+            additionalName: data.patient.additional_name,
+            additionalCell: data.patient.additional_cell,
             email: data.patient.email,
             address: data.patient.address,
-            last_edit: new Date(),
-          },
-        });
+            lastEdit: new Date(),
+          })
+          .where(eq(patient.uid, existingPatient.uid));
 
         await logger.info(
           'api/files/[uid]/db_write.ts',
@@ -152,26 +181,24 @@ export async function handleUpdateFile(
         );
 
         // Create the patient record
-        await prisma.patient.create({
-          data: {
-            uid: newPatientUid,
-            id: data.patient.id || '',
-            title: data.patient.title || '',
-            name: data.patient.name || '',
-            initials: data.patient.initials || '',
-            surname: data.patient.surname || '',
-            date_of_birth: dobDate,
-            gender: data.patient.gender || '',
-            cell_phone: data.patient.cell_phone || '',
-            additional_name: data.patient.additional_name || '',
-            additional_cell: data.patient.additional_cell || '',
-            email: data.patient.email || '',
-            address: data.patient.address || '',
-            orgid: orgId,
-            active: true,
-            date_created: new Date(),
-            last_edit: new Date(),
-          },
+        await db.insert(patient).values({
+          uid: newPatientUid,
+          id: data.patient.id || '',
+          title: data.patient.title || '',
+          name: data.patient.name || '',
+          initials: data.patient.initials || '',
+          surname: data.patient.surname || '',
+          dateOfBirth: dobDate,
+          gender: data.patient.gender || '',
+          cellPhone: data.patient.cell_phone || '',
+          additionalName: data.patient.additional_name || '',
+          additionalCell: data.patient.additional_cell || '',
+          email: data.patient.email || '',
+          address: data.patient.address || '',
+          orgid: orgId,
+          active: true,
+          dateCreated: new Date(),
+          lastEdit: new Date(),
         });
 
         // Create the fileinfo_patient relationship
@@ -181,16 +208,14 @@ export async function handleUpdateFile(
           `Creating fileinfo_patient relationship with UID: ${newRelationUid}`
         );
 
-        await prisma.fileinfo_patient.create({
-          data: {
-            uid: newRelationUid,
-            fileid: fileUid,
-            patientid: newPatientUid,
-            orgid: orgId,
-            active: true,
-            date_created: new Date(),
-            last_edit: new Date(),
-          },
+        await db.insert(fileinfoPatient).values({
+          uid: newRelationUid,
+          fileid: fileUid,
+          patientid: newPatientUid,
+          orgid: orgId,
+          active: true,
+          dateCreated: new Date(),
+          lastEdit: new Date(),
         });
 
         await logger.info(
@@ -219,19 +244,26 @@ export async function handleUpdateFile(
     }
 
     // Fetch the updated file data to return
-    const updatedFileData = await prisma.file_info.findUnique({
-      where: { uid: fileUid },
-      include: {
-        fileinfo_patient: {
-          where: { active: true },
-          include: {
-            patient: true,
-          },
-        },
-      },
-    });
+    const updatedFileData = await db
+      .select({
+        fileInfo: fileInfo,
+        filePatient: fileinfoPatient,
+        patient: patient,
+      })
+      .from(fileInfo)
+      .leftJoin(
+        fileinfoPatient,
+        and(
+          eq(fileinfoPatient.fileid, fileInfo.uid),
+          eq(fileinfoPatient.active, true)
+        )
+      )
+      .leftJoin(patient, eq(fileinfoPatient.patientid, patient.uid))
+      .where(eq(fileInfo.uid, fileUid))
+      .limit(1);
 
-    if (!updatedFileData) {
+    const updatedRecord = updatedFileData[0];
+    if (!updatedRecord) {
       await logger.error(
         'api/files/[uid]/db_write.ts',
         'Failed to fetch updated file data'
@@ -240,36 +272,36 @@ export async function handleUpdateFile(
     }
 
     // Get the associated patient data if available
-    const filePatient = updatedFileData.fileinfo_patient[0]?.patient || null;
+    const filePatientData = updatedRecord.patient || null;
 
     // Format date of birth if it exists
     let formattedDob = '';
-    if (filePatient?.date_of_birth) {
-      const dob = new Date(filePatient.date_of_birth);
+    if (filePatientData?.dateOfBirth) {
+      const dob = new Date(filePatientData.dateOfBirth);
       formattedDob = `${dob.getFullYear()}/${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}`;
     }
 
     // Prepare the response data
     const responseData = {
-      uid: updatedFileData.uid,
-      file_number: updatedFileData.file_number || '',
-      account_number: updatedFileData.account_number || '',
-      referral_doc_name: updatedFileData.referral_doc_name || '',
-      referral_doc_number: updatedFileData.referral_doc_number || '',
-      patient: filePatient
+      uid: updatedRecord.fileInfo.uid,
+      file_number: updatedRecord.fileInfo.fileNumber || '',
+      account_number: updatedRecord.fileInfo.accountNumber || '',
+      referral_doc_name: updatedRecord.fileInfo.referralDocName || '',
+      referral_doc_number: updatedRecord.fileInfo.referralDocNumber || '',
+      patient: filePatientData
         ? {
-            id: filePatient.id || '',
-            title: filePatient.title || '',
-            name: filePatient.name || '',
-            initials: filePatient.initials || '',
-            surname: filePatient.surname || '',
+            id: filePatientData.id || '',
+            title: filePatientData.title || '',
+            name: filePatientData.name || '',
+            initials: filePatientData.initials || '',
+            surname: filePatientData.surname || '',
             dob: formattedDob,
-            gender: filePatient.gender || '',
-            cell_phone: filePatient.cell_phone || '',
-            additional_name: filePatient.additional_name || '',
-            additional_cell: filePatient.additional_cell || '',
-            email: filePatient.email || '',
-            address: filePatient.address || '',
+            gender: filePatientData.gender || '',
+            cell_phone: filePatientData.cellPhone || '',
+            additional_name: filePatientData.additionalName || '',
+            additional_cell: filePatientData.additionalCell || '',
+            email: filePatientData.email || '',
+            address: filePatientData.address || '',
           }
         : {
             id: '',
@@ -345,23 +377,29 @@ export async function handleCreateFile(
     );
 
     // Create the file_info record first
-    const newFileInfo = await prisma.file_info.create({
-      data: {
+    const newFileInfo = await db
+      .insert(fileInfo)
+      .values({
         uid: newFileUid,
-        file_number: data.file_number || '',
-        account_number: data.account_number || '',
-        referral_doc_name: data.referral_doc_name || '',
-        referral_doc_number: data.referral_doc_number || '',
+        fileNumber: data.file_number || '',
+        accountNumber: data.account_number || '',
+        referralDocName: data.referral_doc_name || '',
+        referralDocNumber: data.referral_doc_number || '',
         orgid: orgId,
         active: true,
-        date_created: new Date(),
-        last_edit: new Date(),
-      },
-    });
+        dateCreated: new Date(),
+        lastEdit: new Date(),
+      })
+      .returning();
+
+    const newFileInfoRecord = newFileInfo[0];
+    if (!newFileInfoRecord) {
+      throw new Error('Failed to create file info');
+    }
 
     await logger.info(
       'api/files/[uid]/db_write.ts',
-      `New file_info created with UID: ${newFileInfo.uid}`
+      `New file_info created with UID: ${newFileInfoRecord.uid}`
     );
 
     // Create patient record if patient data is provided
@@ -374,15 +412,16 @@ export async function handleCreateFile(
       );
 
       // Parse date of birth if provided
-      let dobDate = null;
+      let dobDate: string | null = null;
       if (data.patient.dob) {
         const dobParts = data.patient.dob.split('/');
         if (dobParts.length === 3) {
-          dobDate = new Date(
-            parseInt(dobParts[0]), // Year
-            parseInt(dobParts[1]) - 1, // Month (0-indexed)
-            parseInt(dobParts[2]) // Day
-          );
+          const year = parseInt(dobParts[0]);
+          const month = parseInt(dobParts[1]) - 1; // Month (0-indexed)
+          const day = parseInt(dobParts[2]);
+          const dateObj = new Date(year, month, day);
+          const isoString = dateObj.toISOString();
+          dobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
         }
       }
 
@@ -394,47 +433,51 @@ export async function handleCreateFile(
       );
 
       // Create the patient record
-      const newPatient = await prisma.patient.create({
-        data: {
+      const newPatient = await db
+        .insert(patient)
+        .values({
           uid: newPatientUid,
           id: data.patient.id || '',
           title: data.patient.title || '',
           name: data.patient.name || '',
           initials: data.patient.initials || '',
           surname: data.patient.surname || '',
-          date_of_birth: dobDate,
+          dateOfBirth: dobDate,
           gender: data.patient.gender || '',
-          cell_phone: data.patient.cell_phone || '',
-          additional_name: data.patient.additional_name || '',
-          additional_cell: data.patient.additional_cell || '',
+          cellPhone: data.patient.cell_phone || '',
+          additionalName: data.patient.additional_name || '',
+          additionalCell: data.patient.additional_cell || '',
           email: data.patient.email || '',
           address: data.patient.address || '',
           orgid: orgId,
           active: true,
-          date_created: new Date(),
-          last_edit: new Date(),
-        },
-      });
+          dateCreated: new Date(),
+          lastEdit: new Date(),
+        })
+        .returning();
+
+      const newPatientRecord = newPatient[0];
+      if (!newPatientRecord) {
+        throw new Error('Failed to create patient');
+      }
 
       await logger.info(
         'api/files/[uid]/db_write.ts',
-        `Patient created with UID: ${newPatient.uid}`
+        `Patient created with UID: ${newPatientRecord.uid}`
       );
 
       // Generate a new UUID for the relationship
       const relationshipUid = uuidv4();
 
       // Create the fileinfo_patient relationship
-      await prisma.fileinfo_patient.create({
-        data: {
-          uid: relationshipUid,
-          fileid: newFileUid,
-          patientid: newPatientUid,
-          orgid: orgId,
-          active: true,
-          date_created: new Date(),
-          last_edit: new Date(),
-        },
+      await db.insert(fileinfoPatient).values({
+        uid: relationshipUid,
+        fileid: newFileUid,
+        patientid: newPatientUid,
+        orgid: orgId,
+        active: true,
+        dateCreated: new Date(),
+        lastEdit: new Date(),
       });
 
       await logger.info(
@@ -549,12 +592,16 @@ async function processMedicalAid(
     );
 
     // Find existing medical aid record for this file if any
-    const existingMedicalAid = await prisma.patient_medical_aid.findFirst({
-      where: {
-        fileid: fileUid,
-        active: true,
-      },
-    });
+    const existingMedicalAid = await db
+      .select()
+      .from(patientMedicalAid)
+      .where(
+        and(
+          eq(patientMedicalAid.fileid, fileUid),
+          eq(patientMedicalAid.active, true)
+        )
+      )
+      .limit(1);
 
     // Extract medical aid data
     const medicalAidData = medicalCover.medical_aid || {};
@@ -573,24 +620,29 @@ async function processMedicalAid(
 
     // Upsert medical aid record
     let medicalAidUid;
-    if (existingMedicalAid) {
+    if (existingMedicalAid.length > 0) {
       // Update existing record
+      const existing = existingMedicalAid[0];
+      if (!existing) {
+        throw new Error('Existing medical aid record is undefined');
+      }
+
       await logger.debug(
         'api/files/[uid]/db_write.ts',
-        `Updating existing medical aid with UID: ${existingMedicalAid.uid}`
+        `Updating existing medical aid with UID: ${existing.uid}`
       );
 
-      await prisma.patient_medical_aid.update({
-        where: { uid: existingMedicalAid.uid },
-        data: {
-          medical_scheme_id: schemeId,
-          membership_number: membershipNumber,
-          patient_dependant_code: dependentCode,
-          last_edit: new Date(),
-        },
-      });
+      await db
+        .update(patientMedicalAid)
+        .set({
+          medicalSchemeId: schemeId,
+          membershipNumber: membershipNumber,
+          patientDependantCode: dependentCode,
+          lastEdit: new Date(),
+        })
+        .where(eq(patientMedicalAid.uid, existing.uid));
 
-      medicalAidUid = existingMedicalAid.uid;
+      medicalAidUid = existing.uid;
     } else {
       // Create new record
       medicalAidUid = uuidv4();
@@ -599,18 +651,16 @@ async function processMedicalAid(
         `Creating new medical aid with UID: ${medicalAidUid}`
       );
 
-      await prisma.patient_medical_aid.create({
-        data: {
-          uid: medicalAidUid,
-          medical_scheme_id: schemeId,
-          membership_number: membershipNumber,
-          patient_dependant_code: dependentCode,
-          fileid: fileUid,
-          orgid: orgId,
-          active: true,
-          date_created: new Date(),
-          last_edit: new Date(),
-        },
+      await db.insert(patientMedicalAid).values({
+        uid: medicalAidUid,
+        medicalSchemeId: schemeId,
+        membershipNumber: membershipNumber,
+        patientDependantCode: dependentCode,
+        fileid: fileUid,
+        orgid: orgId,
+        active: true,
+        dateCreated: new Date(),
+        lastEdit: new Date(),
       });
     }
 
@@ -654,55 +704,65 @@ async function processMedicalAidMember(
     );
 
     // Find existing member record
-    const existingMember =
-      await prisma.patientmedicalaid_file_patient.findFirst({
-        where: {
-          fileid: fileUid,
-          patient_medical_aid_id: medicalAidUid,
-          active: true,
-        },
-        include: {
-          patient: true,
-        },
-      });
+    const existingMember = await db
+      .select({
+        link: patientmedicalaidFilePatient,
+        patient: patient,
+      })
+      .from(patientmedicalaidFilePatient)
+      .leftJoin(
+        patient,
+        eq(patientmedicalaidFilePatient.patientid, patient.uid)
+      )
+      .where(
+        and(
+          eq(patientmedicalaidFilePatient.fileid, fileUid),
+          eq(patientmedicalaidFilePatient.patientMedicalAidId, medicalAidUid),
+          eq(patientmedicalaidFilePatient.active, true)
+        )
+      )
+      .limit(1);
+
+    const existingRecord = existingMember[0];
 
     // Parse member date of birth if provided
-    let memberDobDate = null;
+    let memberDobDate: string | null = null;
     if (memberData.dob) {
       const dobParts = memberData.dob.split('/');
       if (dobParts.length === 3) {
-        memberDobDate = new Date(
-          parseInt(dobParts[0]), // Year
-          parseInt(dobParts[1]) - 1, // Month (0-indexed)
-          parseInt(dobParts[2]) // Day
-        );
+        const year = parseInt(dobParts[0]);
+        const month = parseInt(dobParts[1]) - 1; // Month (0-indexed)
+        const day = parseInt(dobParts[2]);
+        const dateObj = new Date(year, month, day);
+        const isoString = dateObj.toISOString();
+        memberDobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
       }
     }
 
-    if (existingMember && existingMember.patient) {
+    if (existingRecord && existingRecord.patient) {
       // Update existing member patient
-      const memberPatientUid = existingMember.patient.uid;
+      const memberPatientUid = existingRecord.patient.uid;
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         `Updating existing member with UID: ${memberPatientUid}`
       );
 
-      await prisma.patient.update({
-        where: { uid: memberPatientUid },
-        data: {
+      await db
+        .update(patient)
+        .set({
           id: memberData.id || '',
           title: memberData.title || '',
           name: memberData.name || '',
           initials: memberData.initials || '',
           surname: memberData.surname || '',
-          date_of_birth: memberDobDate,
+          dateOfBirth: memberDobDate,
           gender: memberData.gender || '',
-          cell_phone: memberData.cell || '',
+          cellPhone: memberData.cell || '',
           email: memberData.email || '',
           address: memberData.address || '',
-          last_edit: new Date(),
-        },
-      });
+          lastEdit: new Date(),
+        })
+        .where(eq(patient.uid, memberPatientUid));
     } else if (memberData.name || memberData.surname) {
       // Create new member patient
       const memberPatientUid = uuidv4();
@@ -711,24 +771,22 @@ async function processMedicalAidMember(
         `Creating new member patient with UID: ${memberPatientUid}`
       );
 
-      await prisma.patient.create({
-        data: {
-          uid: memberPatientUid,
-          id: memberData.id || '',
-          title: memberData.title || '',
-          name: memberData.name || '',
-          initials: memberData.initials || '',
-          surname: memberData.surname || '',
-          date_of_birth: memberDobDate,
-          gender: memberData.gender || '',
-          cell_phone: memberData.cell || '',
-          email: memberData.email || '',
-          address: memberData.address || '',
-          orgid: orgId,
-          active: true,
-          date_created: new Date(),
-          last_edit: new Date(),
-        },
+      await db.insert(patient).values({
+        uid: memberPatientUid,
+        id: memberData.id || '',
+        title: memberData.title || '',
+        name: memberData.name || '',
+        initials: memberData.initials || '',
+        surname: memberData.surname || '',
+        dateOfBirth: memberDobDate,
+        gender: memberData.gender || '',
+        cellPhone: memberData.cell || '',
+        email: memberData.email || '',
+        address: memberData.address || '',
+        orgid: orgId,
+        active: true,
+        dateCreated: new Date(),
+        lastEdit: new Date(),
       });
 
       // Create the link between medical aid and member patient
@@ -738,17 +796,15 @@ async function processMedicalAidMember(
         `Creating new medical aid member link with UID: ${linkUid}`
       );
 
-      await prisma.patientmedicalaid_file_patient.create({
-        data: {
-          uid: linkUid,
-          patient_medical_aid_id: medicalAidUid,
-          fileid: fileUid,
-          patientid: memberPatientUid,
-          orgid: orgId,
-          active: true,
-          date_created: new Date(),
-          last_edit: new Date(),
-        },
+      await db.insert(patientmedicalaidFilePatient).values({
+        uid: linkUid,
+        patientMedicalAidId: medicalAidUid,
+        fileid: fileUid,
+        patientid: memberPatientUid,
+        orgid: orgId,
+        active: true,
+        dateCreated: new Date(),
+        lastEdit: new Date(),
       });
     }
 
@@ -781,30 +837,36 @@ async function processInjuryOnDuty(
     );
 
     // Find existing injury on duty record
-    const existingInjury = await prisma.injury_on_duty.findFirst({
-      where: {
-        fileid: fileUid,
-        active: true,
-      },
-    });
+    const existingInjury = await db
+      .select()
+      .from(injuryOnDuty)
+      .where(
+        and(eq(injuryOnDuty.fileid, fileUid), eq(injuryOnDuty.active, true))
+      )
+      .limit(1);
 
-    if (existingInjury) {
+    if (existingInjury.length > 0) {
       // Update existing record
+      const existing = existingInjury[0];
+      if (!existing) {
+        throw new Error('Existing injury record is undefined');
+      }
+
       await logger.debug(
         'api/files/[uid]/db_write.ts',
-        `Updating existing injury record with UID: ${existingInjury.uid}`
+        `Updating existing injury record with UID: ${existing.uid}`
       );
 
-      await prisma.injury_on_duty.update({
-        where: { uid: existingInjury.uid },
-        data: {
-          company_name: data.injury_on_duty?.company_name || '',
-          contact_person: data.injury_on_duty?.contact_person || '',
-          contact_number: data.injury_on_duty?.contact_number || '',
-          contact_email: data.injury_on_duty?.contact_email || '',
-          last_edit: new Date(),
-        },
-      });
+      await db
+        .update(injuryOnDuty)
+        .set({
+          companyName: data.injury_on_duty?.company_name || '',
+          contactPerson: data.injury_on_duty?.contact_person || '',
+          contactNumber: data.injury_on_duty?.contact_number || '',
+          contactEmail: data.injury_on_duty?.contact_email || '',
+          lastEdit: new Date(),
+        })
+        .where(eq(injuryOnDuty.uid, existing.uid));
     } else {
       // Create new record
       const injuryUid = uuidv4();
@@ -813,19 +875,17 @@ async function processInjuryOnDuty(
         `Creating new injury record with UID: ${injuryUid}`
       );
 
-      await prisma.injury_on_duty.create({
-        data: {
-          uid: injuryUid,
-          company_name: data.injury_on_duty?.company_name || '',
-          contact_person: data.injury_on_duty?.contact_person || '',
-          contact_number: data.injury_on_duty?.contact_number || '',
-          contact_email: data.injury_on_duty?.contact_email || '',
-          fileid: fileUid,
-          orgid: orgId,
-          active: true,
-          date_created: new Date(),
-          last_edit: new Date(),
-        },
+      await db.insert(injuryOnDuty).values({
+        uid: injuryUid,
+        companyName: data.injury_on_duty?.company_name || '',
+        contactPerson: data.injury_on_duty?.contact_person || '',
+        contactNumber: data.injury_on_duty?.contact_number || '',
+        contactEmail: data.injury_on_duty?.contact_email || '',
+        fileid: fileUid,
+        orgid: orgId,
+        active: true,
+        dateCreated: new Date(),
+        lastEdit: new Date(),
       });
     }
 

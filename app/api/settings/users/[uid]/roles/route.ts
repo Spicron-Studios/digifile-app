@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/app/lib/prisma';
+import db, { userRoles, roles } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
 import { Logger } from '@/app/lib/logger';
+import { eq, and, inArray } from 'drizzle-orm';
 
 // Get roles for a specific user
 export async function GET(
@@ -23,38 +24,35 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch user roles using $queryRaw
-    const userRoles =
-      (await prisma.$queryRaw`
-        SELECT 
-        ur.uid,
-        r.uid AS role_uid,
-        r.role_name,
-        r.description
-      FROM 
-        user_roles AS ur
-      JOIN 
-        roles AS r ON ur.roleid = r.uid
-      WHERE 
-        ur.userid = ${uid}::uuid AND
-        ur.orgid = ${session.user.orgId}::uuid AND
-        ur.active = true
-    `) || []; // Default to empty array if null
+    // Fetch user roles using Drizzle join
+    const userRolesList = await db
+      .select({
+        uid: roles.uid,
+        role_name: roles.roleName,
+        description: roles.description,
+      })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleid, roles.uid))
+      .where(
+        and(
+          eq(userRoles.userid, uid),
+          eq(userRoles.orgid, session.user.orgId),
+          eq(userRoles.active, true)
+        )
+      );
 
-    // Transform the result to match the expected shape, handling null case
-    const roles = Array.isArray(userRoles)
-      ? userRoles.map((ur: any) => ({
-          uid: ur.role_uid || '',
-          role_name: ur.role_name || '',
-          description: ur.description || null,
-        }))
-      : [];
+    // Transform the result to match the expected shape
+    const rolesList = userRolesList.map(ur => ({
+      uid: ur.uid || '',
+      role_name: ur.role_name || '',
+      description: ur.description || null,
+    }));
 
     await logger.info(
       'api/settings/users/[uid]/roles/route.ts',
-      `Retrieved ${roles.length} roles for user ${uid}`
+      `Retrieved ${rolesList.length} roles for user ${uid}`
     );
-    return NextResponse.json(roles);
+    return NextResponse.json(rolesList);
   } catch (error) {
     await logger.error(
       'api/settings/users/[uid]/roles/route.ts',
@@ -104,6 +102,7 @@ export async function PUT(
       'api/settings/users/[uid]/roles/route.ts',
       `Processing role ${action} for user ${uid}`
     );
+
     if (action === 'add') {
       await logger.debug(
         'api/settings/users/[uid]/roles/route.ts',
@@ -111,29 +110,31 @@ export async function PUT(
       );
 
       // Check for existing role (active or inactive)
-      const existingRole = await prisma.user_roles.findFirst({
-        where: {
-          userid: uid,
-          roleid: roleIds[0],
-          orgid: session.user.orgId,
-        },
-      });
+      const existingRole = await db
+        .select()
+        .from(userRoles)
+        .where(
+          and(
+            eq(userRoles.userid, uid),
+            eq(userRoles.roleid, roleIds[0]),
+            eq(userRoles.orgid, session.user.orgId)
+          )
+        )
+        .limit(1);
 
-      if (existingRole) {
+      if (existingRole.length > 0) {
         // Update existing role to active
         await logger.debug(
           'api/settings/users/[uid]/roles/route.ts',
           `Updating existing role ${roleIds[0]} for user ${uid}`
         );
-        await prisma.user_roles.update({
-          where: {
-            uid: existingRole.uid,
-          },
-          data: {
+        await db
+          .update(userRoles)
+          .set({
             active: true,
-            last_edit: new Date(),
-          },
-        });
+            lastEdit: new Date(),
+          })
+          .where(eq(userRoles.uid, existingRole[0].uid));
 
         await logger.info(
           'api/settings/users/[uid]/roles/route.ts',
@@ -145,17 +146,15 @@ export async function PUT(
           `Creating new role ${roleIds[0]} for user ${uid}`
         );
         // Create new user role record
-        await prisma.user_roles.create({
-          data: {
-            uid: crypto.randomUUID(),
-            userid: uid,
-            roleid: roleIds[0],
-            orgid: session.user.orgId,
-            active: true,
-            date_created: new Date(),
-            last_edit: new Date(),
-            locked: false,
-          },
+        await db.insert(userRoles).values({
+          uid: crypto.randomUUID(),
+          userid: uid,
+          roleid: roleIds[0],
+          orgid: session.user.orgId,
+          active: true,
+          dateCreated: new Date(),
+          lastEdit: new Date(),
+          locked: false,
         });
 
         await logger.info(
@@ -170,18 +169,20 @@ export async function PUT(
       );
 
       // Set role to inactive
-      await prisma.user_roles.updateMany({
-        where: {
-          userid: uid,
-          roleid: { in: roleIds },
-          orgid: session.user.orgId,
-          active: true,
-        },
-        data: {
+      await db
+        .update(userRoles)
+        .set({
           active: false,
-          last_edit: new Date(),
-        },
-      });
+          lastEdit: new Date(),
+        })
+        .where(
+          and(
+            eq(userRoles.userid, uid),
+            inArray(userRoles.roleid as any, roleIds),
+            eq(userRoles.orgid, session.user.orgId),
+            eq(userRoles.active, true)
+          )
+        );
 
       await logger.info(
         'api/settings/users/[uid]/roles/route.ts',
@@ -190,37 +191,34 @@ export async function PUT(
     }
 
     // Fetch updated roles with role details
-    const updatedUserRoles =
-      (await prisma.$queryRaw`
-    SELECT 
-    ur.uid,
-    r.uid AS role_uid,
-    r.role_name,
-    r.description
-  FROM 
-    user_roles AS ur
-  JOIN 
-    roles AS r ON ur.roleid = r.uid
-  WHERE 
-    ur.userid = ${uid}::uuid AND
-    ur.orgid = ${session.user.orgId}::uuid AND
-    ur.active = true
-`) || [];
+    const updatedUserRoles = await db
+      .select({
+        uid: roles.uid,
+        role_name: roles.roleName,
+        description: roles.description,
+      })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleid, roles.uid))
+      .where(
+        and(
+          eq(userRoles.userid, uid),
+          eq(userRoles.orgid, session.user.orgId),
+          eq(userRoles.active, true)
+        )
+      );
 
     // Transform the result to return just the role details
-    const roles = Array.isArray(updatedUserRoles)
-      ? updatedUserRoles.map((ur: any) => ({
-          uid: ur.role_uid || '',
-          role_name: ur.role_name || '',
-          description: ur.description || null,
-        }))
-      : [];
+    const rolesList = updatedUserRoles.map(ur => ({
+      uid: ur.uid || '',
+      role_name: ur.role_name || '',
+      description: ur.description || null,
+    }));
 
     await logger.info(
       'api/settings/users/[uid]/roles/route.ts',
-      `Role update completed. User now has ${roles.length} active roles`
+      `Role update completed. User now has ${rolesList.length} active roles`
     );
-    return NextResponse.json(roles);
+    return NextResponse.json(rolesList);
   } catch (error) {
     await logger.error(
       'api/settings/users/[uid]/roles/route.ts',

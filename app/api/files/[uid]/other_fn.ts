@@ -1,7 +1,8 @@
-import prisma from '@/app/lib/prisma';
+import db, { medicalScheme, tabNotes, tabFiles } from '@/app/lib/drizzle';
 import { Logger } from '@/app/lib/logger';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { eq, and, asc } from 'drizzle-orm';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -17,19 +18,16 @@ export async function fetchMedicalSchemes(
 
   try {
     // Fetch active medical schemes for the organization
-    const schemes = await prisma.medical_scheme.findMany({
-      where: {
-        active: true,
-        orgid: orgId,
-      },
-      select: {
-        uid: true,
-        scheme_name: true,
-      },
-      orderBy: {
-        scheme_name: 'asc',
-      },
-    });
+    const schemes = await db
+      .select({
+        uid: medicalScheme.uid,
+        scheme_name: medicalScheme.schemeName,
+      })
+      .from(medicalScheme)
+      .where(
+        and(eq(medicalScheme.active, true), eq(medicalScheme.orgid, orgId))
+      )
+      .orderBy(asc(medicalScheme.schemeName));
 
     return schemes;
   } catch (error) {
@@ -50,24 +48,26 @@ export async function saveNoteWithFiles(noteData: any): Promise<any> {
     await logger.info('api/files/[uid]/other_fn.ts', 'Saving new note');
 
     // 1. Create the note record in tab_notes
-    const newNote = await prisma.tab_notes.create({
-      data: {
+    const newNote = await db
+      .insert(tabNotes)
+      .values({
         uid: uuidv4(),
         orgid: noteData.orgId,
-        fileinfo_patient_id: noteData.fileInfoPatientId,
+        fileinfoPatientId: noteData.fileInfoPatientId,
         personid: noteData.patientId,
-        time_stamp: new Date(noteData.timeStamp),
+        timeStamp: new Date(noteData.timeStamp),
         notes: noteData.notes,
-        tab_type: noteData.tabType, // 'file' or 'clinical'
+        tabType: noteData.tabType, // 'file' or 'clinical'
         active: true,
-        date_created: new Date(),
-        last_edit: new Date(),
-      },
-    });
+        dateCreated: new Date(),
+        lastEdit: new Date(),
+        locked: false,
+      })
+      .returning();
 
     await logger.info(
       'api/files/[uid]/other_fn.ts',
-      `Note created with ID: ${newNote.uid}`
+      `Note created with ID: ${newNote[0].uid}`
     );
 
     // 2. Upload files to Supabase and create records in tab_files
@@ -104,25 +104,27 @@ export async function saveNoteWithFiles(noteData: any): Promise<any> {
         }
 
         // Create record in tab_files
-        const fileRecord = await prisma.tab_files.create({
-          data: {
+        const fileRecord = await db
+          .insert(tabFiles)
+          .values({
             uid: uuidv4(),
             orgid: noteData.orgId,
-            tab_notes_id: newNote.uid,
-            file_name: fileData.name,
-            file_type: fileData.type,
-            file_location: storageLocation,
+            tabNotesId: newNote[0].uid,
+            fileName: fileData.name,
+            fileType: fileData.type,
+            fileLocation: storageLocation,
             active: true,
-            date_created: new Date(),
-            last_edit: new Date(),
-          },
-        });
+            dateCreated: new Date(),
+            lastEdit: new Date(),
+            locked: false,
+          })
+          .returning();
 
         fileRecords.push({
-          uid: fileRecord.uid,
-          file_name: fileRecord.file_name,
-          file_type: fileRecord.file_type,
-          file_location: fileRecord.file_location,
+          uid: fileRecord[0].uid,
+          file_name: fileRecord[0].fileName,
+          file_type: fileRecord[0].fileType,
+          file_location: fileRecord[0].fileLocation,
         });
 
         await logger.info(
@@ -134,10 +136,10 @@ export async function saveNoteWithFiles(noteData: any): Promise<any> {
 
     // 3. Return the complete note data with file records
     const completeNote = {
-      uid: newNote.uid,
-      time_stamp: newNote.time_stamp,
-      notes: newNote.notes,
-      tab_type: newNote.tab_type,
+      uid: newNote[0].uid,
+      time_stamp: newNote[0].timeStamp,
+      notes: newNote[0].notes,
+      tab_type: newNote[0].tabType,
       files: fileRecords,
     };
 

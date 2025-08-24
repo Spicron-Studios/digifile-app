@@ -1,44 +1,55 @@
 'use server';
 
-import prisma from '@/app/lib/prisma';
+import db, { userCalendarEntries } from '@/app/lib/drizzle';
+import { auth } from '@/app/lib/auth';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { Logger } from '@/app/lib/logger';
+
 const logger = Logger.getInstance();
 
-const appointmentSchema = z.object({
-  user_uid: z.string().uuid('Invalid user ID'),
-  startdate: z.date(),
-  enddate: z.date(),
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().optional(),
-});
+const appointmentSchema = z
+  .object({
+    user_uid: z.string().uuid('Invalid user ID'),
+    startdate: z.date(),
+    enddate: z.date(),
+    title: z.string().min(1, 'Title is required'),
+    description: z.string().optional(),
+  })
+  .refine(data => data.enddate > data.startdate, {
+    message: 'End date must be after start date',
+    path: ['enddate'],
+  });
 
-type AppointmentData = z.infer<typeof appointmentSchema>;
-
-const ORGANIZATION_ID = 'd290f1ee-6c54-4b01-90e6-d701748f0851';
+export type AppointmentData = z.infer<typeof appointmentSchema>;
 
 export async function addAppointment(data: AppointmentData) {
+  const session = await auth();
+  if (!session?.user?.orgId) throw new Error('Unauthorized');
+
   try {
     const validatedData = appointmentSchema.parse(data);
 
-    const newAppointment = await prisma.user_calendar_entries.create({
-      data: {
+    const newAppointment = await db
+      .insert(userCalendarEntries)
+      .values({
         uid: uuidv4(),
-        user_uid: validatedData.user_uid,
+        userUid: validatedData.user_uid,
         startdate: validatedData.startdate,
         enddate: validatedData.enddate,
         title: validatedData.title,
         description: validatedData.description ?? null,
         active: true,
-        date_created: new Date(),
-        last_edit: new Date(),
+        dateCreated: new Date(),
+        lastEdit: new Date(),
         locked: false,
-        orgid: ORGANIZATION_ID,
-      },
-    });
+        orgid: session.user.orgId,
+        length: null,
+      })
+      .returning();
 
-    return newAppointment;
+    return newAppointment[0];
   } catch (error) {
     console.error('Error adding appointment:', error);
     if (error instanceof z.ZodError) {
@@ -56,19 +67,24 @@ export async function updateAppointment(id: string, data: AppointmentData) {
   try {
     const validatedData = appointmentSchema.parse(data);
 
-    const updatedAppointment = await prisma.user_calendar_entries.update({
-      where: { uid: id },
-      data: {
-        user_uid: validatedData.user_uid,
+    const updatedAppointment = await db
+      .update(userCalendarEntries)
+      .set({
+        userUid: validatedData.user_uid,
         startdate: validatedData.startdate,
         enddate: validatedData.enddate,
         title: validatedData.title,
         description: validatedData.description ?? null,
-        last_edit: new Date(),
-      },
-    });
+        lastEdit: new Date(),
+      })
+      .where(eq(userCalendarEntries.uid, id))
+      .returning();
 
-    return updatedAppointment;
+    if (updatedAppointment.length === 0) {
+      throw new Error('Appointment not found');
+    }
+
+    return updatedAppointment[0];
   } catch (error) {
     console.error('Error updating appointment:', error);
     if (error instanceof z.ZodError) {
@@ -99,35 +115,45 @@ export async function deleteAppointment(id: string) {
       'appointments.ts',
       `Verifying appointment exists with ID: ${id}`
     );
-    const appointment = await prisma.user_calendar_entries.findUnique({
-      where: { uid: id },
-    });
+
+    const appointment = await db
+      .select()
+      .from(userCalendarEntries)
+      .where(eq(userCalendarEntries.uid, id))
+      .limit(1);
 
     await logger.debug(
       'appointments.ts',
-      `Found appointment: ${JSON.stringify(appointment)}`
+      `Found appointment: ${JSON.stringify(appointment[0] || null)}`
     );
 
-    if (!appointment) {
+    if (appointment.length === 0) {
       throw new Error('Appointment not found');
     }
 
-    // Then delete it
-    const deletedAppointment = await prisma.user_calendar_entries.delete({
-      where: { uid: id },
-    });
+    // Then delete it (soft delete by setting active to false)
+    const deletedAppointment = await db
+      .update(userCalendarEntries)
+      .set({
+        active: false,
+        lastEdit: new Date(),
+      })
+      .where(eq(userCalendarEntries.uid, id))
+      .returning();
 
     await logger.info(
       'appointments.ts',
-      `Successfully deleted appointment: ${JSON.stringify(deletedAppointment)}`
+      `Successfully deleted appointment: ${JSON.stringify(deletedAppointment[0])}`
     );
 
-    return deletedAppointment;
+    return deletedAppointment[0];
   } catch (error) {
     await logger.error(
       'appointments.ts',
       `Error deleting appointment: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
-    throw error;
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to delete appointment'
+    );
   }
 }
