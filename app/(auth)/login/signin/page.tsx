@@ -44,7 +44,10 @@ export default function SigninPage() {
         router.refresh();
       }
     } catch (error) {
-      console.error('Sign in exception:', error);
+      // Log error silently for debugging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Sign in exception:', error);
+      }
       toast.error('An error occurred during sign in');
     } finally {
       setIsLoading(false);

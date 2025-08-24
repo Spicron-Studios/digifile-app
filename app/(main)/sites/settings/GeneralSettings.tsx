@@ -71,7 +71,9 @@ export function GeneralSettings() {
         const data = await getOrganization();
         setOrgInfo(data);
       } catch (error) {
-        console.error('Error fetching organization info:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching organization info:', error);
+        }
         setError(error instanceof Error ? error.message : 'An error occurred');
       } finally {
         setIsLoading(false);
@@ -87,7 +89,9 @@ export function GeneralSettings() {
         const data = await getPracticeTypes();
         setPracticeTypes(data);
       } catch (error) {
-        console.error('Error fetching practice types:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching practice types:', error);
+        }
       }
     };
 
@@ -139,7 +143,9 @@ export function GeneralSettings() {
       setOrgInfo(updated);
       toast.success('Organization information updated successfully');
     } catch (error) {
-      console.error('Error updating organization info:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating organization info:', error);
+      }
       toast.error(
         error instanceof Error
           ? error.message
@@ -170,7 +176,9 @@ export function GeneralSettings() {
         `${type === 'logo' ? 'Logo' : 'Consent document'} uploaded successfully`
       );
     } catch (error) {
-      console.error('Upload error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Upload error:', error);
+      }
       toast.error(
         error instanceof Error ? error.message : 'Failed to upload file'
       );

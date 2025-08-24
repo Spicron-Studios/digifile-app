@@ -294,7 +294,9 @@ export default function FileDataPage(): React.JSX.Element {
     field: string,
     value: string
   ): void => {
-    console.log(`Updating patient.${field} to:`, value);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Updating patient.${field} to:`, value);
+    }
 
     // Special handling for ID number - extract and populate date of birth
     if (field === 'id' && value.length >= 6) {
@@ -381,7 +383,9 @@ export default function FileDataPage(): React.JSX.Element {
 
   // Function to handle select changes for patient data
   const handlePatientSelectChange = (field: string, value: string): void => {
-    console.log(`Updating patient.${field} to:`, value);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Updating patient.${field} to:`, value);
+    }
 
     // Special handling for gender based field
     if (field === 'title') {
@@ -416,7 +420,9 @@ export default function FileDataPage(): React.JSX.Element {
 
   // Handle member input changes - similar to handlePatientInputChange
   const handleMemberInputChange = (field: string, value: string): void => {
-    console.log(`Updating medical_cover.member.${field} to:`, value);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Updating medical_cover.member.${field} to:`, value);
+    }
 
     // Special handling for ID number - extract and populate date of birth
     if (field === 'id' && value.length >= 6) {
@@ -613,17 +619,22 @@ export default function FileDataPage(): React.JSX.Element {
               name: '',
               gender: '',
             },
-            medical_cover: (data as any).medical_cover,
+            medical_cover: (data as Record<string, unknown>).medical_cover,
           } as unknown as FileData);
 
-          if ((data as any).medical_schemes) {
-            setMedicalSchemes((data as any).medical_schemes);
+          if ((data as Record<string, unknown>).medical_schemes) {
+            setMedicalSchemes(
+              (data as Record<string, unknown>).medical_schemes
+            );
           }
         } catch (error) {
-          console.error(
-            'Failed to fetch medical schemes for new record:',
-            error
-          );
+          // Only log in development
+          if (process.env.NODE_ENV === 'development') {
+            console.error(
+              'Failed to fetch medical schemes for new record:',
+              error
+            );
+          }
           setFile({
             file_number: newFileNumber,
             account_number: newAccountNumber,
@@ -643,11 +654,13 @@ export default function FileDataPage(): React.JSX.Element {
         setFile(data as unknown as FileData);
 
         // Set medical schemes from the response
-        if ((data as any).medical_schemes) {
-          setMedicalSchemes((data as any).medical_schemes);
+        if ((data as Record<string, unknown>).medical_schemes) {
+          setMedicalSchemes((data as Record<string, unknown>).medical_schemes);
         }
       } catch (error) {
-        console.error('Failed to fetch file data:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch file data:', error);
+        }
       } finally {
         setLoading(false);
       }
@@ -681,11 +694,16 @@ export default function FileDataPage(): React.JSX.Element {
         window as unknown as { setSaving?: (_v: boolean) => void }
       ).setSaving;
       if (typeof setSavingGlobal === 'function') setSavingGlobal(true);
-      console.log('Saving file data:', file);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Saving file data:', file);
+      }
 
       const savedData = isNewRecord
-        ? await createFile(file as unknown as any)
-        : await updateFile(String(uid), file as unknown as any);
+        ? await createFile(file as unknown as Record<string, unknown>)
+        : await updateFile(
+            String(uid),
+            file as unknown as Record<string, unknown>
+          );
 
       // Update the file state with the returned data
       setFile(savedData);
@@ -695,10 +713,14 @@ export default function FileDataPage(): React.JSX.Element {
         router.push(`/sites/file-data/${savedData.uid}`);
       }
 
-      console.log('File saved successfully:', savedData);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('File saved successfully:', savedData);
+      }
       alert('File data saved successfully');
     } catch (error) {
-      console.error('Error saving file:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error saving file:', error);
+      }
       alert('Failed to save file data');
     } finally {
       if (typeof setSavingGlobal === 'function') setSavingGlobal(false);
@@ -795,11 +817,15 @@ export default function FileDataPage(): React.JSX.Element {
   const saveNewNote = async (): Promise<void> => {
     // Add a check for the file object
     if (!file) {
-      console.error('Cannot save note: File data is not loaded yet.');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Cannot save note: File data is not loaded yet.');
+      }
       alert('File data is not ready. Please try again.');
       return;
     }
-    console.log(file);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(file);
+    }
     debugger;
 
     if (!noteContent.trim()) {

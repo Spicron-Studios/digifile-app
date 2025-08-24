@@ -135,3 +135,20 @@ Logger initialized
     }
   ]
 }
+Logger initialized
+[2025-08-24 14:14:26.546] (INFO) - actions/files.ts - Fetching files for orgId=d290f1ee-6c54-4b01-90e6-d701748f0851
+[2025-08-24 14:14:28.372] (INFO) - actions/files.ts - Returning 3 files
+[2025-08-24 14:14:32.712] (INFO) - api/files/[uid]/db_read.ts - Getting file data for UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-08-24 14:14:33.071] (DEBUG) - api/files/[uid]/db_read.ts - 🏥 API: Fetched 2 medical schemes
+[2025-08-24 14:14:33.072] (INFO) - api/files/[uid]/db_read.ts - 🏢 API: Fetching file with UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-08-24 14:14:34.885] (DEBUG) - api/files/[uid]/db_read.ts - 📝 API: Fetched 0 file notes and 0 clinical notes
+[2025-08-24 14:14:34.886] (ERROR) - api/files/[uid]/db_read.ts - 💥 API: Error fetching file: isSameAsPatient is not defined
+[2025-08-24 14:14:35.188] (INFO) - api/files/[uid]/db_read.ts - Getting file data for UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-08-24 14:14:35.541] (DEBUG) - api/files/[uid]/db_read.ts - 🏥 API: Fetched 2 medical schemes
+[2025-08-24 14:14:35.541] (INFO) - api/files/[uid]/db_read.ts - 🏢 API: Fetching file with UID: be5097a3-000b-4d05-8e2d-bf7ea007205c
+[2025-08-24 14:14:37.729] (DEBUG) - api/files/[uid]/db_read.ts - 📝 API: Fetched 0 file notes and 0 clinical notes
+[2025-08-24 14:14:37.729] (ERROR) - api/files/[uid]/db_read.ts - 💥 API: Error fetching file: isSameAsPatient is not defined
+[2025-08-24 14:14:45.009] (INFO) - actions/files.ts - Fetching files for orgId=d290f1ee-6c54-4b01-90e6-d701748f0851
+[2025-08-24 14:14:45.476] (INFO) - actions/files.ts - Returning 3 files
+[2025-08-24 14:14:45.528] (INFO) - actions/files.ts - Fetching files for orgId=d290f1ee-6c54-4b01-90e6-d701748f0851
+[2025-08-24 14:14:45.886] (INFO) - actions/files.ts - Returning 3 files

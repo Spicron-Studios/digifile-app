@@ -114,7 +114,9 @@ export default function FileDataListPage(): React.JSX.Element {
         const fileData = await getFiles();
         setFiles(fileData);
       } catch (error) {
-        console.error('Error loading files:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error loading files:', error);
+        }
       } finally {
         setIsLoading(false);
       }

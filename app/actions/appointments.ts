@@ -51,7 +51,9 @@ export async function addAppointment(data: AppointmentData) {
 
     return newAppointment[0];
   } catch (error) {
-    console.error('Error adding appointment:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error adding appointment:', error);
+    }
     if (error instanceof z.ZodError) {
       throw new Error(
         `Validation error: ${error.errors[0]?.message || 'Unknown validation error'}`
@@ -86,7 +88,9 @@ export async function updateAppointment(id: string, data: AppointmentData) {
 
     return updatedAppointment[0];
   } catch (error) {
-    console.error('Error updating appointment:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error updating appointment:', error);
+    }
     if (error instanceof z.ZodError) {
       throw new Error(
         `Validation error: ${error.errors[0]?.message || 'Unknown validation error'}`

@@ -38,7 +38,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newAppointment[0]);
   } catch (error: unknown) {
-    console.error('Error creating appointment:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error creating appointment:', error);
+    }
     const errorMessage =
       error instanceof Error ? error.message : 'An unknown error occurred';
     return NextResponse.json({ error: errorMessage }, { status: 500 });

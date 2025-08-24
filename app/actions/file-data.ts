@@ -16,7 +16,7 @@ export async function getFile(uid: string) {
   return res.data;
 }
 
-export async function createFile(payload: any) {
+export async function createFile(payload: Record<string, unknown>) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
   const res = await handleCreateFile(payload, session.user.orgId);
@@ -24,7 +24,10 @@ export async function createFile(payload: any) {
   return res.data;
 }
 
-export async function updateFile(uid: string, payload: any) {
+export async function updateFile(
+  uid: string,
+  payload: Record<string, unknown>
+) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
   const res = await handleUpdateFile(uid, payload, session.user.orgId);
@@ -32,7 +35,7 @@ export async function updateFile(uid: string, payload: any) {
   return res.data;
 }
 
-export async function createNoteWithFiles(payload: any) {
+export async function createNoteWithFiles(payload: Record<string, unknown>) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
   // Ensure orgId is present

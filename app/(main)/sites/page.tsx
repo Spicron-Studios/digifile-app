@@ -34,7 +34,9 @@ export default function SitesPage() {
           .filter(Boolean);
         setUsernames(names);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching users:', error);
+        }
       } finally {
         setIsLoading(false);
       }

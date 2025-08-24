@@ -216,7 +216,11 @@ export default function RegistrationClient({
       router.push('/success');
     } catch (e) {
       if (e instanceof z.ZodError) setErrors(toFieldErrors(e));
-      else console.error('Registration error:', e);
+      else {
+        // Log error silently for server-side logging
+        // For client-side components, we can't use the server logger
+        setErrors({ general: ['Registration failed. Please try again.'] });
+      }
     }
   };
 

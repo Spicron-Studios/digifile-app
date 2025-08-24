@@ -149,7 +149,7 @@ export async function updateUserRoles(
       .where(
         and(
           eq(userRoles.userid, userUid),
-          eq(userRoles.roleid as any, roleId),
+          eq(userRoles.roleid, roleId),
           eq(userRoles.orgid, session.user.orgId)
         )
       )
@@ -188,7 +188,7 @@ export async function updateUserRoles(
       .where(
         and(
           eq(userRoles.userid, userUid),
-          inArray(userRoles.roleid as any, roleIds),
+          inArray(userRoles.roleid, roleIds),
           eq(userRoles.orgid, session.user.orgId),
           eq(userRoles.active, true)
         )

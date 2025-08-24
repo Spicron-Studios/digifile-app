@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth';
-import chalk from 'chalk';
+import { Logger } from '@/app/lib/logger';
 import { handleGetFileData } from './db_read';
 import { handleUpdateFile, handleCreateFile } from './db_write';
 
@@ -9,11 +9,12 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: { uid: string } }
 ) {
+  const logger = Logger.getInstance();
   try {
-    console.log(chalk.blue.bold(`🔍 API: /api/files/${params.uid} GET called`));
+    await logger.info('files-api', `API: /api/files/${params.uid} GET called`);
     const session = await auth();
     if (!session?.user?.orgId) {
-      console.log(chalk.red('❌ API: No organization ID found in session'));
+      await logger.warning('files-api', 'No organization ID found in session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -28,7 +29,7 @@ export async function GET(
 
     return NextResponse.json(result.data);
   } catch (error) {
-    console.error(chalk.red('💥 API: Error in GET route:'), error);
+    await logger.error('files-api', `Error in GET route: ${error}`);
     return NextResponse.json(
       { error: 'Failed to fetch file' },
       { status: 500 }
@@ -41,11 +42,12 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { uid: string } }
 ) {
+  const logger = Logger.getInstance();
   try {
-    console.log(chalk.blue.bold(`🔍 API: /api/files/${params.uid} PUT called`));
+    await logger.info('files-api', `API: /api/files/${params.uid} PUT called`);
     const session = await auth();
     if (!session?.user?.orgId) {
-      console.log(chalk.red('❌ API: No organization ID found in session'));
+      await logger.warning('files-api', 'No organization ID found in session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -62,7 +64,7 @@ export async function PUT(
 
     return NextResponse.json(result.data);
   } catch (error) {
-    console.error(chalk.red('💥 API: Error in PUT route:'), error);
+    await logger.error('files-api', `Error in PUT route: ${error}`);
     return NextResponse.json(
       { error: 'Failed to update file' },
       { status: 500 }
@@ -72,11 +74,12 @@ export async function PUT(
 
 // POST endpoint for creating a new file
 export async function POST(request: NextRequest) {
+  const logger = Logger.getInstance();
   try {
-    console.log(chalk.blue.bold(`🔍 API: /api/files/new POST called`));
+    await logger.info('files-api', 'API: /api/files/new POST called');
     const session = await auth();
     if (!session?.user?.orgId) {
-      console.log(chalk.red('❌ API: No organization ID found in session'));
+      await logger.warning('files-api', 'No organization ID found in session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result.data);
   } catch (error) {
-    console.error(chalk.red('💥 API: Error in POST route:'), error);
+    await logger.error('files-api', `Error in POST route: ${error}`);
     return NextResponse.json(
       { error: 'Failed to create new file' },
       { status: 500 }

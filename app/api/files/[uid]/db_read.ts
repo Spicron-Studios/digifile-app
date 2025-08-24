@@ -209,18 +209,18 @@ export async function handleGetFileData(uid: string, orgId: string) {
       fileinfo_patient: filePatientResults.map(fp => ({
         ...fp.filePatient,
         patient: fp.patient,
-        tab_notes: [] as any[], // Will be populated below
+        tab_notes: [] as unknown[], // Will be populated below
       })),
       patient_medical_aid: medicalAidResults.map(ma => ({
         ...ma.medicalAid,
         medical_scheme: ma.scheme,
-        patientmedicalaid_file_patient: [] as any[], // Simplified for now
+        patientmedicalaid_file_patient: [] as unknown[], // Simplified for now
       })),
       injury_on_duty: injuryResults,
     };
 
     // Group notes and files
-    const notesMap = new Map<string, any>();
+    const notesMap = new Map<string, Record<string, unknown>>();
 
     notesAndFiles.forEach(nf => {
       if (!notesMap.has(nf.note.uid)) {
@@ -309,7 +309,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
           time_stamp: note.timeStamp,
           notes: note.notes,
           tab_type: note.tabType,
-          files: note.tab_files.map((file: any) => ({
+          files: note.tab_files.map((file: Record<string, unknown>) => ({
             uid: file.uid,
             file_name: file.fileName,
             file_type: file.fileType,

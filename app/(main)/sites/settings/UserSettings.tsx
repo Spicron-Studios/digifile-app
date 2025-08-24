@@ -88,7 +88,9 @@ export function UserSettings() {
         const data = await getUsers();
         setUsers(data);
       } catch (error) {
-        console.error('Failed to fetch users:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch users:', error);
+        }
         toast.error('Failed to load users');
       } finally {
         setIsLoading(false);
@@ -112,7 +114,9 @@ export function UserSettings() {
         setAvailableRoles(rolesData || []);
         setUserRoles(userRolesData || []);
       } catch (error) {
-        console.error('Failed to fetch role data:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch role data:', error);
+        }
         toast.error('Failed to load role information');
         setUserRoles([]);
       }
@@ -148,7 +152,9 @@ export function UserSettings() {
 
     try {
       const updated = await updateUser(selectedUser.uid, formData);
-      console.log('User updated successfully:', updated);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('User updated successfully:', updated);
+      }
 
       setUsers(prev =>
         prev.map(user =>
@@ -168,13 +174,17 @@ export function UserSettings() {
 
       setSelectedUser(null);
     } catch (error) {
-      console.error('Error while updating user:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error while updating user:', error);
+      }
     }
   };
 
   const handleResetPassword = () => {
     // TODO: Implement reset password functionality
-    console.log('Reset Password button clicked!');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Reset Password button clicked!');
+    }
   };
 
   const handleRoleChange = async (roleId: string, action: 'add' | 'remove') => {
@@ -196,7 +206,9 @@ export function UserSettings() {
         `Role ${action === 'add' ? 'added' : 'removed'} successfully`
       );
     } catch (error) {
-      console.error('Failed to update user roles:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to update user roles:', error);
+      }
       toast.error('Failed to update user roles');
     }
   };

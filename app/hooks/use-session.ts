@@ -31,7 +31,9 @@ export const useSession = () => {
         };
         setSession(sessionData);
       } catch (error) {
-        console.error('Error loading session:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error loading session:', error);
+        }
         setSession(null);
       } finally {
         setIsLoading(false);

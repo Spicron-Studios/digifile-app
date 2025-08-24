@@ -84,7 +84,7 @@ export async function getCalendarData(): Promise<{
         eq(userCalendarEntries.active, true),
         eq(userCalendarEntries.orgid, session.user.orgId),
         inArray(
-          userCalendarEntries.userUid as any,
+          userCalendarEntries.userUid,
           userList.map(u => u.uid)
         )
       )
