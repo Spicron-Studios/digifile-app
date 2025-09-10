@@ -16,6 +16,14 @@ export function AccountList({
     selectedAccounts.includes(account.AccountID)
   );
 
+  if (selectedAccountObjects.length === 0) {
+    return (
+      <div className="text-sm text-gray-500 italic px-2">
+        No accounts selected
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-2 items-center overflow-x-auto py-1 px-2 min-h-[40px]">
       {selectedAccountObjects.map(account => (

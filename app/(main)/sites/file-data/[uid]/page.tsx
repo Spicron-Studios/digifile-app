@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/app/components/ui/select';
-import { Calendar } from '@/app/components/ui/calendar';
+import { Calendar as ShadcnCalendar } from '@/app/components/ui/day-picker-calendar';
 import {
   CalendarIcon,
   Search,
@@ -58,6 +58,8 @@ import {
   UploadedFile,
   HandleInputChange,
 } from '@/app/types/file-data';
+import { handleResult } from '@/app/utils/helper-functions/handle-results';
+import { toast } from 'sonner';
 
 export default function FileDataPage(): React.JSX.Element {
   const { uid } = useParams();
@@ -101,8 +103,8 @@ export default function FileDataPage(): React.JSX.Element {
 
   // Add new state for notes filtering
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // New state for the note modal
@@ -163,7 +165,7 @@ export default function FileDataPage(): React.JSX.Element {
     part: 'year' | 'month' | 'day',
     value: string,
     maxLength: number,
-    nextRef?: React.RefObject<HTMLInputElement>
+    nextRef?: React.RefObject<HTMLInputElement | null>
   ) => {
     // Only allow numbers
     if (!/^\d*$/.test(value)) return;
@@ -210,7 +212,7 @@ export default function FileDataPage(): React.JSX.Element {
     part: 'year' | 'month' | 'day',
     value: string,
     maxLength: number,
-    nextRef?: React.RefObject<HTMLInputElement>
+    nextRef?: React.RefObject<HTMLInputElement | null>
   ): void => {
     // Only allow numbers
     if (!/^\d*$/.test(value)) return;
@@ -325,20 +327,24 @@ export default function FileDataPage(): React.JSX.Element {
       });
 
       // Update the file state with the extracted DOB
-      setFile(prevFile => ({
-        ...prevFile,
-        patient: {
-          ...prevFile.patient,
-          [field]: value,
-          dob: `${fullYear}/${monthPart}/${dayPart}`,
-        },
-      }));
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          patient: {
+            ...prevFile.patient,
+            [field]: value,
+            dob: `${fullYear}/${monthPart}/${dayPart}`,
+          },
+        };
+      });
       return;
     }
 
     // Special handling for name - auto-generate initials
     if (field === 'name' || field === 'surname') {
       setFile(prevFile => {
+        if (!prevFile) return null;
         const newName = field === 'name' ? value : prevFile.patient?.name || '';
         const newSurname =
           field === 'surname' ? value : prevFile.patient?.surname || '';
@@ -372,13 +378,16 @@ export default function FileDataPage(): React.JSX.Element {
     }
 
     // Standard handling for other fields
-    setFile(prevFile => ({
-      ...prevFile,
-      patient: {
-        ...prevFile.patient,
-        [field]: value,
-      },
-    }));
+    setFile(prevFile => {
+      if (!prevFile) return null;
+      return {
+        ...prevFile,
+        patient: {
+          ...prevFile.patient,
+          [field]: value,
+        },
+      };
+    });
   };
 
   // Function to handle select changes for patient data
@@ -397,25 +406,31 @@ export default function FileDataPage(): React.JSX.Element {
             ? 'female'
             : file?.patient?.gender || '';
 
-      setFile(prevFile => ({
-        ...prevFile,
-        patient: {
-          ...prevFile.patient,
-          [field]: value,
-          gender: gender,
-        },
-      }));
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          patient: {
+            ...prevFile.patient,
+            [field]: value,
+            gender: gender,
+          },
+        };
+      });
       return;
     }
 
     // Standard handling for other fields
-    setFile(prevFile => ({
-      ...prevFile,
-      patient: {
-        ...prevFile.patient,
-        [field]: value,
-      },
-    }));
+    setFile(prevFile => {
+      if (!prevFile) return null;
+      return {
+        ...prevFile,
+        patient: {
+          ...prevFile.patient,
+          [field]: value,
+        },
+      };
+    });
   };
 
   // Handle member input changes - similar to handlePatientInputChange
@@ -451,23 +466,27 @@ export default function FileDataPage(): React.JSX.Element {
       });
 
       // Update the file state with the extracted DOB
-      setFile(prevFile => ({
-        ...prevFile,
-        medical_cover: {
-          ...prevFile.medical_cover,
-          member: {
-            ...prevFile.medical_cover?.member,
-            [field]: value,
-            dob: `${fullYear}/${monthPart}/${dayPart}`,
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          medical_cover: {
+            ...prevFile.medical_cover,
+            member: {
+              ...prevFile.medical_cover?.member,
+              [field]: value,
+              dob: `${fullYear}/${monthPart}/${dayPart}`,
+            },
           },
-        },
-      }));
+        };
+      });
       return;
     }
 
     // Special handling for name - auto-generate initials
     if (field === 'name' || field === 'surname') {
       setFile(prevFile => {
+        if (!prevFile) return null;
         const newName =
           field === 'name' ? value : prevFile.medical_cover?.member?.name || '';
         const newSurname =
@@ -507,16 +526,19 @@ export default function FileDataPage(): React.JSX.Element {
     }
 
     // Standard handling for other fields
-    setFile(prevFile => ({
-      ...prevFile,
-      medical_cover: {
-        ...prevFile.medical_cover,
-        member: {
-          ...prevFile.medical_cover?.member,
-          [field]: value,
+    setFile(prevFile => {
+      if (!prevFile) return null;
+      return {
+        ...prevFile,
+        medical_cover: {
+          ...prevFile.medical_cover,
+          member: {
+            ...prevFile.medical_cover?.member,
+            [field]: value,
+          },
         },
-      },
-    }));
+      };
+    });
   };
 
   // Function to handle select changes for member data - similar to handlePatientSelectChange
@@ -534,66 +556,78 @@ export default function FileDataPage(): React.JSX.Element {
             : memberGender || '';
       setMemberGender(gender);
 
-      setFile(prevFile => ({
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          medical_cover: {
+            ...prevFile.medical_cover,
+            member: {
+              ...prevFile.medical_cover?.member,
+              [field]: value,
+              gender: gender,
+            },
+          },
+        };
+      });
+      return;
+    }
+
+    // Standard handling for other fields
+    setFile(prevFile => {
+      if (!prevFile) return null;
+      return {
         ...prevFile,
         medical_cover: {
           ...prevFile.medical_cover,
           member: {
             ...prevFile.medical_cover?.member,
             [field]: value,
-            gender: gender,
           },
         },
-      }));
-      return;
-    }
-
-    // Standard handling for other fields
-    setFile(prevFile => ({
-      ...prevFile,
-      medical_cover: {
-        ...prevFile.medical_cover,
-        member: {
-          ...prevFile.medical_cover?.member,
-          [field]: value,
-        },
-      },
-    }));
+      };
+    });
   };
 
   // Function to handle medical scheme selection
   const handleMedicalSchemeChange = (schemeId: string): void => {
     console.log('Selected medical scheme:', schemeId);
 
-    setFile(prevFile => ({
-      ...prevFile,
-      medical_cover: {
-        ...prevFile.medical_cover,
-        medical_aid: {
-          ...prevFile.medical_cover?.medical_aid,
-          scheme_id: schemeId,
-          name:
-            medicalSchemes.find(scheme => scheme.uid === schemeId)
-              ?.scheme_name || '',
+    setFile(prevFile => {
+      if (!prevFile) return null;
+      return {
+        ...prevFile,
+        medical_cover: {
+          ...prevFile.medical_cover,
+          medical_aid: {
+            ...prevFile.medical_cover?.medical_aid,
+            scheme_id: schemeId,
+            name:
+              medicalSchemes.find(scheme => scheme.uid === schemeId)
+                ?.scheme_name || '',
+          },
         },
-      },
-    }));
+      };
+    });
   };
 
   // Function to handle injury on duty input changes
   const handleInjuryInputChange = (field: string, value: string): void => {
     console.log(`Updating medical_cover.injury_on_duty.${field} to:`, value);
 
-    setFile(prevFile => ({
-      ...prevFile,
-      medical_cover: {
-        ...prevFile.medical_cover,
-        injury_on_duty: {
-          ...prevFile.medical_cover?.injury_on_duty,
-          [field]: value,
+    setFile(prevFile => {
+      if (!prevFile) return null;
+      return {
+        ...prevFile,
+        medical_cover: {
+          ...prevFile.medical_cover,
+          injury_on_duty: {
+            ...prevFile.medical_cover?.injury_on_duty,
+            [field]: value,
+          },
         },
-      },
-    }));
+      };
+    });
   };
 
   // Get medical schemes from the file data response instead of a separate API call
@@ -624,7 +658,8 @@ export default function FileDataPage(): React.JSX.Element {
 
           if ((data as Record<string, unknown>).medical_schemes) {
             setMedicalSchemes(
-              (data as Record<string, unknown>).medical_schemes
+              (data as Record<string, unknown>)
+                .medical_schemes as MedicalScheme[]
             );
           }
         } catch (error) {
@@ -655,7 +690,9 @@ export default function FileDataPage(): React.JSX.Element {
 
         // Set medical schemes from the response
         if ((data as Record<string, unknown>).medical_schemes) {
-          setMedicalSchemes((data as Record<string, unknown>).medical_schemes);
+          setMedicalSchemes(
+            (data as Record<string, unknown>).medical_schemes as MedicalScheme[]
+          );
         }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -688,23 +725,31 @@ export default function FileDataPage(): React.JSX.Element {
   const handleSave = async (): Promise<void> => {
     if (!file) return;
 
-    try {
-      // Ensure layout save button feedback works if present
-      const setSavingGlobal = (
-        window as unknown as { setSaving?: (_v: boolean) => void }
-      ).setSaving;
-      if (typeof setSavingGlobal === 'function') setSavingGlobal(true);
+    const setSavingGlobal = (
+      window as unknown as { setSaving?: (_v: boolean) => void }
+    ).setSaving;
+    if (typeof setSavingGlobal === 'function') setSavingGlobal(true);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Saving file data:', file);
+    }
+
+    const promise = isNewRecord
+      ? createFile(file as unknown as Record<string, unknown>)
+      : updateFile(String(uid), file as unknown as Record<string, unknown>);
+
+    const { data: savedData, error } = await handleResult(promise);
+
+    if (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Saving file data:', file);
+        console.error('Error saving file:', error);
       }
+      toast.error(error.message || 'Failed to save file data');
+      if (typeof setSavingGlobal === 'function') setSavingGlobal(false);
+      return;
+    }
 
-      const savedData = isNewRecord
-        ? await createFile(file as unknown as Record<string, unknown>)
-        : await updateFile(
-            String(uid),
-            file as unknown as Record<string, unknown>
-          );
-
+    if (savedData) {
       // Update the file state with the returned data
       setFile(savedData);
 
@@ -716,15 +761,10 @@ export default function FileDataPage(): React.JSX.Element {
       if (process.env.NODE_ENV === 'development') {
         console.log('File saved successfully:', savedData);
       }
-      alert('File data saved successfully');
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error saving file:', error);
-      }
-      alert('Failed to save file data');
-    } finally {
-      if (typeof setSavingGlobal === 'function') setSavingGlobal(false);
+      toast.success('File saved successfully');
     }
+
+    if (typeof setSavingGlobal === 'function') setSavingGlobal(false);
   };
 
   // Listen for save trigger from layout
@@ -742,7 +782,7 @@ export default function FileDataPage(): React.JSX.Element {
 
   // Function to filter and sort notes
   type Note = {
-    uid: string;
+    uid?: string;
     time_stamp: string;
     notes?: string;
     files?: Array<{ uid: string; file_location: string; file_name: string }>;
@@ -773,7 +813,9 @@ export default function FileDataPage(): React.JSX.Element {
     filtered.sort((a, b) => {
       const dateA = new Date(a.time_stamp);
       const dateB = new Date(b.time_stamp);
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      return sortOrder === 'desc'
+        ? dateB.getTime() - dateA.getTime()
+        : dateA.getTime() - dateB.getTime();
     });
 
     return filtered;
@@ -1280,17 +1322,20 @@ export default function FileDataPage(): React.JSX.Element {
                                       ?.membership_number || ''
                                   }
                                   onChange={e => {
-                                    setFile(prevFile => ({
-                                      ...prevFile,
-                                      medical_cover: {
-                                        ...prevFile.medical_cover,
-                                        medical_aid: {
-                                          ...prevFile.medical_cover
-                                            ?.medical_aid,
-                                          membership_number: e.target.value,
+                                    setFile(prevFile => {
+                                      if (!prevFile) return null;
+                                      return {
+                                        ...prevFile,
+                                        medical_cover: {
+                                          ...prevFile.medical_cover,
+                                          medical_aid: {
+                                            ...prevFile.medical_cover
+                                              ?.medical_aid,
+                                            membership_number: e.target.value,
+                                          },
                                         },
-                                      },
-                                    }));
+                                      };
+                                    });
                                   }}
                                 />
                               </div>
@@ -1307,17 +1352,20 @@ export default function FileDataPage(): React.JSX.Element {
                                       ?.dependent_code || ''
                                   }
                                   onChange={e => {
-                                    setFile(prevFile => ({
-                                      ...prevFile,
-                                      medical_cover: {
-                                        ...prevFile.medical_cover,
-                                        medical_aid: {
-                                          ...prevFile.medical_cover
-                                            ?.medical_aid,
-                                          dependent_code: e.target.value,
+                                    setFile(prevFile => {
+                                      if (!prevFile) return null;
+                                      return {
+                                        ...prevFile,
+                                        medical_cover: {
+                                          ...prevFile.medical_cover,
+                                          medical_aid: {
+                                            ...prevFile.medical_cover
+                                              ?.medical_aid,
+                                            dependent_code: e.target.value,
+                                          },
                                         },
-                                      },
-                                    }));
+                                      };
+                                    });
                                   }}
                                 />
                               </div>
@@ -1765,7 +1813,7 @@ export default function FileDataPage(): React.JSX.Element {
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0">
-                                <Calendar
+                                <ShadcnCalendar
                                   mode="single"
                                   selected={startDate}
                                   onSelect={setStartDate}
@@ -1787,7 +1835,7 @@ export default function FileDataPage(): React.JSX.Element {
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0">
-                                <Calendar
+                                <ShadcnCalendar
                                   mode="single"
                                   selected={endDate}
                                   onSelect={setEndDate}
@@ -1815,9 +1863,12 @@ export default function FileDataPage(): React.JSX.Element {
                       {/* Timeline section - 80% height */}
                       <div className="h-[80%] overflow-auto p-4">
                         {file?.notes?.file_notes &&
-                        filterNotes(file.notes.file_notes).length > 0 ? (
+                        filterNotes(file.notes.file_notes as unknown as Note[])
+                          .length > 0 ? (
                           <div className="space-y-6">
-                            {filterNotes(file.notes.file_notes).map(note => (
+                            {filterNotes(
+                              file.notes.file_notes as unknown as Note[]
+                            ).map(note => (
                               <div
                                 key={note.uid}
                                 className="border rounded-md p-4 bg-white shadow-sm"
@@ -1908,7 +1959,7 @@ export default function FileDataPage(): React.JSX.Element {
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0">
-                                <Calendar
+                                <ShadcnCalendar
                                   mode="single"
                                   selected={startDate}
                                   onSelect={setStartDate}
@@ -1930,7 +1981,7 @@ export default function FileDataPage(): React.JSX.Element {
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0">
-                                <Calendar
+                                <ShadcnCalendar
                                   mode="single"
                                   selected={endDate}
                                   onSelect={setEndDate}
@@ -1958,46 +2009,48 @@ export default function FileDataPage(): React.JSX.Element {
                       {/* Timeline section - 80% height */}
                       <div className="h-[80%] overflow-auto p-4">
                         {file?.notes?.clinical_notes &&
-                        filterNotes(file.notes.clinical_notes).length > 0 ? (
+                        filterNotes(
+                          file.notes.clinical_notes as unknown as Note[]
+                        ).length > 0 ? (
                           <div className="space-y-6">
-                            {filterNotes(file.notes.clinical_notes).map(
-                              note => (
-                                <div
-                                  key={note.uid}
-                                  className="border rounded-md p-4 bg-white shadow-sm"
-                                >
-                                  <div className="flex justify-between items-start mb-2">
-                                    <h3 className="text-lg font-bold text-primary">
-                                      {formatDateTime(note.time_stamp)}
-                                    </h3>
-                                  </div>
-                                  <div className="ml-4 mt-2 text-gray-700">
-                                    <p>{note.notes}</p>
-                                  </div>
-                                  {note.files && note.files.length > 0 && (
-                                    <div className="mt-4 ml-4">
-                                      <div className="flex flex-wrap gap-2">
-                                        {note.files.map(file => (
-                                          <div
-                                            key={file.uid}
-                                            className="flex items-center p-2 border rounded bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
-                                          >
-                                            <a
-                                              href={file.file_location}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-blue-600 hover:underline"
-                                            >
-                                              {file.file_name}
-                                            </a>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
+                            {filterNotes(
+                              file.notes.clinical_notes as unknown as Note[]
+                            ).map(note => (
+                              <div
+                                key={note.uid}
+                                className="border rounded-md p-4 bg-white shadow-sm"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <h3 className="text-lg font-bold text-primary">
+                                    {formatDateTime(note.time_stamp)}
+                                  </h3>
                                 </div>
-                              )
-                            )}
+                                <div className="ml-4 mt-2 text-gray-700">
+                                  <p>{note.notes}</p>
+                                </div>
+                                {note.files && note.files.length > 0 && (
+                                  <div className="mt-4 ml-4">
+                                    <div className="flex flex-wrap gap-2">
+                                      {note.files.map(file => (
+                                        <div
+                                          key={file.uid}
+                                          className="flex items-center p-2 border rounded bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
+                                        >
+                                          <a
+                                            href={file.file_location}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline"
+                                          >
+                                            {file.file_name}
+                                          </a>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <div className="flex justify-center items-center h-full text-gray-500">
@@ -2053,10 +2106,12 @@ export default function FileDataPage(): React.JSX.Element {
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
-                        <Calendar
+                        <ShadcnCalendar
                           mode="single"
                           selected={noteDateTime}
-                          onSelect={date => setNoteDateTime(new Date(date))}
+                          onSelect={(date: Date | undefined): void => {
+                            if (date) setNoteDateTime(new Date(date));
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -2069,8 +2124,8 @@ export default function FileDataPage(): React.JSX.Element {
                       onChange={e => {
                         const [hours, minutes] = e.target.value.split(':');
                         const newDate = new Date(noteDateTime);
-                        newDate.setHours(parseInt(hours));
-                        newDate.setMinutes(parseInt(minutes));
+                        newDate.setHours(parseInt(hours || '0'));
+                        newDate.setMinutes(parseInt(minutes || '0'));
                         setNoteDateTime(newDate);
                       }}
                     />

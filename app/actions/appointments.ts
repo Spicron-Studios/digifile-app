@@ -6,6 +6,11 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { Logger } from '@/app/lib/logger';
+import moment from 'moment';
+import 'moment-timezone';
+
+// Set moment to use South African Standard Time (UTC+2)
+moment.tz.setDefault('Africa/Johannesburg');
 
 const logger = Logger.getInstance();
 
@@ -24,6 +29,11 @@ const appointmentSchema = z
 
 export type AppointmentData = z.infer<typeof appointmentSchema>;
 
+// Helper function to convert Date to ISO string for database storage
+function toISOString(date: Date): string {
+  return moment.tz(date, 'Africa/Johannesburg').toISOString();
+}
+
 export async function addAppointment(data: AppointmentData) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
@@ -36,13 +46,13 @@ export async function addAppointment(data: AppointmentData) {
       .values({
         uid: uuidv4(),
         userUid: validatedData.user_uid,
-        startdate: validatedData.startdate,
-        enddate: validatedData.enddate,
+        startdate: toISOString(validatedData.startdate),
+        enddate: toISOString(validatedData.enddate),
         title: validatedData.title,
         description: validatedData.description ?? null,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: toISOString(new Date()),
+        lastEdit: toISOString(new Date()),
         locked: false,
         orgid: session.user.orgId,
         length: null,
@@ -73,11 +83,11 @@ export async function updateAppointment(id: string, data: AppointmentData) {
       .update(userCalendarEntries)
       .set({
         userUid: validatedData.user_uid,
-        startdate: validatedData.startdate,
-        enddate: validatedData.enddate,
+        startdate: toISOString(validatedData.startdate),
+        enddate: toISOString(validatedData.enddate),
         title: validatedData.title,
         description: validatedData.description ?? null,
-        lastEdit: new Date(),
+        lastEdit: toISOString(new Date()),
       })
       .where(eq(userCalendarEntries.uid, id))
       .returning();
@@ -140,7 +150,7 @@ export async function deleteAppointment(id: string) {
       .update(userCalendarEntries)
       .set({
         active: false,
-        lastEdit: new Date(),
+        lastEdit: toISOString(new Date()),
       })
       .where(eq(userCalendarEntries.uid, id))
       .returning();

@@ -80,21 +80,18 @@ const user = await db
 
 All commands can be run from the project root:
 
-### Development Commands
+### Core Migration Commands
 
-- `npm run db:push` - Push schema changes directly to database (development)
-- `npm run db:studio` - Open Drizzle Studio web interface
-- `npm run db:introspect` - Pull schema from existing database
+- `npm run db:generate` - Generate migration files from schema changes in `db/schema.ts`.
+- `npm run db:migrate` - Apply pending migrations to the database.
+- `npm run db:check` - Check migration status.
 
-### Production Commands
+### Development & Utility Commands
 
-- `npm run db:generate` - Generate migration files from schema changes
-- `npm run db:migrate` - Apply pending migrations to database
-- `npm run db:check` - Check migration status
-
-### Utility Commands
-
-- `npm run db:drop` - Remove the last migration file
+- `npm run db:studio` - Open the Drizzle Studio web interface for easy database browsing.
+- `npm run db:push` - Push schema changes directly to the database without creating a migration file. **Use with caution, primarily for rapid prototyping.**
+- `npm run db:introspect` - **(Legacy)** Pull schema from the existing database. This is no longer part of the primary workflow.
+- `npm run db:drop` - Remove the last migration file.
 
 ## Configuration
 
@@ -106,31 +103,27 @@ Database configuration is managed through:
 
 ## Database Source of Truth
 
-The **Supabase database is the source of truth**. The schema file is generated from the existing database using:
+The **`db/schema.ts` file is the single source of truth** for the database schema. All changes to the database structure (tables, columns, relations) should be made directly in this file.
 
-```bash
-npm run db:introspect
-```
-
-This ensures the schema always matches the actual database structure.
+Migrations are then generated from this schema file and applied to the Supabase database. This ensures a consistent, version-controlled history of your database structure.
 
 ## Migration Workflow
 
-### Development
+The workflow is the same for both development and production environments.
 
-1. Make changes in Supabase console or admin tools
-2. Run `npm run db:introspect` to update schema
-3. Test changes with `npm run db:studio`
-
-### Production
-
-1. Generate migrations: `npm run db:generate`
-2. Review generated SQL files in `db/drizzle/`
-3. Apply migrations: `npm run db:migrate`
+1.  **Edit `db/schema.ts`**: Make your desired changes directly to the table definitions or relations in the schema file.
+2.  **Generate Migration**: Run the following command to create a new SQL migration file based on your changes:
+    ```bash
+    npm run db:generate
+    ```
+3.  **Review and Apply Migration**: Check the generated SQL file in `db/drizzle/` to ensure it's correct. Then, apply the migration to your database:
+    ```bash
+    npm run db:migrate
+    ```
 
 ## Tips
 
-- Always use the query helpers in `queries.ts` for common operations
-- The schema file is auto-generated - don't edit manually
-- Use Drizzle Studio for database exploration and debugging
-- Keep the database URL in environment variables for security
+- Always use the query helpers in `queries.ts` for common database operations.
+- **Always make schema changes in `db/schema.ts`**. This is your source of truth.
+- Use Drizzle Studio (`npm run db:studio`) for database exploration and debugging.
+- Keep the database URL in environment variables for security.

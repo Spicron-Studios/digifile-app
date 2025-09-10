@@ -104,3 +104,35 @@ export interface UploadedFile {
 
 export type HandleInputChange = (_field: string, _value: string) => void;
 export type HandleSelectChange = (_field: string, _value: string) => void;
+
+// For internal processing in db_read.ts
+export interface ProcessingNoteFile {
+  uid: string;
+  fileName: string | null;
+  fileType: string | null;
+  fileLocation: string | null;
+}
+
+export interface ProcessingNoteWithFiles {
+  uid: string;
+  timeStamp: string | null;
+  notes: string | null;
+  tabType: string | null;
+  tab_files: ProcessingNoteFile[];
+}
+
+// For API response
+export interface ApiNoteFile {
+  uid: string;
+  file_name: string | null;
+  file_type: string | null;
+  file_location: string | null;
+}
+
+export interface ApiFileNote {
+  uid: string;
+  time_stamp: string | null;
+  notes: string | null;
+  tab_type: string | null;
+  files: ApiNoteFile[];
+}

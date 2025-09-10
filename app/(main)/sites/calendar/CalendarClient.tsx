@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar } from '@/app/components/ui/calendar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface CalendarClientProps {
   accounts: import('@/app/types/calendar').Account[];
@@ -16,9 +16,17 @@ export default function CalendarClient({
   defaultSelectedAccount,
   hasAdminAccess,
 }: CalendarClientProps): React.JSX.Element {
-  const [selectedAccounts, setSelectedAccounts] = useState<string[]>(
-    defaultSelectedAccount ? [defaultSelectedAccount] : []
-  );
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Initialize selected accounts based on defaultSelectedAccount
+    if (defaultSelectedAccount) {
+      setSelectedAccounts([defaultSelectedAccount]);
+    } else if (accounts.length > 0) {
+      // If no default account, select the first account
+      setSelectedAccounts([accounts[0].AccountID]);
+    }
+  }, [defaultSelectedAccount, accounts]);
 
   const handleAccountToggle = (accountId: string) => {
     setSelectedAccounts(current =>
@@ -27,6 +35,15 @@ export default function CalendarClient({
         : [...current, accountId]
     );
   };
+
+  // Debugging
+  console.log('CalendarClient props:', {
+    accounts,
+    events,
+    defaultSelectedAccount,
+    hasAdminAccess,
+  });
+  console.log('Selected accounts:', selectedAccounts);
 
   return (
     <Calendar

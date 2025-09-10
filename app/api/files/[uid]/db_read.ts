@@ -11,6 +11,7 @@ import db, {
 import { and, eq, desc } from 'drizzle-orm';
 import { Logger } from '@/app/lib/logger';
 import { fetchMedicalSchemes } from './other_fn';
+import { ProcessingNoteWithFiles, ApiFileNote } from '@/app/types/file-data';
 
 // Handle GET requests for file data
 export async function handleGetFileData(uid: string, orgId: string) {
@@ -209,7 +210,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
       fileinfo_patient: filePatientResults.map(fp => ({
         ...fp.filePatient,
         patient: fp.patient,
-        tab_notes: [] as unknown[], // Will be populated below
+        tab_notes: [] as ProcessingNoteWithFiles[], // Will be populated below
       })),
       patient_medical_aid: medicalAidResults.map(ma => ({
         ...ma.medicalAid,
@@ -220,7 +221,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
     };
 
     // Group notes and files
-    const notesMap = new Map<string, Record<string, unknown>>();
+    const notesMap = new Map<string, ProcessingNoteWithFiles>();
 
     notesAndFiles.forEach(nf => {
       if (!notesMap.has(nf.note.uid)) {
@@ -289,6 +290,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
 
     // For simplicity, assume medical aid member is same as patient for now
     // The complex member patient lookup would require additional queries
+    let isSameAsPatient = false;
     if (medicalAid) {
       isSameAsPatient = true;
     }
@@ -298,18 +300,18 @@ export async function handleGetFileData(uid: string, orgId: string) {
 
     // Process tab_notes and tab_files
     // Separate notes by type (file_notes or clinical_notes)
-    const fileNotes = [];
-    const clinicalNotes = [];
+    const fileNotes: ApiFileNote[] = [];
+    const clinicalNotes: ApiFileNote[] = [];
 
     // If filePatient exists, we can collect its tab_notes
     if (filePatient && filePatient.tab_notes) {
       for (const note of filePatient.tab_notes) {
-        const noteObj = {
+        const noteObj: ApiFileNote = {
           uid: note.uid,
           time_stamp: note.timeStamp,
           notes: note.notes,
           tab_type: note.tabType,
-          files: note.tab_files.map((file: Record<string, unknown>) => ({
+          files: note.tab_files.map(file => ({
             uid: file.uid,
             file_name: file.fileName,
             file_type: file.fileType,

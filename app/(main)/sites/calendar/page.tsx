@@ -11,6 +11,14 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   );
   const { accounts, events } = await getCalendarData();
 
+  // Debugging
+  console.log('Calendar page data:', {
+    accounts,
+    events,
+    hasAdminAccess,
+    session,
+  });
+
   return (
     <div className="min-h-screen bg-gray-50/30">
       <div className="container mx-auto py-8 px-4">

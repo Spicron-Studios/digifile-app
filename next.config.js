@@ -10,7 +10,6 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverExternalPackages: ['next-auth'],
     typedRoutes: false,
   },
 };

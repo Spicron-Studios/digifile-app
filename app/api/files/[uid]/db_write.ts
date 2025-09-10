@@ -77,7 +77,7 @@ export async function handleUpdateFile(
           accountNumber: data.account_number,
           referralDocName: data.referral_doc_name,
           referralDocNumber: data.referral_doc_number,
-          lastEdit: new Date(),
+          lastEdit: new Date().toISOString(),
         })
         .where(eq(fileInfo.uid, fileUid))
         .returning();
@@ -94,8 +94,8 @@ export async function handleUpdateFile(
           referralDocNumber: data.referral_doc_number || '',
           orgid: orgId,
           active: true,
-          dateCreated: new Date(),
-          lastEdit: new Date(),
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
         })
         .returning();
       upsertedFileInfo = created[0];
@@ -164,7 +164,7 @@ export async function handleUpdateFile(
             additionalCell: data.patient.additional_cell,
             email: data.patient.email,
             address: data.patient.address,
-            lastEdit: new Date(),
+            lastEdit: new Date().toISOString(),
           })
           .where(eq(patient.uid, existingPatient.uid));
 
@@ -197,8 +197,8 @@ export async function handleUpdateFile(
           address: data.patient.address || '',
           orgid: orgId,
           active: true,
-          dateCreated: new Date(),
-          lastEdit: new Date(),
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
         });
 
         // Create the fileinfo_patient relationship
@@ -214,8 +214,8 @@ export async function handleUpdateFile(
           patientid: newPatientUid,
           orgid: orgId,
           active: true,
-          dateCreated: new Date(),
-          lastEdit: new Date(),
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
         });
 
         await logger.info(
@@ -383,12 +383,12 @@ export async function handleCreateFile(
         uid: newFileUid,
         fileNumber: data.file_number || '',
         accountNumber: data.account_number || '',
-        referralDocName: data.referral_doc_name || '',
-        referralDocNumber: data.referral_doc_number || '',
+        referralDocName: data.referral_doc_name || null,
+        referralDocNumber: data.referral_doc_number || null,
         orgid: orgId,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
       })
       .returning();
 
@@ -410,6 +410,14 @@ export async function handleCreateFile(
         'api/files/[uid]/db_write.ts',
         'Processing patient data for new file'
       );
+
+      // Validation for patient ID
+      if (!data.patient.id) {
+        return {
+          error: 'Patient ID number is required to create a new file.',
+          status: 400,
+        };
+      }
 
       // Parse date of birth if provided
       let dobDate: string | null = null;
@@ -451,8 +459,8 @@ export async function handleCreateFile(
           address: data.patient.address || '',
           orgid: orgId,
           active: true,
-          dateCreated: new Date(),
-          lastEdit: new Date(),
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
         })
         .returning();
 
@@ -476,8 +484,8 @@ export async function handleCreateFile(
         patientid: newPatientUid,
         orgid: orgId,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
       });
 
       await logger.info(
@@ -638,7 +646,7 @@ async function processMedicalAid(
           medicalSchemeId: schemeId,
           membershipNumber: membershipNumber,
           patientDependantCode: dependentCode,
-          lastEdit: new Date(),
+          lastEdit: new Date().toISOString(),
         })
         .where(eq(patientMedicalAid.uid, existing.uid));
 
@@ -659,8 +667,8 @@ async function processMedicalAid(
         fileid: fileUid,
         orgid: orgId,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
       });
     }
 
@@ -760,7 +768,7 @@ async function processMedicalAidMember(
           cellPhone: memberData.cell || '',
           email: memberData.email || '',
           address: memberData.address || '',
-          lastEdit: new Date(),
+          lastEdit: new Date().toISOString(),
         })
         .where(eq(patient.uid, memberPatientUid));
     } else if (memberData.name || memberData.surname) {
@@ -785,8 +793,8 @@ async function processMedicalAidMember(
         address: memberData.address || '',
         orgid: orgId,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
       });
 
       // Create the link between medical aid and member patient
@@ -803,8 +811,8 @@ async function processMedicalAidMember(
         patientid: memberPatientUid,
         orgid: orgId,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
       });
     }
 
@@ -864,7 +872,7 @@ async function processInjuryOnDuty(
           contactPerson: data.injury_on_duty?.contact_person || '',
           contactNumber: data.injury_on_duty?.contact_number || '',
           contactEmail: data.injury_on_duty?.contact_email || '',
-          lastEdit: new Date(),
+          lastEdit: new Date().toISOString(),
         })
         .where(eq(injuryOnDuty.uid, existing.uid));
     } else {
@@ -884,8 +892,8 @@ async function processInjuryOnDuty(
         fileid: fileUid,
         orgid: orgId,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
       });
     }
 
