@@ -22,7 +22,7 @@ export default function CalendarClient({
     // Initialize selected accounts based on defaultSelectedAccount
     if (defaultSelectedAccount) {
       setSelectedAccounts([defaultSelectedAccount]);
-    } else if (accounts.length > 0) {
+    } else if (accounts && accounts.length > 0 && accounts[0]) {
       // If no default account, select the first account
       setSelectedAccounts([accounts[0].AccountID]);
     }
@@ -37,13 +37,15 @@ export default function CalendarClient({
   };
 
   // Debugging
-  console.log('CalendarClient props:', {
-    accounts,
-    events,
-    defaultSelectedAccount,
-    hasAdminAccess,
-  });
-  console.log('Selected accounts:', selectedAccounts);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('CalendarClient props:', {
+      accounts,
+      events,
+      defaultSelectedAccount,
+      hasAdminAccess,
+    });
+    console.log('Selected accounts:', selectedAccounts);
+  }
 
   return (
     <Calendar

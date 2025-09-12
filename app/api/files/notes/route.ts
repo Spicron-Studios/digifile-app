@@ -14,10 +14,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   await logger.init();
 
   try {
-    const data = await request.json();
+    const noteData = await request.json();
 
     // Validate the required fields
-    if (!data.notes || !data.tabType || !data.timeStamp) {
+    if (!noteData.notes || !noteData.tabType || !noteData.timeStamp) {
       await logger.warning(
         'api/files/notes/route.ts',
         'Missing required fields in note creation request'
@@ -32,29 +32,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const noteUid = uuidv4();
     await logger.debug(
       'api/files/notes/route.ts',
-      `Creating note with fileinfoPatientId: ${data.fileInfoPatientId}`
+      `Creating note with fileinfoPatientId: ${noteData.fileInfoPatientId}`
     );
 
-    const newNote = await db
-      .insert(tabNotes)
-      .values({
-        uid: noteUid,
-        orgid: data.orgId,
-        fileinfoPatientId: data.fileInfoPatientId,
-        personid: data.patientId,
-        timeStamp: new Date(data.timeStamp),
-        notes: data.notes,
-        tabType: data.tabType, // 'file' or 'clinical'
-        active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
-        locked: false,
-      })
-      .returning();
+    await db.insert(tabNotes).values({
+      uid: noteUid,
+      orgid: noteData.orgId,
+      fileinfoPatientId: noteData.fileInfoPatientId,
+      personid: noteData.patientId,
+      timeStamp: new Date(noteData.timeStamp).toISOString(),
+      notes: noteData.notes,
+      tabType: noteData.tabType,
+      active: true,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
+      locked: false,
+    });
 
     await logger.info(
       'api/files/notes/route.ts',
-      `Note created with UID: ${newNote[0].uid}`
+      `Note created with UID: ${noteUid}`
     );
 
     // Handle file uploads
@@ -65,18 +62,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       file_location: string | null;
     }> = [];
 
-    if (data.files && data.files.length > 0) {
+    if (noteData.files && noteData.files.length > 0) {
       await logger.debug(
         'api/files/notes/route.ts',
-        `Processing ${data.files.length} files for note`
+        `Processing ${noteData.files.length} files for note`
       );
 
-      for (const fileData of data.files) {
+      for (const fileData of noteData.files) {
         try {
           // Generate a unique filename while preserving the extension
           const fileExtension = fileData.name.split('.').pop();
           const uniqueFileName = `${uuidv4()}.${fileExtension}`;
-          const storageLocation = `${data.orgId}/note-docs/${uniqueFileName}`;
+          const storageLocation = `${noteData.orgId}/note-docs/${uniqueFileName}`;
 
           // Convert base64 to file
           const base64Data = fileData.content.split(';base64,').pop();
@@ -99,27 +96,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
           // Create record in tab_files
           const fileUid = uuidv4();
-          const fileRecord = await db
-            .insert(tabFiles)
-            .values({
-              uid: fileUid,
-              orgid: data.orgId,
-              tabNotesId: noteUid,
-              fileName: fileData.name,
-              fileType: fileData.type,
-              fileLocation: storageLocation,
-              active: true,
-              dateCreated: new Date(),
-              lastEdit: new Date(),
-              locked: false,
-            })
-            .returning();
+          await db.insert(tabFiles).values({
+            uid: fileUid,
+            orgid: noteData.orgId,
+            tabNotesId: noteUid,
+            fileName: fileData.name,
+            fileType: fileData.type,
+            fileLocation: storageLocation,
+            active: true,
+            dateCreated: new Date().toISOString(),
+            lastEdit: new Date().toISOString(),
+            locked: false,
+          });
 
           fileRecords.push({
-            uid: fileRecord[0].uid,
-            file_name: fileRecord[0].fileName,
-            file_type: fileRecord[0].fileType,
-            file_location: fileRecord[0].fileLocation,
+            uid: fileUid,
+            file_name: fileData.name,
+            file_type: fileData.type,
+            file_location: storageLocation,
           });
 
           await logger.debug(
@@ -137,10 +131,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Return the complete note data with file records
     const completeNote = {
-      uid: newNote[0].uid,
-      time_stamp: newNote[0].timeStamp,
-      notes: newNote[0].notes,
-      tab_type: newNote[0].tabType,
+      uid: noteUid,
+      time_stamp: new Date(noteData.timeStamp).toISOString(),
+      notes: noteData.notes,
+      tab_type: noteData.tabType,
       files: fileRecords,
     };
 

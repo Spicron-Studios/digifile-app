@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, momentLocalizer } from 'react-big-calendar';
+import { Calendar, momentLocalizer, DateHeaderProps } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment-timezone';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -37,7 +37,7 @@ export function BigCalendar({
   onToggleAccount,
 }: BigCalendarProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+  const [view, setView] = useState<any>('month');
   const [date, setDate] = useState(new Date());
 
   // Filter events based on selected accounts
@@ -55,7 +55,9 @@ export function BigCalendar({
 
       // Validate dates
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        console.warn('Invalid date in event:', event);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Invalid date in event:', event);
+        }
         return null;
       }
 
@@ -85,7 +87,7 @@ export function BigCalendar({
 
   // Custom event tile with professional design
   const eventTile = (props: any) => {
-    const event = props.event as CalendarEvent;
+    const event = props.event;
 
     // Validate event data
     if (!event) {
@@ -106,7 +108,6 @@ export function BigCalendar({
         )}
         style={{
           backgroundColor: eventColor,
-          ...props.style,
         }}
       >
         <div className="truncate font-semibold text-sm">{event.title}</div>
@@ -129,13 +130,22 @@ export function BigCalendar({
     }
 
     return (
-      <div className="rbc-header py-2" style={props.style}>
+      <div className="rbc-header py-2">
         <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">
           {props.label}
         </div>
         <div className="text-lg font-bold mt-1 text-gray-800">
           {props.date.getDate()}
         </div>
+      </div>
+    );
+  };
+
+  // Custom date header for month view
+  const dateHeader = (props: DateHeaderProps) => {
+    return (
+      <div className="rbc-date-cell rbc-current-time-indicator">
+        <div className="rbc-date-cell-number">{props.label}</div>
       </div>
     );
   };
@@ -150,7 +160,7 @@ export function BigCalendar({
           accounts={accounts}
           selectedAccounts={selectedAccounts}
           onToggleAccount={onToggleAccount}
-          onAddAccount={account => onToggleAccount(account.AccountID)}
+          _onAddAccount={account => onToggleAccount(account.AccountID)}
         />
       </div>
 
@@ -273,8 +283,11 @@ export function BigCalendar({
             components={{
               event: eventTile,
               header: header,
+              month: {
+                dateHeader: dateHeader,
+              },
             }}
-            eventPropGetter={event => {
+            eventPropGetter={(event: CalendarEvent) => {
               // Find the account to get the correct color
               const account = accounts.find(
                 acc => acc.AccountID === event.accountId

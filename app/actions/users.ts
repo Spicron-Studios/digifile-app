@@ -73,7 +73,7 @@ export async function updateUser(
       username: data.username,
       email: data.email,
       cellNo: data.phone,
-      lastEdit: new Date(),
+      lastEdit: new Date().toISOString(),
     })
     .where(and(eq(users.uid, userUid), eq(users.orgid, session.user.orgId)))
     .returning();
@@ -149,7 +149,7 @@ export async function updateUserRoles(
       .where(
         and(
           eq(userRoles.userid, userUid),
-          eq(userRoles.roleid, roleId),
+          roleId ? eq(userRoles.roleid, roleId) : undefined,
           eq(userRoles.orgid, session.user.orgId)
         )
       )
@@ -161,7 +161,7 @@ export async function updateUserRoles(
         .update(userRoles)
         .set({
           active: true,
-          lastEdit: new Date(),
+          lastEdit: new Date().toISOString(),
         })
         .where(eq(userRoles.uid, existing[0].uid));
     } else {
@@ -172,8 +172,8 @@ export async function updateUserRoles(
         roleid: roleId,
         orgid: session.user.orgId,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
         locked: false,
       });
     }
@@ -183,7 +183,7 @@ export async function updateUserRoles(
       .update(userRoles)
       .set({
         active: false,
-        lastEdit: new Date(),
+        lastEdit: new Date().toISOString(),
       })
       .where(
         and(

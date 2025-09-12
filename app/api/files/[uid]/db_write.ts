@@ -9,13 +9,20 @@ import db, {
 import { and, eq } from 'drizzle-orm';
 import { Logger } from '@/app/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  FileUpdateData,
+  FileCreateData,
+  MemberData,
+  InjuryOnDutyData,
+  DbWriteResponse,
+} from '@/app/types/db-types';
 
 // Handle PUT requests to update an existing file
 export async function handleUpdateFile(
   uid: string,
-  data: any,
+  data: FileUpdateData,
   orgId: string
-): Promise<{ data?: any; error?: string; status: number }> {
+): Promise<DbWriteResponse> {
   const logger = Logger.getInstance();
   await logger.init();
 
@@ -67,7 +74,7 @@ export async function handleUpdateFile(
     }
 
     // Upsert the file_info record
-    let upsertedFileInfo;
+    let _upsertedFileInfo;
     if (existingRecord?.fileInfo) {
       // Update existing
       const updated = await db
@@ -81,7 +88,7 @@ export async function handleUpdateFile(
         })
         .where(eq(fileInfo.uid, fileUid))
         .returning();
-      upsertedFileInfo = updated[0];
+      _upsertedFileInfo = updated[0];
     } else {
       // Create new
       const created = await db
@@ -98,16 +105,16 @@ export async function handleUpdateFile(
           lastEdit: new Date().toISOString(),
         })
         .returning();
-      upsertedFileInfo = created[0];
+      _upsertedFileInfo = created[0];
     }
 
-    if (!upsertedFileInfo) {
+    if (!_upsertedFileInfo) {
       throw new Error('Failed to upsert file info');
     }
 
     await logger.info(
       'api/files/[uid]/db_write.ts',
-      `File_info upserted with UID: ${upsertedFileInfo.uid}`
+      `File_info upserted with UID: ${_upsertedFileInfo.uid}`
     );
 
     // Process patient information if provided
@@ -122,9 +129,9 @@ export async function handleUpdateFile(
       if (data.patient.dob) {
         const dobParts = data.patient.dob.split('/');
         if (dobParts.length === 3) {
-          const year = parseInt(dobParts[0]);
-          const month = parseInt(dobParts[1]) - 1; // Month (0-indexed)
-          const day = parseInt(dobParts[2]);
+          const year = parseInt(dobParts[0] || '0');
+          const month = parseInt(dobParts[1] || '0') - 1; // Month (0-indexed)
+          const day = parseInt(dobParts[2] || '0');
           const dateObj = new Date(year, month, day);
           const isoString = dateObj.toISOString();
           dobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
@@ -236,9 +243,16 @@ export async function handleUpdateFile(
       if (data.medical_cover.type === 'medical-aid') {
         // Handle medical aid type
         await processMedicalAid(fileUid, data.medical_cover, orgId);
-      } else if (data.medical_cover.type === 'injury-on-duty') {
+      } else if (
+        data.medical_cover.type === 'injury-on-duty' &&
+        data.medical_cover.injury_on_duty
+      ) {
         // Handle injury on duty type
-        await processInjuryOnDuty(fileUid, data.medical_cover, orgId);
+        await processInjuryOnDuty(
+          fileUid,
+          data.medical_cover.injury_on_duty,
+          orgId
+        );
       }
       // For 'private' type, no additional records needed
     }
@@ -354,9 +368,9 @@ export async function handleUpdateFile(
 
 // Handle POST requests to create a new file
 export async function handleCreateFile(
-  data: any,
+  data: FileCreateData,
   orgId: string
-): Promise<{ data?: any; error?: string; status: number }> {
+): Promise<DbWriteResponse> {
   const logger = Logger.getInstance();
   await logger.init();
 
@@ -424,9 +438,9 @@ export async function handleCreateFile(
       if (data.patient.dob) {
         const dobParts = data.patient.dob.split('/');
         if (dobParts.length === 3) {
-          const year = parseInt(dobParts[0]);
-          const month = parseInt(dobParts[1]) - 1; // Month (0-indexed)
-          const day = parseInt(dobParts[2]);
+          const year = parseInt(dobParts[0] || '0');
+          const month = parseInt(dobParts[1] || '0') - 1; // Month (0-indexed)
+          const day = parseInt(dobParts[2] || '0');
           const dateObj = new Date(year, month, day);
           const isoString = dateObj.toISOString();
           dobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
@@ -521,9 +535,16 @@ export async function handleCreateFile(
       if (data.medical_cover.type === 'medical-aid') {
         // Handle medical aid type
         await processMedicalAid(newFileUid, data.medical_cover, orgId);
-      } else if (data.medical_cover.type === 'injury-on-duty') {
+      } else if (
+        data.medical_cover.type === 'injury-on-duty' &&
+        data.medical_cover.injury_on_duty
+      ) {
         // Handle injury on duty type
-        await processInjuryOnDuty(newFileUid, data.medical_cover, orgId);
+        await processInjuryOnDuty(
+          newFileUid,
+          data.medical_cover.injury_on_duty,
+          orgId
+        );
       }
       // For 'private' type, no additional records needed
     }
@@ -587,7 +608,7 @@ export async function handleCreateFile(
 // Helper function to process medical aid data
 async function processMedicalAid(
   fileUid: string,
-  medicalCover: any,
+  medicalCover: import('@/app/types/db-types').MedicalCoverData,
   orgId: string
 ): Promise<void> {
   const logger = Logger.getInstance();
@@ -627,7 +648,7 @@ async function processMedicalAid(
     }
 
     // Upsert medical aid record
-    let medicalAidUid;
+    let _medicalAidUid;
     if (existingMedicalAid.length > 0) {
       // Update existing record
       const existing = existingMedicalAid[0];
@@ -650,17 +671,17 @@ async function processMedicalAid(
         })
         .where(eq(patientMedicalAid.uid, existing.uid));
 
-      medicalAidUid = existing.uid;
+      _medicalAidUid = existing.uid;
     } else {
       // Create new record
-      medicalAidUid = uuidv4();
+      _medicalAidUid = uuidv4();
       await logger.info(
         'api/files/[uid]/db_write.ts',
-        `Creating new medical aid with UID: ${medicalAidUid}`
+        `Creating new medical aid with UID: ${_medicalAidUid}`
       );
 
       await db.insert(patientMedicalAid).values({
-        uid: medicalAidUid,
+        uid: _medicalAidUid,
         medicalSchemeId: schemeId,
         membershipNumber: membershipNumber,
         patientDependantCode: dependentCode,
@@ -678,10 +699,10 @@ async function processMedicalAid(
     );
 
     // Process medical aid member if provided
-    if (medicalCover.member && medicalAidUid) {
+    if (medicalCover.member && _medicalAidUid) {
       await processMedicalAidMember(
         fileUid,
-        medicalAidUid,
+        _medicalAidUid,
         medicalCover.member,
         orgId
       );
@@ -699,7 +720,7 @@ async function processMedicalAid(
 async function processMedicalAidMember(
   fileUid: string,
   medicalAidUid: string,
-  memberData: any,
+  memberData: MemberData,
   orgId: string
 ): Promise<void> {
   const logger = Logger.getInstance();
@@ -738,9 +759,9 @@ async function processMedicalAidMember(
     if (memberData.dob) {
       const dobParts = memberData.dob.split('/');
       if (dobParts.length === 3) {
-        const year = parseInt(dobParts[0]);
-        const month = parseInt(dobParts[1]) - 1; // Month (0-indexed)
-        const day = parseInt(dobParts[2]);
+        const year = parseInt(dobParts[0] || '0');
+        const month = parseInt(dobParts[1] || '0') - 1; // Month (0-indexed)
+        const day = parseInt(dobParts[2] || '0');
         const dateObj = new Date(year, month, day);
         const isoString = dateObj.toISOString();
         memberDobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
@@ -832,7 +853,7 @@ async function processMedicalAidMember(
 // Helper function to process injury on duty data
 async function processInjuryOnDuty(
   fileUid: string,
-  data: any,
+  data: InjuryOnDutyData,
   orgId: string
 ): Promise<void> {
   const logger = Logger.getInstance();
@@ -868,10 +889,10 @@ async function processInjuryOnDuty(
       await db
         .update(injuryOnDuty)
         .set({
-          companyName: data.injury_on_duty?.company_name || '',
-          contactPerson: data.injury_on_duty?.contact_person || '',
-          contactNumber: data.injury_on_duty?.contact_number || '',
-          contactEmail: data.injury_on_duty?.contact_email || '',
+          companyName: data.company_name || '',
+          contactPerson: data.contact_person || '',
+          contactNumber: data.contact_number || '',
+          contactEmail: data.contact_email || '',
           lastEdit: new Date().toISOString(),
         })
         .where(eq(injuryOnDuty.uid, existing.uid));
@@ -885,10 +906,10 @@ async function processInjuryOnDuty(
 
       await db.insert(injuryOnDuty).values({
         uid: injuryUid,
-        companyName: data.injury_on_duty?.company_name || '',
-        contactPerson: data.injury_on_duty?.contact_person || '',
-        contactNumber: data.injury_on_duty?.contact_number || '',
-        contactEmail: data.injury_on_duty?.contact_email || '',
+        companyName: data.company_name || '',
+        contactPerson: data.contact_person || '',
+        contactNumber: data.contact_number || '',
+        contactEmail: data.contact_email || '',
         fileid: fileUid,
         orgid: orgId,
         active: true,

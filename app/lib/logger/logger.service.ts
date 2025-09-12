@@ -3,7 +3,7 @@
  * const logger = Logger.getInstance();
  * await logger.init();
  * await logger.info('myFile.ts', 'This is an info message');
- * 
+ *
  * Note: This logger only works in server-side components.
  * It will silently ignore any logging attempts from client components.
  */
@@ -26,11 +26,11 @@ export class Logger {
           ERROR: true,
           WARNING: true,
           INFO: true,
-          DEBUG: true
+          DEBUG: true,
         },
         maxFileSize: 104857600, // 100MB
         maxLogFiles: 10,
-        logDirectory: 'logs'
+        logDirectory: 'logs',
       };
       this.LOG_DIR = path.join(process.cwd(), this.config.logDirectory);
     }
@@ -46,18 +46,25 @@ export class Logger {
   public async init(): Promise<void> {
     // Only initialize on server side
     if (typeof window !== 'undefined') return;
-    
+
     if (this.initialized) return;
-    
+
     await this.writeToFile('Logger initialized');
     this.initialized = true;
   }
 
-  private formatLogEntry(level: LogLevel, fileName: string, message: string): string {
-    const timestamp = new Date().toISOString().replace('T', ' ').replace('Z', '');
+  private formatLogEntry(
+    level: LogLevel,
+    fileName: string,
+    message: string
+  ): string {
+    const timestamp = new Date()
+      .toISOString()
+      .replace('T', ' ')
+      .replace('Z', '');
     return `[${timestamp}] (${level}) - ${fileName} - ${message}`;
   }
- 
+
   private async writeToFile(message: string): Promise<void> {
     // Skip if we're on the client side
     if (typeof window !== 'undefined') return;
@@ -68,8 +75,10 @@ export class Logger {
       const logFile = path.join(this.LOG_DIR, `app-${date}.log`);
       await fs.appendFile(logFile, message + '\n');
     } catch (error) {
-      console.error('Failed to write to log file:', error);
-      throw error;
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to write to log file:', error);
+      }
+      // Don't throw the error to avoid breaking the application
     }
   }
 
@@ -77,21 +86,29 @@ export class Logger {
     // Skip if we're on the client side
     if (typeof window !== 'undefined') return;
 
-    const logMessage = this.formatLogEntry(entry.level, entry.fileName, entry.message);
+    const logMessage = this.formatLogEntry(
+      entry.level,
+      entry.fileName,
+      entry.message
+    );
     await this.writeToFile(logMessage);
   }
 
-  public async log(level: LogLevel, fileName: string, message: string): Promise<void> {
+  public async log(
+    level: LogLevel,
+    fileName: string,
+    message: string
+  ): Promise<void> {
     // Skip if we're on the client side
     if (typeof window !== 'undefined') return;
-    
+
     if (!this.config?.logLevels[level]) return;
 
     await this.writeLog({
       timestamp: new Date().toISOString(),
       level,
       fileName,
-      message
+      message,
     });
   }
 

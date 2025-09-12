@@ -71,9 +71,9 @@ export function UserSettings() {
     r => r.role.name.toLowerCase() === 'organizer'
   );
 
-  const hasRoleManagementAccess = (roles: Session['user']['roles']) => {
+  const hasRoleManagementAccess = (roles: any) => {
     return roles?.some(
-      r =>
+      (r: any) =>
         r.role.name.toLowerCase() === 'admin' ||
         r.role.name.toLowerCase() === 'organizer'
     );
@@ -161,12 +161,12 @@ export function UserSettings() {
           user.uid === selectedUser.uid
             ? {
                 ...user,
-                title: updated.title,
-                first_name: updated.first_name,
-                surname: updated.surname,
-                email: updated.email,
-                username: updated.username,
-                cell_no: updated.cell_no,
+                title: updated?.title ?? user.title,
+                first_name: updated?.firstName ?? user.first_name,
+                surname: updated?.surname ?? user.surname,
+                email: updated?.email ?? user.email,
+                username: updated?.username ?? user.username,
+                cell_no: updated?.cellNo ?? user.cell_no,
               }
             : user
         )
@@ -325,14 +325,13 @@ export function UserSettings() {
                     <label className="block text-sm font-medium text-gray-700">
                       Reset Password
                     </label>
-                    <Button
-                      variant="outline"
+                    <button
                       type="button"
-                      className="mt-1"
-                      onClick={handleResetPassword}
+                      className="mt-1 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                      onClick={() => handleResetPassword()}
                     >
                       Reset Password
-                    </Button>
+                    </button>
                   </div>
                 </div>
 
@@ -459,9 +458,16 @@ export function UserSettings() {
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">
-              <Button type="submit" onClick={handleSaveUser}>
+              <button
+                type="submit"
+                onClick={e => {
+                  e.preventDefault();
+                  handleSaveUser(e as any);
+                }}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+              >
                 Save Changes
-              </Button>
+              </button>
               <Button variant="outline" onClick={() => setSelectedUser(null)}>
                 Back to User List
               </Button>

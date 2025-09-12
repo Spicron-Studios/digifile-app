@@ -1,8 +1,31 @@
 import { Account, CalendarEvent } from '@/app/types/calendar';
 import { Logger } from '@/app/lib/logger';
 
+// Initialize logger
 const logger = Logger.getInstance();
-logger.init().catch(console.error);
+
+// Handle any initialization errors
+logger.init().catch(error => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Failed to initialize logger:', error);
+  }
+});
+
+export async function processCalendarData(data: unknown) {
+  const logger = Logger.getInstance();
+  await logger.init();
+
+  try {
+    // Process the calendar data
+    return data;
+  } catch (error) {
+    await logger.error(
+      'utils/calendar.ts',
+      `Error processing calendar data: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return null;
+  }
+}
 
 export async function transformEntriesToEvents(
   accounts: Account[]
@@ -30,7 +53,7 @@ export async function transformEntriesToEvents(
 
         // Check if dates are valid
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-          await logger.warn(
+          await logger.warning(
             'calendar.ts',
             `Invalid date in entry ${entry.uid}`
           );

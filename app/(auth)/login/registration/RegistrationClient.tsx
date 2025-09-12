@@ -180,7 +180,7 @@ export default function RegistrationClient({
       }
     } else {
       const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-      if (currentIndex < tabs.length - 1) {
+      if (currentIndex < tabs.length - 1 && tabs[currentIndex + 1]) {
         try {
           if (activeTab === 'practice-info')
             practiceInfoSchema.parse(formData.practiceInfo);
@@ -196,7 +196,8 @@ export default function RegistrationClient({
 
   const handlePrevious = (): void => {
     const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-    if (currentIndex > 0) setActiveTab(tabs[currentIndex - 1].id);
+    if (currentIndex > 0 && tabs[currentIndex - 1])
+      setActiveTab(tabs[currentIndex - 1].id);
   };
 
   const handleCancel = (): void => {
@@ -288,7 +289,7 @@ export default function RegistrationClient({
         <Button
           variant="secondary"
           onClick={handlePrevious}
-          disabled={activeTab === tabs[0].id}
+          disabled={activeTab === tabs[0]?.id}
         >
           Previous
         </Button>

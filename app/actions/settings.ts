@@ -73,7 +73,7 @@ export async function updateOrganization(
       cell: input.cell ?? undefined,
       fax: input.fax ?? undefined,
       email: input.email ?? undefined,
-      lastEdit: new Date(),
+      lastEdit: new Date().toISOString(),
     })
     .where(eq(organizationInfo.uid, session.user.orgId))
     .returning({

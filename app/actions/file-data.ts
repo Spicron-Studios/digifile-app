@@ -35,10 +35,31 @@ export async function updateFile(
   return res.data;
 }
 
-export async function createNoteWithFiles(payload: Record<string, unknown>) {
+export async function createNoteWithFiles(payload: {
+  fileInfoPatientId: string;
+  patientId: string;
+  timeStamp: string;
+  notes: string;
+  tabType: string;
+  files?: Array<{
+    name: string;
+    type: string;
+    content: string;
+  }>;
+}) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
-  // Ensure orgId is present
-  const notePayload = { ...payload, orgId: session.user.orgId };
+
+  // Construct proper NoteData object
+  const notePayload = {
+    orgId: session.user.orgId,
+    fileInfoPatientId: payload.fileInfoPatientId,
+    patientId: payload.patientId,
+    timeStamp: payload.timeStamp,
+    notes: payload.notes,
+    tabType: payload.tabType,
+    files: payload.files || [],
+  };
+
   return saveNoteWithFiles(notePayload);
 }

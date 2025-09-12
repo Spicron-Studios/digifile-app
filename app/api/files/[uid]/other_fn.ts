@@ -3,6 +3,7 @@ import { Logger } from '@/app/lib/logger';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { eq, and, asc } from 'drizzle-orm';
+import { DbWriteResponse, NoteData, TabNoteRecord } from '@/app/types/db-types';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -40,7 +41,9 @@ export async function fetchMedicalSchemes(
 }
 
 // Helper function to save a new note and its files
-export async function saveNoteWithFiles(noteData: any): Promise<any> {
+export async function saveNoteWithFiles(
+  noteData: NoteData
+): Promise<DbWriteResponse<TabNoteRecord>> {
   const logger = Logger.getInstance();
   await logger.init();
 
@@ -48,26 +51,24 @@ export async function saveNoteWithFiles(noteData: any): Promise<any> {
     await logger.info('api/files/[uid]/other_fn.ts', 'Saving new note');
 
     // 1. Create the note record in tab_notes
-    const newNote = await db
-      .insert(tabNotes)
-      .values({
-        uid: uuidv4(),
-        orgid: noteData.orgId,
-        fileinfoPatientId: noteData.fileInfoPatientId,
-        personid: noteData.patientId,
-        timeStamp: new Date(noteData.timeStamp),
-        notes: noteData.notes,
-        tabType: noteData.tabType, // 'file' or 'clinical'
-        active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
-        locked: false,
-      })
-      .returning();
+    const noteUid = uuidv4();
+    await db.insert(tabNotes).values({
+      uid: noteUid,
+      orgid: noteData.orgId,
+      fileinfoPatientId: noteData.fileInfoPatientId,
+      personid: noteData.patientId,
+      timeStamp: new Date(noteData.timeStamp).toISOString(),
+      notes: noteData.notes,
+      tabType: noteData.tabType, // 'file' or 'clinical'
+      active: true,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
+      locked: false,
+    });
 
     await logger.info(
       'api/files/[uid]/other_fn.ts',
-      `Note created with ID: ${newNote[0].uid}`
+      `Note created with ID: ${noteUid}`
     );
 
     // 2. Upload files to Supabase and create records in tab_files
@@ -104,27 +105,25 @@ export async function saveNoteWithFiles(noteData: any): Promise<any> {
         }
 
         // Create record in tab_files
-        const fileRecord = await db
-          .insert(tabFiles)
-          .values({
-            uid: uuidv4(),
-            orgid: noteData.orgId,
-            tabNotesId: newNote[0].uid,
-            fileName: fileData.name,
-            fileType: fileData.type,
-            fileLocation: storageLocation,
-            active: true,
-            dateCreated: new Date(),
-            lastEdit: new Date(),
-            locked: false,
-          })
-          .returning();
+        const fileUid = uuidv4();
+        await db.insert(tabFiles).values({
+          uid: fileUid,
+          orgid: noteData.orgId,
+          tabNotesId: noteUid,
+          fileName: fileData.name,
+          fileType: fileData.type,
+          fileLocation: storageLocation,
+          active: true,
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
+          locked: false,
+        });
 
         fileRecords.push({
-          uid: fileRecord[0].uid,
-          file_name: fileRecord[0].fileName,
-          file_type: fileRecord[0].fileType,
-          file_location: fileRecord[0].fileLocation,
+          uid: fileUid,
+          file_name: fileData.name,
+          file_type: fileData.type,
+          file_location: storageLocation,
         });
 
         await logger.info(
@@ -135,11 +134,11 @@ export async function saveNoteWithFiles(noteData: any): Promise<any> {
     }
 
     // 3. Return the complete note data with file records
-    const completeNote = {
-      uid: newNote[0].uid,
-      time_stamp: newNote[0].timeStamp,
-      notes: newNote[0].notes,
-      tab_type: newNote[0].tabType,
+    const completeNote: TabNoteRecord = {
+      uid: noteUid,
+      time_stamp: new Date(noteData.timeStamp).toISOString(),
+      notes: noteData.notes,
+      tab_type: noteData.tabType,
       files: fileRecords,
     };
 
@@ -147,12 +146,12 @@ export async function saveNoteWithFiles(noteData: any): Promise<any> {
       'api/files/[uid]/other_fn.ts',
       'Note saved successfully with all files'
     );
-    return completeNote;
+    return { data: completeNote, status: 200 };
   } catch (error) {
     await logger.error(
       'api/files/[uid]/other_fn.ts',
       `Error saving note: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
-    throw error;
+    return { error: 'Failed to save note', status: 500 };
   }
 }

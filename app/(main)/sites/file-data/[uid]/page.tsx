@@ -754,8 +754,8 @@ export default function FileDataPage(): React.JSX.Element {
       setFile(savedData);
 
       // If this was a new record, redirect to the saved record's page
-      if (isNewRecord && savedData.uid) {
-        router.push(`/sites/file-data/${savedData.uid}`);
+      if (isNewRecord && (savedData as any).uid) {
+        router.push(`/sites/file-data/${(savedData as any).uid}`);
       }
 
       if (process.env.NODE_ENV === 'development') {
@@ -933,7 +933,18 @@ export default function FileDataPage(): React.JSX.Element {
         throw new Error('Failed to save note');
       }
 
-      const savedNote = await createNoteWithFiles(noteData);
+      const savedNote = await createNoteWithFiles({
+        fileInfoPatientId: noteData.fileInfoPatientId || '',
+        patientId: noteData.patientId || '',
+        timeStamp: noteData.timeStamp,
+        notes: noteData.notes,
+        tabType: noteData.tabType,
+        files: noteData.files?.map(file => ({
+          name: file.name,
+          type: file.type,
+          content: file.content as string,
+        })),
+      });
 
       // Update the file state with the new note
       setFile(prevFile => {
@@ -950,12 +961,12 @@ export default function FileDataPage(): React.JSX.Element {
         // Add the new note to the appropriate array
         if (activeNoteTab === 'file') {
           updatedFile.notes.file_notes = [
-            savedNote,
+            (savedNote as any).data,
             ...(updatedFile.notes.file_notes || []),
           ];
         } else if (activeNoteTab === 'clinical') {
           updatedFile.notes.clinical_notes = [
-            savedNote,
+            (savedNote as any).data,
             ...(updatedFile.notes.clinical_notes || []),
           ];
         }

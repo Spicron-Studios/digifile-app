@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hash } from 'bcryptjs';
 import db, { organizationInfo, users } from '@/app/lib/drizzle';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,48 +10,43 @@ export async function POST(request: Request) {
     const organizationUid = uuidv4();
 
     // Create organization
-    await db
-      .insert(organizationInfo)
-      .values({
-        uid: organizationUid,
-        practiceName: data.practiceInfo.practiceName,
-        bhfNumber: data.practiceInfo.bhfNumber,
-        hpcsa: data.practiceInfo.hpcsaNumber,
-        practiceType: data.practiceInfo.practiceType,
-        vatNo: data.practiceInfo.vatNumber,
-        practiceTelephone: data.contactDetails.practiceTelephone,
-        accountsTelephone: data.contactDetails.accountsTelephone,
-        postal: data.contactDetails.postalCode,
-        address: data.contactDetails.fullAddress,
-        email: data.contactDetails.practiceEmail,
-        cell: data.contactDetails.cellNumber,
-        fax: data.contactDetails.fax,
-        active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
-        locked: false,
-        consentToTreatment: null,
-        consentToFinancialResponsibility: null,
-        consentToReleaseOfInformation: null,
-      })
-      .returning();
+    await db.insert(organizationInfo).values({
+      uid: organizationUid,
+      practiceName: data.practiceInfo.practiceName,
+      practiceType: data.practiceInfo.practiceType,
+      vatNo: data.practiceInfo.vatNo,
+      address: data.practiceInfo.address,
+      postal: data.practiceInfo.postal,
+      practiceTelephone: data.practiceInfo.practiceTelephone,
+      accountsTelephone: data.practiceInfo.accountsTelephone,
+      cell: data.practiceInfo.cell,
+      fax: data.practiceInfo.fax,
+      email: data.practiceInfo.email,
+      active: true,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
+    });
 
     // Create user with direct password storage (no hashing for now)
+
+    // Hash the password
+    const hashedPassword = await hash(data.userCreation.password, 10);
+
+    // Create the user record
     await db.insert(users).values({
       uid: uuidv4(),
+      title: data.userCreation.title,
       firstName: data.userCreation.firstName,
       surname: data.userCreation.lastName,
+      cellNo: data.userCreation.cellPhone,
+      secretKey: hashedPassword,
+      email: data.userCreation.email,
       username: data.userCreation.username,
-      secretKey: data.userCreation.password, // Store password directly in secretKey field
-      orgid: organizationUid,
+      loginKey: data.userCreation.loginKey,
       active: true,
-      dateCreated: new Date(),
-      lastEdit: new Date(),
-      locked: false,
-      title: null,
-      cellNo: null,
-      email: null,
-      loginKey: null,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
+      orgid: organizationUid,
     });
 
     return NextResponse.json({ success: true });

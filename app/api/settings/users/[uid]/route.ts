@@ -29,7 +29,7 @@ export async function PUT(
         username: data.username,
         email: data.email,
         cellNo: data.phone,
-        lastEdit: new Date(),
+        lastEdit: new Date().toISOString(),
       })
       .where(and(eq(users.uid, uid), eq(users.orgid, session.user.orgId)))
       .returning();
@@ -38,10 +38,14 @@ export async function PUT(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log('Updated user:', updatedUser[0]);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Updated user:', updatedUser[0]);
+    }
     return NextResponse.json(updatedUser[0]);
   } catch (error) {
-    console.error('Failed to update user:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Failed to update user:', error);
+    }
     return NextResponse.json(
       { error: 'Failed to update user' },
       { status: 500 }

@@ -12,7 +12,7 @@ export interface AuthenticatedRequest extends NextRequest {
   };
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   type?: string;
@@ -25,7 +25,7 @@ export interface ApiResponse<T = any> {
 export async function withAuth<T>(
   handler: (
     _request: AuthenticatedRequest,
-    _context?: any
+    _context?: { params?: Record<string, string | string[]> }
   ) => Promise<NextResponse<ApiResponse<T>>>,
   options: {
     requireRoles?: string[];
@@ -156,7 +156,7 @@ export function createSuccessResponse<T>(
  */
 export async function validateRequestData<T>(
   request: NextRequest,
-  validator: (_data: any) => T
+  validator: (_data: T) => T
 ): Promise<{ data: T; error?: never } | { data?: never; error: string }> {
   try {
     const rawData = await request.json();

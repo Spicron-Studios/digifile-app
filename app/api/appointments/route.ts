@@ -23,16 +23,16 @@ export async function POST(request: Request) {
       .values({
         uid: uuidv4(),
         userUid: data.user_uid,
-        startdate: new Date(data.startdate),
-        enddate: new Date(data.enddate),
+        startdate: new Date(data.startdate).toISOString(),
+        enddate: new Date(data.enddate).toISOString(),
         title: data.title,
         description: data.description ?? null,
         active: true,
-        dateCreated: new Date(),
-        lastEdit: new Date(),
+        dateCreated: new Date().toISOString(),
+        lastEdit: new Date().toISOString(),
         locked: false,
         orgid: null, // This should be set based on authenticated user
-        length: null,
+        length: 0, // Changed from null to 0
       })
       .returning();
 

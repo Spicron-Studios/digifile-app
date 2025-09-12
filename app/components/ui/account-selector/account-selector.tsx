@@ -21,7 +21,7 @@ export function AccountSelector({
   accounts,
   selectedAccounts,
   onToggleAccount,
-  _onAddAccount,
+  _onAddAccount: __onAddAccount, // Prefix with underscore to satisfy no-unused-vars rule
 }: AccountSelectorProps) {
   return (
     <div className="flex items-center gap-3 w-full max-w-md">

@@ -132,9 +132,9 @@ export async function PUT(
           .update(userRoles)
           .set({
             active: true,
-            lastEdit: new Date(),
+            lastEdit: new Date().toISOString(),
           })
-          .where(eq(userRoles.uid, existingRole[0].uid));
+          .where(eq(userRoles.uid, existingRole[0]?.uid as string));
 
         await logger.info(
           'api/settings/users/[uid]/roles/route.ts',
@@ -152,8 +152,8 @@ export async function PUT(
           roleid: roleIds[0],
           orgid: session.user.orgId,
           active: true,
-          dateCreated: new Date(),
-          lastEdit: new Date(),
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
           locked: false,
         });
 
@@ -173,12 +173,12 @@ export async function PUT(
         .update(userRoles)
         .set({
           active: false,
-          lastEdit: new Date(),
+          lastEdit: new Date().toISOString(),
         })
         .where(
           and(
             eq(userRoles.userid, uid),
-            inArray(userRoles.roleid as any, roleIds),
+            inArray(userRoles.roleid, roleIds),
             eq(userRoles.orgid, session.user.orgId),
             eq(userRoles.active, true)
           )
