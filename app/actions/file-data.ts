@@ -6,6 +6,7 @@ import {
   createFile as svcCreateFile,
   updateFile as svcUpdateFile,
   saveNoteWithFiles as svcSaveNoteWithFiles,
+  saveNoteSmart as svcSaveNoteSmart,
 } from '@/app/lib/services/file-data.service';
 
 export async function getFile(uid: string) {
@@ -61,5 +62,37 @@ export async function createNoteWithFiles(payload: {
     files: payload.files || [],
   };
 
-  return svcSaveNoteWithFiles(notePayload);
+  const res = await svcSaveNoteWithFiles(notePayload);
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export async function createNoteSmart(payload: {
+  fileUid: string;
+  patientIdNumber?: string;
+  timeStamp: string;
+  notes: string;
+  tabType: string;
+  files?: Array<{
+    name: string;
+    type: string;
+    content: string;
+  }>;
+}) {
+  const session = await auth();
+  if (!session?.user?.orgId) throw new Error('Unauthorized');
+
+  const smartPayload = {
+    orgId: session.user.orgId,
+    fileUid: payload.fileUid,
+    patientIdNumber: payload.patientIdNumber,
+    timeStamp: payload.timeStamp,
+    notes: payload.notes,
+    tabType: payload.tabType,
+    files: payload.files || [],
+  };
+
+  const res = await svcSaveNoteSmart(smartPayload);
+  if (res.error) throw new Error(res.error);
+  return res;
 }

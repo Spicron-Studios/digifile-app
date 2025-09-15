@@ -199,7 +199,7 @@ export async function handleUpdateFile(
           'api/files/[uid]/db_write.ts',
           'Existing patient updated'
         );
-      } else if (data.patient.name || data.patient.surname) {
+      } else if (data.patient.name || data.patient.surname || data.patient.id) {
         console.log('Creating new patient and relationship...');
         // Create new patient and relationship
         const newPatientUid = uuidv4();
@@ -366,7 +366,10 @@ export async function handleCreateFile(
     // Create patient record if patient data is provided
     // Removed unused variable per lint rules
 
-    if (data.patient && (data.patient.name || data.patient.surname)) {
+    if (
+      data.patient &&
+      (data.patient.id || data.patient.name || data.patient.surname)
+    ) {
       console.log('Processing patient data for new file...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
@@ -438,15 +441,22 @@ export async function handleCreateFile(
       const relationshipUid = uuidv4();
 
       // Create the fileinfo_patient relationship
-      await db.insert(fileinfoPatient).values({
-        uid: relationshipUid,
-        fileid: newFileUid,
-        patientid: newPatientUid,
-        orgid: orgId,
-        active: true,
-        dateCreated: new Date().toISOString(),
-        lastEdit: new Date().toISOString(),
-      });
+      const newFilePatient = await db
+        .insert(fileinfoPatient)
+        .values({
+          uid: relationshipUid,
+          fileid: newFileUid,
+          patientid: newPatientUid,
+          orgid: orgId,
+          active: true,
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
+        })
+        .returning();
+
+      if (!newFilePatient[0]) {
+        throw new Error('Failed to create file-patient link');
+      }
 
       await logger.info(
         'api/files/[uid]/db_write.ts',
@@ -499,6 +509,27 @@ export async function handleCreateFile(
         `Failed to fetch created file data after create: ${result.error}`
       );
       return { error: 'File not found after create', status: 404 };
+    }
+
+    // Manually add the newly created fileinfo_patient to the response
+    if (
+      result.data &&
+      !result.data.fileinfo_patient &&
+      newPatientRecord &&
+      newFilePatient[0]
+    ) {
+      result.data.fileinfo_patient = [
+        {
+          uid: newFilePatient[0].uid,
+          patientid: newPatientRecord.uid,
+          fileid: newFileUid,
+          orgid: orgId,
+          active: true,
+          dateCreated: newFilePatient[0].dateCreated,
+          lastEdit: newFilePatient[0].lastEdit,
+          locked: false,
+        },
+      ];
     }
 
     console.log('--- Finished handleCreateFile ---');

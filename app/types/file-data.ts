@@ -70,6 +70,7 @@ export interface FileNotes {
 
 export interface FileInfoPatient {
   uid?: string;
+  patientid?: string;
 }
 
 export interface FileData {

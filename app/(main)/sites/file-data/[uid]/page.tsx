@@ -700,8 +700,8 @@ export default function FileDataPage(): React.JSX.Element {
       setFile(savedData);
 
       // If this was a new record, redirect to the saved record's page
-      if (isNewRecord && (savedData as any).uid) {
-        router.push(`/sites/file-data/${(savedData as any).uid}`);
+      if (isNewRecord && (savedData as FileData).uid) {
+        router.push(`/sites/file-data/${(savedData as FileData).uid}`);
       }
 
       if (process.env.NODE_ENV === 'development') {

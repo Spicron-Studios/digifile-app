@@ -43,6 +43,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
           file_number: '',
           account_number: '',
           patient: {
+            uid: '',
             id: '',
             title: '',
             name: '',
@@ -80,6 +81,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
             file_notes: [],
             clinical_notes: [],
           },
+          fileinfo_patient: [],
           medical_schemes: medicalSchemes, // Added medical schemes to response
         },
         status: 200,
@@ -339,6 +341,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
       file_number: processedFileInfo.fileNumber || '',
       account_number: processedFileInfo.accountNumber || '',
       patient: {
+        uid: patientData?.uid || '',
         id: patientData?.id || '',
         title: patientData?.title || '',
         name: patientData?.name || '',
@@ -398,6 +401,11 @@ export async function handleGetFileData(uid: string, orgId: string) {
         file_notes: fileNotes,
         clinical_notes: clinicalNotes,
       },
+      fileinfo_patient:
+        processedFileInfo.fileinfo_patient.map(fp => ({
+          uid: fp.uid,
+          patientid: fp.patientid,
+        })) || [],
       medical_schemes: medicalSchemes, // From existing code
     };
 

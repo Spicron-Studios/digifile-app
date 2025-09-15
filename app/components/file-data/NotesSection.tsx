@@ -29,7 +29,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { FileData, UploadedFile } from '@/app/types/file-data';
-import { createNoteWithFiles } from '@/app/actions/file-data';
+import { createNoteWithFiles, createNoteSmart } from '@/app/actions/file-data';
+import { handleResult } from '@/app/utils/helper-functions/handle-results';
 
 type NoteRecord = {
   uid?: string;
@@ -62,6 +63,7 @@ export function NotesSection({
   const [noteDateTime, setNoteDateTime] = useState<Date>(new Date());
   const [noteContent, setNoteContent] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fileNotes = (file.notes?.file_notes ?? []) as unknown as NoteRecord[];
@@ -78,7 +80,18 @@ export function NotesSection({
   );
 
   function filterAndSortNotes(notes: NoteRecord[]): NoteRecord[] {
-    let filtered = notes;
+    let filtered = (notes ?? []).filter((n): n is NoteRecord => Boolean(n));
+
+    // De-duplicate by UID to prevent repeated display on state merges or server joins
+    const seen = new Set<string>();
+    filtered = filtered.filter(n => {
+      const id = n.uid ?? '';
+      if (!id) return true;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+
     if (searchQuery.trim()) {
       filtered = filtered.filter(n =>
         (n.notes ?? '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -136,10 +149,21 @@ export function NotesSection({
   }
 
   async function saveNewNote(): Promise<void> {
-    if (!file?.uid && !file?.fileinfo_patient?.[0]?.uid) {
-      alert('File data is not ready. Please try again.');
-      return;
-    }
+    if (isSavingNote) return;
+    setIsSavingNote(true);
+    console.log('Attempting to save new note. Current file state:', file);
+
+    const fileInfoPatientId = file?.fileinfo_patient?.[0]?.uid ?? '';
+    const patientIdFromLink = file?.fileinfo_patient?.[0]?.patientid ?? '';
+
+    console.log('Derived IDs for note save:', {
+      fileUid: file?.uid,
+      fileInfoPatientId,
+      patientIdFromLink,
+      patientUidOnPatientObj: file?.patient?.uid,
+    });
+
+    const hasLinkIds = Boolean(fileInfoPatientId && patientIdFromLink);
     if (!noteContent.trim()) {
       alert('Please enter note content');
       return;
@@ -173,32 +197,82 @@ export function NotesSection({
       processedFiles.push(item);
     }
 
-    const payload = {
-      fileInfoPatientId: file.fileinfo_patient?.[0]?.uid ?? '',
-      patientId: file.patient?.uid ?? '',
-      timeStamp: noteDateTime.toISOString(),
-      notes: noteContent,
-      tabType: activeNoteTab,
-      files: processedFiles,
-    };
+    const timeStampIso = noteDateTime.toISOString();
+    let savedData: { data?: unknown } | null = null;
+    let error: { message?: string } | null = null;
 
-    const saved = await createNoteWithFiles(payload);
-    setFile(prev => {
-      const draft = { ...prev } as FileData;
-      if (!draft.notes) {
-        draft.notes = { file_notes: [], clinical_notes: [] };
+    if (hasLinkIds) {
+      const payload = {
+        fileInfoPatientId,
+        patientId: patientIdFromLink,
+        timeStamp: timeStampIso,
+        notes: noteContent,
+        tabType: activeNoteTab,
+        files: processedFiles,
+      };
+      console.log('Note save payload (direct):', payload);
+      const result = await handleResult(createNoteWithFiles(payload));
+      savedData = (result.data as unknown as { data?: unknown }) ?? null;
+      error = (result.error as unknown as { message?: string }) ?? null;
+    } else {
+      // Fallback: smart note save with minimal data
+      const fileUid = file?.uid ?? '';
+      const patientIdNumber = file?.patient?.id || undefined;
+      if (!fileUid) {
+        alert('File UID is missing. Please save the file first.');
+        return;
       }
-      const targetKey =
-        activeNoteTab === 'file' ? 'file_notes' : 'clinical_notes';
+      const baseSmartPayload = {
+        fileUid,
+        timeStamp: timeStampIso,
+        notes: noteContent,
+        tabType: activeNoteTab,
+        files: processedFiles,
+      } as const;
+      const smartPayload = patientIdNumber
+        ? { ...baseSmartPayload, patientIdNumber }
+        : baseSmartPayload;
+      console.log('Note save payload (smart):', smartPayload);
+      const result = await handleResult(createNoteSmart(smartPayload));
+      savedData = (result.data as unknown as { data?: unknown }) ?? null;
+      error = (result.error as unknown as { message?: string }) ?? null;
+    }
 
-      draft.notes[targetKey] = [
-        (saved as any).data as NoteRecord,
-        ...((draft.notes[targetKey] as unknown as NoteRecord[]) ?? []),
-      ];
-      return draft;
-    });
+    if (error) {
+      console.error('Failed to save note:', error);
+      alert(error.message || 'An unexpected error occurred while saving.');
+      setIsSavingNote(false);
+      return;
+    }
 
-    setIsNoteModalOpen(false);
+    if (savedData) {
+      setFile(prev => {
+        const draft = { ...prev } as FileData;
+        if (!draft.notes) {
+          draft.notes = { file_notes: [], clinical_notes: [] };
+        }
+        const targetKey =
+          activeNoteTab === 'file' ? 'file_notes' : 'clinical_notes';
+
+        const nextArray = [
+          savedData.data as NoteRecord,
+          ...((draft.notes[targetKey] as unknown as NoteRecord[]) ?? []),
+        ];
+        // De-duplicate by UID to keep array clean
+        const unique: NoteRecord[] = [];
+        const seen = new Set<string>();
+        for (const item of nextArray) {
+          const id = item?.uid ?? '';
+          if (id && seen.has(id)) continue;
+          if (id) seen.add(id);
+          unique.push(item);
+        }
+        draft.notes[targetKey] = unique as unknown as NoteRecord[];
+        return draft;
+      });
+      setIsNoteModalOpen(false);
+    }
+    setIsSavingNote(false);
   }
 
   return (

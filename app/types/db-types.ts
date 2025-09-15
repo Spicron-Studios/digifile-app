@@ -76,6 +76,18 @@ export interface NoteData {
   files?: NoteFileData[];
 }
 
+// Smart note creation that can work with just file UID and patient ID number
+export interface SmartNoteData {
+  orgId: string;
+  fileUid: string;
+  // Patient national ID number (the `patient.id` field). Required if no file-patient link exists yet
+  patientIdNumber?: string | undefined;
+  timeStamp: string;
+  notes: string;
+  tabType: string;
+  files?: NoteFileData[];
+}
+
 export interface TabNoteRecord {
   uid: string;
   time_stamp: string;
