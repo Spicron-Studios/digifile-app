@@ -1,61 +1,29 @@
 'use client';
 
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
+import FileInfoCard from '@/app/components/file-data/FileInfoCard';
+import PatientDetails from '@/app/components/file-data/PatientDetails';
+import MedicalAidInfo from '@/app/components/file-data/MedicalAidInfo';
+import InjuryOnDutyForm from '@/app/components/file-data/InjuryOnDutyForm';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/app/components/ui/tabs';
-import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/app/components/ui/select';
-import { Calendar as ShadcnCalendar } from '@/app/components/ui/day-picker-calendar';
-import {
-  CalendarIcon,
-  Search,
-  Plus,
-  ArrowUpDown,
-  Upload,
-  X,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/app/components/ui/popover';
+import NotesSection from '@/app/components/file-data/NotesSection';
+
 import { Editor } from '@/app/components/ui/editor';
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { Button } from '@/app/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/app/components/ui/dialog';
-import { Textarea } from '@/app/components/ui/textarea';
-import {
-  createFile,
-  createNoteWithFiles,
-  getFile,
-  updateFile,
-} from '@/app/actions/file-data';
+
+import { createFile, getFile, updateFile } from '@/app/actions/file-data';
 import {
   FileData,
   MedicalScheme,
   DateParts,
-  UploadedFile,
   HandleInputChange,
 } from '@/app/types/file-data';
 import { handleResult } from '@/app/utils/helper-functions/handle-results';
@@ -70,16 +38,6 @@ export default function FileDataPage(): React.JSX.Element {
   const [extraInfo, setExtraInfo] = useState<string>('');
   const [coverType, setCoverType] = useState<string>('medical-aid');
   const [sameAsPatient, setSameAsPatient] = useState<boolean>(false);
-
-  // References for date input fields
-  const yearInputRef = useRef<HTMLInputElement>(null);
-  const monthInputRef = useRef<HTMLInputElement>(null);
-  const dayInputRef = useRef<HTMLInputElement>(null);
-
-  // References for member date fields
-  const memberYearInputRef = useRef<HTMLInputElement>(null);
-  const memberMonthInputRef = useRef<HTMLInputElement>(null);
-  const memberDayInputRef = useRef<HTMLInputElement>(null);
 
   // Separate state for date parts
   const [dateOfBirth, setDateOfBirth] = useState<DateParts>({
@@ -101,19 +59,7 @@ export default function FileDataPage(): React.JSX.Element {
   // Add state for medical schemes
   const [medicalSchemes, setMedicalSchemes] = useState<MedicalScheme[]>([]);
 
-  // Add new state for notes filtering
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-
-  // New state for the note modal
-  const [isNoteModalOpen, setIsNoteModalOpen] = useState<boolean>(false);
-  const [activeNoteTab, setActiveNoteTab] = useState<string>('');
-  const [noteDateTime, setNoteDateTime] = useState<Date>(new Date());
-  const [noteContent, setNoteContent] = useState<string>('');
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Notes UI state moved into NotesSection
 
   // Initialize date parts from file data if available
   useEffect(() => {
@@ -780,207 +726,7 @@ export default function FileDataPage(): React.JSX.Element {
     };
   }, [handleSave]);
 
-  // Function to filter and sort notes
-  type Note = {
-    uid?: string;
-    time_stamp: string;
-    notes?: string;
-    files?: Array<{ uid: string; file_location: string; file_name: string }>;
-  };
-  const filterNotes = (notes: Note[] | undefined): Note[] => {
-    if (!notes) return [];
-
-    // First filter by search query
-    let filtered = notes;
-    if (searchQuery) {
-      filtered = filtered.filter(note =>
-        note.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Then filter by date range
-    if (startDate) {
-      filtered = filtered.filter(
-        note => new Date(note.time_stamp) >= startDate
-      );
-    }
-
-    if (endDate) {
-      filtered = filtered.filter(note => new Date(note.time_stamp) <= endDate);
-    }
-
-    // Sort by timestamp
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.time_stamp);
-      const dateB = new Date(b.time_stamp);
-      return sortOrder === 'desc'
-        ? dateB.getTime() - dateA.getTime()
-        : dateA.getTime() - dateB.getTime();
-    });
-
-    return filtered;
-  };
-
-  // Toggle sort order
-  const toggleSortOrder = () => {
-    setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'));
-  };
-
-  // Format date for display
-  const formatDateTime = (dateString: string): string => {
-    const date = new Date(dateString);
-    return format(date, 'yyyy/MM/dd HH:mm');
-  };
-
-  // Function to handle opening the note modal
-  const openNoteModal = (tabType: string): void => {
-    setActiveNoteTab(tabType);
-    setNoteDateTime(new Date());
-    setNoteContent('');
-    setUploadedFiles([]);
-    setIsNoteModalOpen(true);
-  };
-
-  // Function to handle file uploads
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>): void => {
-    const files = Array.from(e.target.files ?? []);
-    setUploadedFiles(prev => [
-      ...prev,
-      ...(files as unknown as UploadedFile[]),
-    ]);
-  };
-
-  // Function to remove a file from the upload list
-  const removeFile = (index: number): void => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Function to save the new note
-  const saveNewNote = async (): Promise<void> => {
-    // Add a check for the file object
-    if (!file) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Cannot save note: File data is not loaded yet.');
-      }
-      alert('File data is not ready. Please try again.');
-      return;
-    }
-    if (process.env.NODE_ENV === 'development') {
-      console.log(file);
-    }
-    debugger;
-
-    if (!noteContent.trim()) {
-      alert('Please enter note content');
-      return;
-    }
-
-    try {
-      // Convert file objects to base64 for transmission
-      const processedFiles: Array<{
-        name: string;
-        type: string;
-        size: number;
-        content: string | ArrayBuffer | null;
-      }> = [];
-
-      for (const file of uploadedFiles as unknown as File[]) {
-        const reader = new FileReader();
-        const filePromise = new Promise<{
-          name: string;
-          type: string;
-          size: number;
-          content: string | ArrayBuffer | null;
-        }>(resolve => {
-          reader.onload = e => {
-            resolve({
-              name: file.name,
-              type: file.type,
-              size: file.size,
-              content: e?.target?.result ?? null,
-            });
-          };
-          reader.readAsDataURL(file);
-        });
-
-        processedFiles.push(await filePromise);
-      }
-
-      // Prepare the note data
-      const noteData = {
-        fileId: file.uid, // Now safe to access file.uid
-        fileInfoPatientId: file.fileinfo_patient
-          ? file.fileinfo_patient[0]?.uid
-          : '',
-        patientId: file.patient?.uid,
-        orgId: file.orgid,
-        timeStamp: noteDateTime.toISOString(),
-        notes: noteContent,
-        tabType: activeNoteTab, // 'file' or 'clinical'
-        files: processedFiles,
-      };
-
-      // Save the note to the database
-      const response = await fetch('/api/files/notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(noteData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save note');
-      }
-
-      const savedNote = await createNoteWithFiles({
-        fileInfoPatientId: noteData.fileInfoPatientId || '',
-        patientId: noteData.patientId || '',
-        timeStamp: noteData.timeStamp,
-        notes: noteData.notes,
-        tabType: noteData.tabType,
-        files: noteData.files?.map(file => ({
-          name: file.name,
-          type: file.type,
-          content: file.content as string,
-        })),
-      });
-
-      // Update the file state with the new note
-      setFile(prevFile => {
-        const updatedFile = { ...prevFile };
-
-        // Initialize notes object if it doesn't exist
-        if (!updatedFile.notes) {
-          updatedFile.notes = {
-            file_notes: [],
-            clinical_notes: [],
-          };
-        }
-
-        // Add the new note to the appropriate array
-        if (activeNoteTab === 'file') {
-          updatedFile.notes.file_notes = [
-            (savedNote as any).data,
-            ...(updatedFile.notes.file_notes || []),
-          ];
-        } else if (activeNoteTab === 'clinical') {
-          updatedFile.notes.clinical_notes = [
-            (savedNote as any).data,
-            ...(updatedFile.notes.clinical_notes || []),
-          ];
-        }
-
-        return updatedFile;
-      });
-
-      // Close the modal
-      setIsNoteModalOpen(false);
-    } catch (error) {
-      console.error('Error saving note:', error);
-      alert('Failed to save note');
-    }
-  };
+  // Notes logic removed - handled by NotesSection
 
   const fileNotFound = !file && !isNewRecord;
 
@@ -1012,244 +758,22 @@ export default function FileDataPage(): React.JSX.Element {
                 <>
                   <TabsContent value="tab1" className="flex-1 overflow-hidden">
                     <div className="p-6 h-full overflow-auto">
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                        {/* Left Column - Row 1 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="idNo">ID No</Label>
-                          <Input
-                            id="idNo"
-                            placeholder="Enter ID number"
-                            value={file?.patient?.id || ''}
-                            onChange={e =>
-                              handlePatientInputChange('id', e.target.value)
-                            }
-                          />
-                        </div>
-
-                        {/* Right Column - Row 1 - CHANGED FROM INPUT TO SELECT */}
-                        <div className="space-y-2">
-                          <Label htmlFor="title">Title</Label>
-                          <Select
-                            value={file?.patient?.title || ''}
-                            onValueChange={value =>
-                              handlePatientSelectChange('title', value)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select title" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Mr">Mr</SelectItem>
-                              <SelectItem value="Mrs">Mrs</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Left Column - Row 2 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Name</Label>
-                          <Input
-                            id="name"
-                            placeholder="Enter name"
-                            value={file?.patient?.name || ''}
-                            onChange={e =>
-                              handlePatientInputChange('name', e.target.value)
-                            }
-                          />
-                        </div>
-
-                        {/* Right Column - Row 2 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="initials">Initials</Label>
-                          <Input
-                            id="initials"
-                            placeholder="Auto-generated from name"
-                            value={file?.patient?.initials || ''}
-                            onChange={e =>
-                              handlePatientInputChange(
-                                'initials',
-                                e.target.value
-                              )
-                            }
-                            readOnly
-                          />
-                        </div>
-
-                        {/* Left Column - Row 3 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="surname">Surname</Label>
-                          <Input
-                            id="surname"
-                            placeholder="Enter surname"
-                            value={file?.patient?.surname || ''}
-                            onChange={e =>
-                              handlePatientInputChange(
-                                'surname',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-
-                        {/* Right Column - Row 3 (Date of Birth) */}
-                        <div className="space-y-2">
-                          <Label htmlFor="dob-year">Date of Birth</Label>
-                          <div className="flex items-center">
-                            <div className="flex-1">
-                              <Input
-                                id="dob-year"
-                                ref={yearInputRef}
-                                placeholder="YYYY"
-                                maxLength={4}
-                                className="text-center"
-                                value={dateOfBirth.year}
-                                onChange={e =>
-                                  handleDatePartChange(
-                                    'year',
-                                    e.target.value,
-                                    4,
-                                    monthInputRef
-                                  )
-                                }
-                              />
-                            </div>
-                            <span className="px-2 text-gray-500">/</span>
-                            <div className="w-16">
-                              <Input
-                                id="dob-month"
-                                ref={monthInputRef}
-                                placeholder="MM"
-                                maxLength={2}
-                                className="text-center"
-                                value={dateOfBirth.month}
-                                onChange={e =>
-                                  handleDatePartChange(
-                                    'month',
-                                    e.target.value,
-                                    2,
-                                    dayInputRef
-                                  )
-                                }
-                              />
-                            </div>
-                            <span className="px-2 text-gray-500">/</span>
-                            <div className="w-16">
-                              <Input
-                                id="dob-day"
-                                ref={dayInputRef}
-                                placeholder="DD"
-                                maxLength={2}
-                                className="text-center"
-                                value={dateOfBirth.day}
-                                onChange={e =>
-                                  handleDatePartChange('day', e.target.value, 2)
-                                }
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Left Column - Row 4 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="gender">Gender</Label>
-                          <Select
-                            value={file?.patient?.gender || ''}
-                            onValueChange={value =>
-                              handlePatientSelectChange('gender', value)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Right Column - Row 4 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="cellphone">Cellphone</Label>
-                          <Input
-                            id="cellphone"
-                            placeholder="Enter cellphone number"
-                            value={file?.patient?.cell_phone || ''}
-                            onChange={e =>
-                              handlePatientInputChange(
-                                'cell_phone',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-
-                        {/* Left Column - Row 5 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="additionalContact1">
-                            Additional Contact Name
-                          </Label>
-                          <Input
-                            id="additionalContact1"
-                            placeholder="Enter contact name"
-                            value={file?.patient?.additional_name || ''}
-                            onChange={e =>
-                              handlePatientInputChange(
-                                'additional_name',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-
-                        {/* Right Column - Row 5 */}
-                        <div className="space-y-2">
-                          <Label htmlFor="additionalContact2">
-                            Additional Contact Cell
-                          </Label>
-                          <Input
-                            id="additionalContact2"
-                            placeholder="Enter contact cell"
-                            value={file?.patient?.additional_cell || ''}
-                            onChange={e =>
-                              handlePatientInputChange(
-                                'additional_cell',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-
-                        {/* Left Column - Row 6 */}
-                        <div className="space-y-2 col-span-2">
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="Enter email address"
-                            value={file?.patient?.email || ''}
-                            onChange={e =>
-                              handlePatientInputChange('email', e.target.value)
-                            }
-                          />
-                        </div>
-
-                        {/* Full Width - Row 7 */}
-                        <div className="space-y-2 col-span-2">
-                          <Label htmlFor="address">Residential Address</Label>
-                          <Input
-                            id="address"
-                            placeholder="Enter residential address"
-                            value={file?.patient?.address || ''}
-                            onChange={e =>
-                              handlePatientInputChange(
-                                'address',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-                      </div>
+                      <FileInfoCard
+                        fileNumber={file?.file_number || ''}
+                        accountNumber={file?.account_number || ''}
+                        onChange={(field, value) =>
+                          setFile(prev =>
+                            prev ? { ...prev, [field]: value } : prev
+                          )
+                        }
+                      />
+                      <PatientDetails
+                        patient={file?.patient || {}}
+                        dateOfBirth={dateOfBirth}
+                        onDatePartChange={handleDatePartChange}
+                        onInputChange={handlePatientInputChange}
+                        onSelectChange={handlePatientSelectChange}
+                      />
                     </div>
                   </TabsContent>
                   <TabsContent value="tab2" className="flex-1 overflow-auto">
@@ -1289,366 +813,40 @@ export default function FileDataPage(): React.JSX.Element {
 
                         {/* Dynamic content based on selected cover type */}
                         {coverType === 'medical-aid' && (
-                          <div className="space-y-6">
-                            <h4 className="text-md font-medium">
-                              Medical Aid Details
-                            </h4>
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="medical-aid-name">
-                                  Medical Aid
-                                </Label>
-                                <Select
-                                  value={
-                                    file?.medical_cover?.medical_aid
-                                      ?.scheme_id || ''
-                                  }
-                                  onValueChange={handleMedicalSchemeChange}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select medical aid" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {medicalSchemes.map(scheme => (
-                                      <SelectItem
-                                        key={scheme.uid}
-                                        value={scheme.uid}
-                                      >
-                                        {scheme.scheme_name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="membership-number">
-                                  Membership Number
-                                </Label>
-                                <Input
-                                  id="membership-number"
-                                  placeholder="Enter membership number"
-                                  value={
-                                    file?.medical_cover?.medical_aid
-                                      ?.membership_number || ''
-                                  }
-                                  onChange={e => {
-                                    setFile(prevFile => {
-                                      if (!prevFile) return null;
-                                      return {
-                                        ...prevFile,
-                                        medical_cover: {
-                                          ...prevFile.medical_cover,
-                                          medical_aid: {
-                                            ...prevFile.medical_cover
-                                              ?.medical_aid,
-                                            membership_number: e.target.value,
-                                          },
+                          <MedicalAidInfo
+                            medicalSchemes={medicalSchemes}
+                            sameAsPatient={sameAsPatient}
+                            member={file?.medical_cover?.member}
+                            medicalAid={file?.medical_cover?.medical_aid}
+                            onSchemeChange={handleMedicalSchemeChange}
+                            onSameAsPatientChange={handleSameAsPatientChange}
+                            onMemberInputChange={handleMemberInputChange}
+                            onMemberSelectChange={handleMemberSelectChange}
+                            memberDateParts={memberDateOfBirth}
+                            onMemberDatePartChange={handleMemberDatePartChange}
+                            // casting refs to any to satisfy differing nullable types
+                            memberRefs={{
+                              yearRef: null as any,
+                              monthRef: null as any,
+                              dayRef: null as any,
+                            }}
+                            onMedicalAidFieldChange={(field, value) =>
+                              setFile(prev =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      medical_cover: {
+                                        ...prev.medical_cover,
+                                        medical_aid: {
+                                          ...prev.medical_cover?.medical_aid,
+                                          [field]: value,
                                         },
-                                      };
-                                    });
-                                  }}
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="dependent-code">
-                                  Patient Dependent Code
-                                </Label>
-                                <Input
-                                  id="dependent-code"
-                                  placeholder="Enter dependent code"
-                                  value={
-                                    file?.medical_cover?.medical_aid
-                                      ?.dependent_code || ''
-                                  }
-                                  onChange={e => {
-                                    setFile(prevFile => {
-                                      if (!prevFile) return null;
-                                      return {
-                                        ...prevFile,
-                                        medical_cover: {
-                                          ...prevFile.medical_cover,
-                                          medical_aid: {
-                                            ...prevFile.medical_cover
-                                              ?.medical_aid,
-                                            dependent_code: e.target.value,
-                                          },
-                                        },
-                                      };
-                                    });
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="pt-4 border-t">
-                              <h4 className="text-md font-medium mb-4">
-                                Main Member
-                              </h4>
-
-                              <div className="flex items-center space-x-2 mb-4">
-                                <Checkbox
-                                  id="same-as-patient"
-                                  checked={sameAsPatient}
-                                  onCheckedChange={handleSameAsPatientChange}
-                                />
-                                <Label htmlFor="same-as-patient">
-                                  Same as patient
-                                </Label>
-                              </div>
-
-                              {!sameAsPatient && (
-                                <div className="space-y-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-id">ID Number</Label>
-                                    <Input
-                                      id="member-id"
-                                      placeholder="Enter ID number"
-                                      value={
-                                        file?.medical_cover?.member?.id || ''
-                                      }
-                                      onChange={e =>
-                                        handleMemberInputChange(
-                                          'id',
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-title">Title</Label>
-                                    <Select
-                                      value={
-                                        file?.medical_cover?.member?.title || ''
-                                      }
-                                      onValueChange={value =>
-                                        handleMemberSelectChange('title', value)
-                                      }
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select title" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="Mr">Mr</SelectItem>
-                                        <SelectItem value="Mrs">Mrs</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-name">Name</Label>
-                                    <Input
-                                      id="member-name"
-                                      placeholder="Enter name"
-                                      value={
-                                        file?.medical_cover?.member?.name || ''
-                                      }
-                                      onChange={e =>
-                                        handleMemberInputChange(
-                                          'name',
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-initials">
-                                      Initials
-                                    </Label>
-                                    <Input
-                                      id="member-initials"
-                                      placeholder="Auto-generated from name"
-                                      value={
-                                        file?.medical_cover?.member?.initials ||
-                                        ''
-                                      }
-                                      readOnly
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-surname">
-                                      Surname
-                                    </Label>
-                                    <Input
-                                      id="member-surname"
-                                      placeholder="Enter surname"
-                                      value={
-                                        file?.medical_cover?.member?.surname ||
-                                        ''
-                                      }
-                                      onChange={e =>
-                                        handleMemberInputChange(
-                                          'surname',
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-dob-year">
-                                      Date of Birth
-                                    </Label>
-                                    <div className="flex items-center">
-                                      <div className="flex-1">
-                                        <Input
-                                          id="member-dob-year"
-                                          ref={memberYearInputRef}
-                                          placeholder="YYYY"
-                                          maxLength={4}
-                                          className="text-center"
-                                          value={memberDateOfBirth.year}
-                                          onChange={e =>
-                                            handleMemberDatePartChange(
-                                              'year',
-                                              e.target.value,
-                                              4,
-                                              memberMonthInputRef
-                                            )
-                                          }
-                                        />
-                                      </div>
-                                      <span className="px-2 text-gray-500">
-                                        /
-                                      </span>
-                                      <div className="w-16">
-                                        <Input
-                                          id="member-dob-month"
-                                          ref={memberMonthInputRef}
-                                          placeholder="MM"
-                                          maxLength={2}
-                                          className="text-center"
-                                          value={memberDateOfBirth.month}
-                                          onChange={e =>
-                                            handleMemberDatePartChange(
-                                              'month',
-                                              e.target.value,
-                                              2,
-                                              memberDayInputRef
-                                            )
-                                          }
-                                        />
-                                      </div>
-                                      <span className="px-2 text-gray-500">
-                                        /
-                                      </span>
-                                      <div className="w-16">
-                                        <Input
-                                          id="member-dob-day"
-                                          ref={memberDayInputRef}
-                                          placeholder="DD"
-                                          maxLength={2}
-                                          className="text-center"
-                                          value={memberDateOfBirth.day}
-                                          onChange={e =>
-                                            handleMemberDatePartChange(
-                                              'day',
-                                              e.target.value,
-                                              2
-                                            )
-                                          }
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-gender">
-                                      Gender
-                                    </Label>
-                                    <Select
-                                      value={
-                                        file?.medical_cover?.member?.gender ||
-                                        ''
-                                      }
-                                      onValueChange={value =>
-                                        handleMemberSelectChange(
-                                          'gender',
-                                          value
-                                        )
-                                      }
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select gender" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="male">
-                                          Male
-                                        </SelectItem>
-                                        <SelectItem value="female">
-                                          Female
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-cell">
-                                      Cell Number
-                                    </Label>
-                                    <Input
-                                      id="member-cell"
-                                      placeholder="Enter cell number"
-                                      value={
-                                        file?.medical_cover?.member?.cell || ''
-                                      }
-                                      onChange={e =>
-                                        handleMemberInputChange(
-                                          'cell',
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-contact-name">
-                                      Additional Contact Name
-                                    </Label>
-                                    <Input
-                                      id="member-contact-name"
-                                      placeholder="Enter contact name"
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-contact-number">
-                                      Additional Contact Number
-                                    </Label>
-                                    <Input
-                                      id="member-contact-number"
-                                      placeholder="Enter contact number"
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-email">
-                                      Email Address
-                                    </Label>
-                                    <Input
-                                      id="member-email"
-                                      type="email"
-                                      placeholder="Enter email address"
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="member-address">
-                                      Residential Address
-                                    </Label>
-                                    <Input
-                                      id="member-address"
-                                      placeholder="Enter residential address"
-                                    />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                                      },
+                                    }
+                                  : prev
+                              )
+                            }
+                          />
                         )}
 
                         {coverType === 'private' && (
@@ -1661,88 +859,10 @@ export default function FileDataPage(): React.JSX.Element {
                         )}
 
                         {coverType === 'injury-on-duty' && (
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="company-name">
-                                Name of Company
-                              </Label>
-                              <Input
-                                id="company-name"
-                                placeholder="Enter company name"
-                                value={
-                                  file?.medical_cover?.injury_on_duty
-                                    ?.company_name || ''
-                                }
-                                onChange={e =>
-                                  handleInjuryInputChange(
-                                    'company_name',
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="contact-person">
-                                Contact Person
-                              </Label>
-                              <Input
-                                id="contact-person"
-                                placeholder="Enter contact person name"
-                                value={
-                                  file?.medical_cover?.injury_on_duty
-                                    ?.contact_person || ''
-                                }
-                                onChange={e =>
-                                  handleInjuryInputChange(
-                                    'contact_person',
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="contact-number">
-                                Contact Number
-                              </Label>
-                              <Input
-                                id="contact-number"
-                                placeholder="Enter contact number"
-                                value={
-                                  file?.medical_cover?.injury_on_duty
-                                    ?.contact_number || ''
-                                }
-                                onChange={e =>
-                                  handleInjuryInputChange(
-                                    'contact_number',
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="contact-email">
-                                Contact Email
-                              </Label>
-                              <Input
-                                id="contact-email"
-                                type="email"
-                                placeholder="Enter contact email"
-                                value={
-                                  file?.medical_cover?.injury_on_duty
-                                    ?.contact_email || ''
-                                }
-                                onChange={e =>
-                                  handleInjuryInputChange(
-                                    'contact_email',
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </div>
-                          </div>
+                          <InjuryOnDutyForm
+                            injury={file?.medical_cover?.injury_on_duty}
+                            onChange={handleInjuryInputChange}
+                          />
                         )}
                       </div>
                     </div>
@@ -1783,296 +903,20 @@ export default function FileDataPage(): React.JSX.Element {
                 </div>
               ) : (
                 <>
-                  {/* File Notes Tab */}
-                  <TabsContent value="tab1" className="flex-1 overflow-hidden">
-                    <div className="h-full flex flex-col">
-                      {/* Header section - 20% height */}
-                      <div className="h-[20%] p-4 border-b space-y-3">
-                        <div className="flex justify-between items-center">
-                          <h3 className="text-lg font-medium">File Notes</h3>
-                          <Button
-                            size="sm"
-                            className="bg-primary hover:bg-primary/90"
-                            onClick={() => openNoteModal('file')}
-                          >
-                            <Plus className="mr-2 h-4 w-4" /> Add New Note
-                          </Button>
-                        </div>
-
-                        <div className="relative">
-                          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Search in notes..."
-                            className="pl-8"
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1 flex gap-2">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {startDate
-                                    ? format(startDate, 'yyyy/MM/dd')
-                                    : 'From'}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <ShadcnCalendar
-                                  mode="single"
-                                  selected={startDate}
-                                  onSelect={setStartDate}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {endDate
-                                    ? format(endDate, 'yyyy/MM/dd')
-                                    : 'To'}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <ShadcnCalendar
-                                  mode="single"
-                                  selected={endDate}
-                                  onSelect={setEndDate}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={toggleSortOrder}
-                            title={
-                              sortOrder === 'desc'
-                                ? 'Newest first'
-                                : 'Oldest first'
-                            }
-                          >
-                            <ArrowUpDown className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Timeline section - 80% height */}
-                      <div className="h-[80%] overflow-auto p-4">
-                        {file?.notes?.file_notes &&
-                        filterNotes(file.notes.file_notes as unknown as Note[])
-                          .length > 0 ? (
-                          <div className="space-y-6">
-                            {filterNotes(
-                              file.notes.file_notes as unknown as Note[]
-                            ).map(note => (
-                              <div
-                                key={note.uid}
-                                className="border rounded-md p-4 bg-white shadow-sm"
-                              >
-                                <div className="flex justify-between items-start mb-2">
-                                  <h3 className="text-lg font-bold text-primary">
-                                    {formatDateTime(note.time_stamp)}
-                                  </h3>
-                                </div>
-                                <div className="ml-4 mt-2 text-gray-700">
-                                  <p>{note.notes}</p>
-                                </div>
-                                {note.files && note.files.length > 0 && (
-                                  <div className="mt-4 ml-4">
-                                    <div className="flex flex-wrap gap-2">
-                                      {note.files.map(file => (
-                                        <div
-                                          key={file.uid}
-                                          className="flex items-center p-2 border rounded bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
-                                        >
-                                          <a
-                                            href={file.file_location}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                          >
-                                            {file.file_name}
-                                          </a>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex justify-center items-center h-full text-gray-500">
-                            {searchQuery || startDate || endDate
-                              ? 'No matching file notes found'
-                              : 'No file notes available'}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  {/* Clinical Notes Tab */}
-                  <TabsContent value="tab2" className="flex-1 overflow-hidden">
-                    <div className="h-full flex flex-col">
-                      {/* Header section - 20% height */}
-                      <div className="h-[20%] p-4 border-b space-y-3">
-                        <div className="flex justify-between items-center">
-                          <h3 className="text-lg font-medium">
-                            Clinical Notes
-                          </h3>
-                          <Button
-                            size="sm"
-                            className="bg-primary hover:bg-primary/90"
-                            onClick={() => openNoteModal('clinical')}
-                          >
-                            <Plus className="mr-2 h-4 w-4" /> Add New Note
-                          </Button>
-                        </div>
-
-                        <div className="relative">
-                          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Search in notes..."
-                            className="pl-8"
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1 flex gap-2">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {startDate
-                                    ? format(startDate, 'yyyy/MM/dd')
-                                    : 'From'}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <ShadcnCalendar
-                                  mode="single"
-                                  selected={startDate}
-                                  onSelect={setStartDate}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {endDate
-                                    ? format(endDate, 'yyyy/MM/dd')
-                                    : 'To'}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <ShadcnCalendar
-                                  mode="single"
-                                  selected={endDate}
-                                  onSelect={setEndDate}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={toggleSortOrder}
-                            title={
-                              sortOrder === 'desc'
-                                ? 'Newest first'
-                                : 'Oldest first'
-                            }
-                          >
-                            <ArrowUpDown className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Timeline section - 80% height */}
-                      <div className="h-[80%] overflow-auto p-4">
-                        {file?.notes?.clinical_notes &&
-                        filterNotes(
-                          file.notes.clinical_notes as unknown as Note[]
-                        ).length > 0 ? (
-                          <div className="space-y-6">
-                            {filterNotes(
-                              file.notes.clinical_notes as unknown as Note[]
-                            ).map(note => (
-                              <div
-                                key={note.uid}
-                                className="border rounded-md p-4 bg-white shadow-sm"
-                              >
-                                <div className="flex justify-between items-start mb-2">
-                                  <h3 className="text-lg font-bold text-primary">
-                                    {formatDateTime(note.time_stamp)}
-                                  </h3>
-                                </div>
-                                <div className="ml-4 mt-2 text-gray-700">
-                                  <p>{note.notes}</p>
-                                </div>
-                                {note.files && note.files.length > 0 && (
-                                  <div className="mt-4 ml-4">
-                                    <div className="flex flex-wrap gap-2">
-                                      {note.files.map(file => (
-                                        <div
-                                          key={file.uid}
-                                          className="flex items-center p-2 border rounded bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
-                                        >
-                                          <a
-                                            href={file.file_location}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                          >
-                                            {file.file_name}
-                                          </a>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex justify-center items-center h-full text-gray-500">
-                            {searchQuery || startDate || endDate
-                              ? 'No matching clinical notes found'
-                              : 'No clinical notes available'}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </TabsContent>
+                  {/* NotesSection extracted component */}
+                  {file && (
+                    <NotesSection
+                      file={file as unknown as FileData}
+                      setFile={(updater: (_prev: FileData) => FileData) =>
+                        setFile(
+                          prev =>
+                            updater(
+                              prev as unknown as FileData
+                            ) as unknown as typeof prev
+                        )
+                      }
+                    />
+                  )}
 
                   {/* Other tabs */}
                   <TabsContent value="tab3" className="flex-1 overflow-auto">
@@ -2088,142 +932,7 @@ export default function FileDataPage(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Add Note Modal */}
-      {!fileNotFound && (
-        <Dialog open={isNoteModalOpen} onOpenChange={setIsNoteModalOpen}>
-          <DialogContent className="sm:max-w-[700px]">
-            <DialogHeader>
-              <DialogTitle>
-                Add New {activeNoteTab === 'file' ? 'File' : 'Clinical'} Note
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="grid gap-4 py-4">
-              {/* Date time picker */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="note-date" className="text-right">
-                  Date & Time
-                </Label>
-                <div className="col-span-3">
-                  <div className="flex items-center gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {format(noteDateTime, 'yyyy/MM/dd')}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <ShadcnCalendar
-                          mode="single"
-                          selected={noteDateTime}
-                          onSelect={(date: Date | undefined): void => {
-                            if (date) setNoteDateTime(new Date(date));
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-
-                    <Input
-                      type="time"
-                      defaultValue={format(noteDateTime, 'HH:mm')}
-                      className="w-32"
-                      onChange={e => {
-                        const [hours, minutes] = e.target.value.split(':');
-                        const newDate = new Date(noteDateTime);
-                        newDate.setHours(parseInt(hours || '0'));
-                        newDate.setMinutes(parseInt(minutes || '0'));
-                        setNoteDateTime(newDate);
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Note content */}
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="note-content" className="text-right">
-                  Note
-                </Label>
-                <div className="col-span-3">
-                  <Textarea
-                    id="note-content"
-                    value={noteContent}
-                    onChange={e => setNoteContent(e.target.value)}
-                    placeholder="Enter note details..."
-                    className="min-h-[200px]"
-                  />
-                </div>
-              </div>
-
-              {/* Document upload */}
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right">Attachments</Label>
-                <div className="col-span-3 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Document
-                    </Button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      multiple
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <span className="text-sm text-gray-500">
-                      Upload any document
-                    </span>
-                  </div>
-
-                  {/* Display uploaded files */}
-                  {uploadedFiles.length > 0 && (
-                    <div className="space-y-2">
-                      {uploadedFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                        >
-                          <span className="text-sm truncate">{file.name}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsNoteModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={saveNewNote} disabled={!noteContent.trim()}>
-                Save Note
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Notes handled inside NotesSection */}
     </div>
   );
 }

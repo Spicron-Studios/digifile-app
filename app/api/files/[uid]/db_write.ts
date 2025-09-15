@@ -16,6 +16,7 @@ import {
   InjuryOnDutyData,
   DbWriteResponse,
 } from '@/app/types/db-types';
+import { handleGetFileData } from './db_read';
 
 // Handle PUT requests to update an existing file
 export async function handleUpdateFile(
@@ -27,6 +28,10 @@ export async function handleUpdateFile(
   await logger.init();
 
   try {
+    console.log('--- Starting handleUpdateFile ---');
+    console.log(`Updating file with UID: ${uid}`);
+    console.log('Received data:', JSON.stringify(data, null, 2));
+
     await logger.info(
       'api/files/[uid]/db_write.ts',
       `Updating file with UID: ${uid}`
@@ -66,6 +71,7 @@ export async function handleUpdateFile(
       'api/files/[uid]/db_write.ts',
       `Existing file_info found: ${!!existingRecord}`
     );
+    console.log(`Existing file_info found: ${!!existingRecord}`);
     if (existingRecord) {
       await logger.debug(
         'api/files/[uid]/db_write.ts',
@@ -119,22 +125,21 @@ export async function handleUpdateFile(
 
     // Process patient information if provided
     if (data.patient) {
+      console.log('Processing patient data...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing patient data'
       );
 
-      // Parse date of birth if provided
+      // Parse date of birth if provided (avoid timezone conversion)
       let dobDate: string | null = null;
       if (data.patient.dob) {
         const dobParts = data.patient.dob.split('/');
         if (dobParts.length === 3) {
-          const year = parseInt(dobParts[0] || '0');
-          const month = parseInt(dobParts[1] || '0') - 1; // Month (0-indexed)
-          const day = parseInt(dobParts[2] || '0');
-          const dateObj = new Date(year, month, day);
-          const isoString = dateObj.toISOString();
-          dobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
+          const year = String(dobParts[0] || '').padStart(4, '0');
+          const month = String(dobParts[1] || '').padStart(2, '0');
+          const day = String(dobParts[2] || '').padStart(2, '0');
+          dobDate = `${year}-${month}-${day}`;
         }
       }
 
@@ -151,15 +156,27 @@ export async function handleUpdateFile(
 
       // Decide whether to update existing patient or create new one
       if (existingPatient) {
+        console.log(
+          `Updating existing patient with UID: ${existingPatient.uid}`
+        );
+        console.log('Patient data being updated:', {
+          id: data.patient.id,
+          title: data.patient.title,
+          name: data.patient.name,
+          surname: data.patient.surname,
+          dateOfBirth: dobDate,
+        });
+
         // Update existing patient
         await logger.debug(
           'api/files/[uid]/db_write.ts',
           `Updating existing patient with UID: ${existingPatient.uid}`
         );
 
-        await db
+        const updateResult = await db
           .update(patient)
           .set({
+            id: data.patient.id, // This was missing!
             title: data.patient.title,
             name: data.patient.name,
             initials: data.patient.initials,
@@ -173,13 +190,17 @@ export async function handleUpdateFile(
             address: data.patient.address,
             lastEdit: new Date().toISOString(),
           })
-          .where(eq(patient.uid, existingPatient.uid));
+          .where(eq(patient.uid, existingPatient.uid))
+          .returning();
+
+        console.log('Patient update result:', updateResult);
 
         await logger.info(
           'api/files/[uid]/db_write.ts',
           'Existing patient updated'
         );
       } else if (data.patient.name || data.patient.surname) {
+        console.log('Creating new patient and relationship...');
         // Create new patient and relationship
         const newPatientUid = uuidv4();
         await logger.info(
@@ -234,6 +255,7 @@ export async function handleUpdateFile(
 
     // Process medical cover information
     if (data.medical_cover) {
+      console.log('Processing medical cover data...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing medical cover data'
@@ -257,107 +279,30 @@ export async function handleUpdateFile(
       // For 'private' type, no additional records needed
     }
 
-    // Fetch the updated file data to return
-    const updatedFileData = await db
-      .select({
-        fileInfo: fileInfo,
-        filePatient: fileinfoPatient,
-        patient: patient,
-      })
-      .from(fileInfo)
-      .leftJoin(
-        fileinfoPatient,
-        and(
-          eq(fileinfoPatient.fileid, fileInfo.uid),
-          eq(fileinfoPatient.active, true)
-        )
-      )
-      .leftJoin(patient, eq(fileinfoPatient.patientid, patient.uid))
-      .where(eq(fileInfo.uid, fileUid))
-      .limit(1);
-
-    const updatedRecord = updatedFileData[0];
-    if (!updatedRecord) {
-      await logger.error(
-        'api/files/[uid]/db_write.ts',
-        'Failed to fetch updated file data'
-      );
-      return { error: 'File not found after update', status: 404 };
-    }
-
-    // Get the associated patient data if available
-    const filePatientData = updatedRecord.patient || null;
-
-    // Format date of birth if it exists
-    let formattedDob = '';
-    if (filePatientData?.dateOfBirth) {
-      const dob = new Date(filePatientData.dateOfBirth);
-      formattedDob = `${dob.getFullYear()}/${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}`;
-    }
-
-    // Prepare the response data
-    const responseData = {
-      uid: updatedRecord.fileInfo.uid,
-      file_number: updatedRecord.fileInfo.fileNumber || '',
-      account_number: updatedRecord.fileInfo.accountNumber || '',
-      referral_doc_name: updatedRecord.fileInfo.referralDocName || '',
-      referral_doc_number: updatedRecord.fileInfo.referralDocNumber || '',
-      patient: filePatientData
-        ? {
-            id: filePatientData.id || '',
-            title: filePatientData.title || '',
-            name: filePatientData.name || '',
-            initials: filePatientData.initials || '',
-            surname: filePatientData.surname || '',
-            dob: formattedDob,
-            gender: filePatientData.gender || '',
-            cell_phone: filePatientData.cellPhone || '',
-            additional_name: filePatientData.additionalName || '',
-            additional_cell: filePatientData.additionalCell || '',
-            email: filePatientData.email || '',
-            address: filePatientData.address || '',
-          }
-        : {
-            id: '',
-            title: '',
-            name: '',
-            initials: '',
-            surname: '',
-            dob: '',
-            gender: '',
-            cell_phone: '',
-            additional_name: '',
-            additional_cell: '',
-            email: '',
-            address: '',
-          },
-      medical_cover: data.medical_cover || {
-        type: 'medical-aid',
-        same_as_patient: false,
-        member: {
-          id: '',
-          name: '',
-          initials: '',
-          surname: '',
-          dob: '',
-          cell: '',
-          email: '',
-          address: '',
-        },
-        medical_aid: {
-          name: '',
-          membership_number: '',
-          dependent_code: '',
-        },
-      },
-    };
-
     await logger.info(
       'api/files/[uid]/db_write.ts',
       'File update completed successfully'
     );
-    return { data: responseData, status: 200 };
+    // Fetch the updated file data to return
+    console.log(`Refetching data for file UID: ${fileUid}`);
+    const result = await handleGetFileData(fileUid, orgId);
+    console.log(
+      'Data fetched after update:',
+      JSON.stringify(result.data, null, 2)
+    );
+
+    if (result.error) {
+      await logger.error(
+        'api/files/[uid]/db_write.ts',
+        `Failed to fetch updated file data after update: ${result.error}`
+      );
+      return { error: 'File not found after update', status: 404 };
+    }
+    console.log('--- Finished handleUpdateFile ---');
+
+    return { data: result.data, status: 200 };
   } catch (error) {
+    console.error('Error in handleUpdateFile:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error updating file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -375,6 +320,8 @@ export async function handleCreateFile(
   await logger.init();
 
   try {
+    console.log('--- Starting handleCreateFile ---');
+    console.log('Received data for new file:', JSON.stringify(data, null, 2));
     await logger.info('api/files/[uid]/db_write.ts', 'Creating new file');
 
     // Log the full received data object for debugging
@@ -417,9 +364,10 @@ export async function handleCreateFile(
     );
 
     // Create patient record if patient data is provided
-    let patientData = null;
+    // Removed unused variable per lint rules
 
     if (data.patient && (data.patient.name || data.patient.surname)) {
+      console.log('Processing patient data for new file...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing patient data for new file'
@@ -433,17 +381,15 @@ export async function handleCreateFile(
         };
       }
 
-      // Parse date of birth if provided
+      // Parse date of birth if provided (avoid timezone conversion)
       let dobDate: string | null = null;
       if (data.patient.dob) {
         const dobParts = data.patient.dob.split('/');
         if (dobParts.length === 3) {
-          const year = parseInt(dobParts[0] || '0');
-          const month = parseInt(dobParts[1] || '0') - 1; // Month (0-indexed)
-          const day = parseInt(dobParts[2] || '0');
-          const dateObj = new Date(year, month, day);
-          const isoString = dateObj.toISOString();
-          dobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
+          const year = String(dobParts[0] || '').padStart(4, '0');
+          const month = String(dobParts[1] || '').padStart(2, '0');
+          const day = String(dobParts[2] || '').padStart(2, '0');
+          dobDate = `${year}-${month}-${day}`;
         }
       }
 
@@ -507,25 +453,12 @@ export async function handleCreateFile(
         `fileinfo_patient relationship created with UID: ${relationshipUid}`
       );
 
-      // Store the patient data for the response
-      patientData = {
-        id: data.patient.id || '',
-        title: data.patient.title || '',
-        name: data.patient.name || '',
-        initials: data.patient.initials || '',
-        surname: data.patient.surname || '',
-        dob: data.patient.dob || '',
-        gender: data.patient.gender || '',
-        cell_phone: data.patient.cell_phone || '',
-        additional_name: data.patient.additional_name || '',
-        additional_cell: data.patient.additional_cell || '',
-        email: data.patient.email || '',
-        address: data.patient.address || '',
-      };
+      // Stored patient data object removed as it was unused
     }
 
     // Process medical cover information
     if (data.medical_cover) {
+      console.log('Processing medical cover data for new file...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing medical cover data for new file'
@@ -549,54 +482,29 @@ export async function handleCreateFile(
       // For 'private' type, no additional records needed
     }
 
-    // Prepare the response data
-    const responseData = {
-      uid: newFileUid,
-      file_number: data.file_number || '',
-      account_number: data.account_number || '',
-      referral_doc_name: data.referral_doc_name || '',
-      referral_doc_number: data.referral_doc_number || '',
-      patient: patientData || {
-        id: '',
-        title: '',
-        name: '',
-        initials: '',
-        surname: '',
-        dob: '',
-        gender: '',
-        cell_phone: '',
-        additional_name: '',
-        additional_cell: '',
-        email: '',
-        address: '',
-      },
-      medical_cover: data.medical_cover || {
-        type: 'medical-aid',
-        same_as_patient: false,
-        member: {
-          id: '',
-          name: '',
-          initials: '',
-          surname: '',
-          dob: '',
-          cell: '',
-          email: '',
-          address: '',
-        },
-        medical_aid: {
-          name: '',
-          membership_number: '',
-          dependent_code: '',
-        },
-      },
-    };
-
     await logger.info(
       'api/files/[uid]/db_write.ts',
       'New file created successfully'
     );
-    return { data: responseData, status: 200 };
+    // Fetch the created file data to return
+    console.log(`Refetching data for new file UID: ${newFileUid}`);
+    const result = await handleGetFileData(newFileUid, orgId);
+    console.log(
+      'Data fetched after create:',
+      JSON.stringify(result.data, null, 2)
+    );
+    if (result.error) {
+      await logger.error(
+        'api/files/[uid]/db_write.ts',
+        `Failed to fetch created file data after create: ${result.error}`
+      );
+      return { error: 'File not found after create', status: 404 };
+    }
+
+    console.log('--- Finished handleCreateFile ---');
+    return { data: result.data, status: 200 };
   } catch (error) {
+    console.error('Error in handleCreateFile:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error creating new file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -615,6 +523,10 @@ async function processMedicalAid(
   await logger.init();
 
   try {
+    console.log(
+      'Processing medical aid data:',
+      JSON.stringify(medicalCover, null, 2)
+    );
     await logger.debug(
       'api/files/[uid]/db_write.ts',
       'Processing medical aid data'
@@ -640,6 +552,7 @@ async function processMedicalAid(
 
     // If scheme ID is not provided, we can't proceed with creating/updating medical aid
     if (!schemeId) {
+      console.log('No scheme ID provided, skipping medical aid save.');
       await logger.warning(
         'api/files/[uid]/db_write.ts',
         'No scheme ID provided, skipping medical aid save'
@@ -656,6 +569,7 @@ async function processMedicalAid(
         throw new Error('Existing medical aid record is undefined');
       }
 
+      console.log(`Updating existing medical aid with UID: ${existing.uid}`);
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         `Updating existing medical aid with UID: ${existing.uid}`
@@ -675,6 +589,7 @@ async function processMedicalAid(
     } else {
       // Create new record
       _medicalAidUid = uuidv4();
+      console.log(`Creating new medical aid with UID: ${_medicalAidUid}`);
       await logger.info(
         'api/files/[uid]/db_write.ts',
         `Creating new medical aid with UID: ${_medicalAidUid}`
@@ -708,6 +623,7 @@ async function processMedicalAid(
       );
     }
   } catch (error) {
+    console.error('Error processing medical aid:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error processing medical aid: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -727,6 +643,10 @@ async function processMedicalAidMember(
   await logger.init();
 
   try {
+    console.log(
+      'Processing medical aid member data:',
+      JSON.stringify(memberData, null, 2)
+    );
     await logger.debug(
       'api/files/[uid]/db_write.ts',
       'Processing medical aid member data'
@@ -754,23 +674,22 @@ async function processMedicalAidMember(
 
     const existingRecord = existingMember[0];
 
-    // Parse member date of birth if provided
+    // Parse member date of birth if provided (avoid timezone conversion)
     let memberDobDate: string | null = null;
     if (memberData.dob) {
       const dobParts = memberData.dob.split('/');
       if (dobParts.length === 3) {
-        const year = parseInt(dobParts[0] || '0');
-        const month = parseInt(dobParts[1] || '0') - 1; // Month (0-indexed)
-        const day = parseInt(dobParts[2] || '0');
-        const dateObj = new Date(year, month, day);
-        const isoString = dateObj.toISOString();
-        memberDobDate = isoString.split('T')[0] || null; // Convert to YYYY-MM-DD format
+        const year = String(dobParts[0] || '').padStart(4, '0');
+        const month = String(dobParts[1] || '').padStart(2, '0');
+        const day = String(dobParts[2] || '').padStart(2, '0');
+        memberDobDate = `${year}-${month}-${day}`;
       }
     }
 
     if (existingRecord && existingRecord.patient) {
       // Update existing member patient
       const memberPatientUid = existingRecord.patient.uid;
+      console.log(`Updating existing member with UID: ${memberPatientUid}`);
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         `Updating existing member with UID: ${memberPatientUid}`
@@ -795,6 +714,7 @@ async function processMedicalAidMember(
     } else if (memberData.name || memberData.surname) {
       // Create new member patient
       const memberPatientUid = uuidv4();
+      console.log(`Creating new member patient with UID: ${memberPatientUid}`);
       await logger.info(
         'api/files/[uid]/db_write.ts',
         `Creating new member patient with UID: ${memberPatientUid}`
@@ -842,6 +762,7 @@ async function processMedicalAidMember(
       'Medical aid member processing completed'
     );
   } catch (error) {
+    console.error('Error processing medical aid member:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error processing medical aid member: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -860,6 +781,10 @@ async function processInjuryOnDuty(
   await logger.init();
 
   try {
+    console.log(
+      'Processing injury on duty data:',
+      JSON.stringify(data, null, 2)
+    );
     await logger.debug(
       'api/files/[uid]/db_write.ts',
       'Processing injury on duty data'
@@ -881,6 +806,7 @@ async function processInjuryOnDuty(
         throw new Error('Existing injury record is undefined');
       }
 
+      console.log(`Updating existing injury record with UID: ${existing.uid}`);
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         `Updating existing injury record with UID: ${existing.uid}`
@@ -899,6 +825,7 @@ async function processInjuryOnDuty(
     } else {
       // Create new record
       const injuryUid = uuidv4();
+      console.log(`Creating new injury record with UID: ${injuryUid}`);
       await logger.info(
         'api/files/[uid]/db_write.ts',
         `Creating new injury record with UID: ${injuryUid}`
@@ -923,6 +850,7 @@ async function processInjuryOnDuty(
       'Injury on duty processing completed'
     );
   } catch (error) {
+    console.error('Error processing injury on duty:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error processing injury on duty: ${error instanceof Error ? error.message : 'Unknown error'}`

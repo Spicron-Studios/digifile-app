@@ -1,17 +1,17 @@
 'use server';
 
 import { auth } from '@/app/lib/auth';
-import { handleGetFileData } from '@/app/api/files/[uid]/db_read';
 import {
-  handleCreateFile,
-  handleUpdateFile,
-} from '@/app/api/files/[uid]/db_write';
-import { saveNoteWithFiles } from '@/app/api/files/[uid]/other_fn';
+  getFileData,
+  createFile as svcCreateFile,
+  updateFile as svcUpdateFile,
+  saveNoteWithFiles as svcSaveNoteWithFiles,
+} from '@/app/lib/services/file-data.service';
 
 export async function getFile(uid: string) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
-  const res = await handleGetFileData(uid, session.user.orgId);
+  const res = await getFileData(uid, session.user.orgId);
   if ('error' in res && res.error) throw new Error(res.error);
   return res.data;
 }
@@ -19,7 +19,7 @@ export async function getFile(uid: string) {
 export async function createFile(payload: Record<string, unknown>) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
-  const res = await handleCreateFile(payload, session.user.orgId);
+  const res = await svcCreateFile(payload, session.user.orgId);
   if ('error' in res && res.error) throw new Error(res.error);
   return res.data;
 }
@@ -30,7 +30,7 @@ export async function updateFile(
 ) {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
-  const res = await handleUpdateFile(uid, payload, session.user.orgId);
+  const res = await svcUpdateFile(uid, payload, session.user.orgId);
   if ('error' in res && res.error) throw new Error(res.error);
   return res.data;
 }
@@ -61,5 +61,5 @@ export async function createNoteWithFiles(payload: {
     files: payload.files || [],
   };
 
-  return saveNoteWithFiles(notePayload);
+  return svcSaveNoteWithFiles(notePayload);
 }
