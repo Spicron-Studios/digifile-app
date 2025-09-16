@@ -4,36 +4,38 @@
  * await logger.init();
  * await logger.info('myFile.ts', 'This is an info message');
  *
- * Note: This logger only works in server-side components.
- * It will silently ignore any logging attempts from client components.
+ * This logger supports console and file outputs with runtime toggles.
+ * - Console logging can run on both client and server, with independent toggles.
+ * - File logging only runs on the server (Node.js) and is toggleable.
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
 import { LogLevel, LoggerConfig, LogEntry } from './types';
 
 export class Logger {
   private static instance: Logger;
   private config!: LoggerConfig;
   private initialized: boolean = false;
-  private readonly LOG_DIR!: string;
 
   private constructor() {
-    // Only initialize if we're on the server side
-    if (typeof window === 'undefined') {
-      this.config = {
-        logLevels: {
-          ERROR: true,
-          WARNING: true,
-          INFO: true,
-          DEBUG: true,
-        },
-        maxFileSize: 104857600, // 100MB
-        maxLogFiles: 10,
-        logDirectory: 'logs',
-      };
-      this.LOG_DIR = path.join(process.cwd(), this.config.logDirectory);
-    }
+    this.config = {
+      enabled: (process.env.LOGGER_ENABLED ?? 'true') === 'true',
+      consoleEnabled: (process.env.LOGGER_CONSOLE_ENABLED ?? 'true') === 'true',
+      serverConsoleEnabled:
+        (process.env.LOGGER_SERVER_CONSOLE_ENABLED ?? 'true') === 'true',
+      clientConsoleEnabled:
+        (process.env.LOGGER_CLIENT_CONSOLE_ENABLED ?? 'true') === 'true',
+      // Temporarily force file logging off; can be re-enabled via updateConfig at runtime
+      fileEnabled: false,
+      logLevels: {
+        ERROR: true,
+        WARNING: true,
+        INFO: true,
+        DEBUG: true,
+      },
+      maxFileSize: 104857600, // 100MB (reserved for future rotation logic)
+      maxLogFiles: 10, // (reserved for future rotation logic)
+      logDirectory: process.env.LOGGER_DIRECTORY ?? 'logs',
+    };
   }
 
   public static getInstance(): Logger {
@@ -43,14 +45,41 @@ export class Logger {
     return Logger.instance;
   }
 
-  public async init(): Promise<void> {
-    // Only initialize on server side
-    if (typeof window !== 'undefined') return;
+  public updateConfig(partial: Partial<LoggerConfig>): void {
+    this.config = { ...this.config, ...partial };
+  }
 
+  public getConfig(): Readonly<LoggerConfig> {
+    return this.config;
+  }
+
+  public async init(): Promise<void> {
     if (this.initialized) return;
 
-    await this.writeToFile('Logger initialized');
+    if (this.config.enabled && this.config.consoleEnabled) {
+      const isServer = this.isServer();
+      const sideAllowed = isServer
+        ? this.config.serverConsoleEnabled
+        : this.config.clientConsoleEnabled;
+      if (sideAllowed) {
+        // eslint-disable-next-line no-console
+        console.info(`[Logger][${isServer ? 'SERVER' : 'CLIENT'}] initialized`);
+      }
+    }
+
+    if (this.config.enabled && this.config.fileEnabled && this.isServer()) {
+      await this.writeToFile('Logger initialized');
+    }
+
     this.initialized = true;
+  }
+
+  private isServer(): boolean {
+    return typeof window === 'undefined';
+  }
+
+  private getOriginTag(): 'SERVER' | 'CLIENT' {
+    return this.isServer() ? 'SERVER' : 'CLIENT';
   }
 
   private formatLogEntry(
@@ -62,36 +91,80 @@ export class Logger {
       .toISOString()
       .replace('T', ' ')
       .replace('Z', '');
-    return `[${timestamp}] (${level}) - ${fileName} - ${message}`;
+    const origin = this.getOriginTag();
+    return `[${timestamp}] [${origin}] (${level}) - ${fileName} - ${message}`;
   }
 
   private async writeToFile(message: string): Promise<void> {
-    // Skip if we're on the client side
-    if (typeof window !== 'undefined') return;
+    if (!this.isServer()) return;
 
     try {
-      await fs.mkdir(this.LOG_DIR, { recursive: true });
+      const [fs, path] = await Promise.all([
+        import('fs').then(m => m.promises),
+        import('path'),
+      ]);
+
+      const logDir = path.join(process.cwd(), this.config.logDirectory);
+      await fs.mkdir(logDir, { recursive: true });
       const date = new Date().toISOString().split('T')[0];
-      const logFile = path.join(this.LOG_DIR, `app-${date}.log`);
+      const logFile = path.join(logDir, `app-${date}.log`);
       await fs.appendFile(logFile, message + '\n');
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
         console.error('Failed to write to log file:', error);
       }
-      // Don't throw the error to avoid breaking the application
+      // Swallow file write errors to avoid breaking the application
     }
   }
 
   private async writeLog(entry: LogEntry): Promise<void> {
-    // Skip if we're on the client side
-    if (typeof window !== 'undefined') return;
+    if (!this.config.enabled) return;
 
     const logMessage = this.formatLogEntry(
       entry.level,
       entry.fileName,
       entry.message
     );
-    await this.writeToFile(logMessage);
+
+    if (this.config.consoleEnabled) {
+      const isServer = this.isServer();
+      const sideAllowed = isServer
+        ? this.config.serverConsoleEnabled
+        : this.config.clientConsoleEnabled;
+      if (sideAllowed) {
+        this.consoleOutput(entry.level, logMessage);
+      }
+    }
+
+    if (this.config.fileEnabled && this.isServer()) {
+      await this.writeToFile(logMessage);
+    }
+  }
+
+  private consoleOutput(level: LogLevel, message: string): void {
+    switch (level) {
+      case 'ERROR':
+        // eslint-disable-next-line no-console
+        console.error(message);
+        break;
+      case 'WARNING':
+        // eslint-disable-next-line no-console
+        console.warn(message);
+        break;
+      case 'INFO':
+        // eslint-disable-next-line no-console
+        console.info(message);
+        break;
+      case 'DEBUG':
+        // eslint-disable-next-line no-console
+        if (console.debug) {
+          console.debug(message);
+        } else {
+          console.log(message);
+        }
+        break;
+    }
   }
 
   public async log(
@@ -99,10 +172,7 @@ export class Logger {
     fileName: string,
     message: string
   ): Promise<void> {
-    // Skip if we're on the client side
-    if (typeof window !== 'undefined') return;
-
-    if (!this.config?.logLevels[level]) return;
+    if (!this.config.logLevels[level]) return;
 
     await this.writeLog({
       timestamp: new Date().toISOString(),
@@ -113,22 +183,18 @@ export class Logger {
   }
 
   public async error(fileName: string, message: string): Promise<void> {
-    if (typeof window !== 'undefined') return;
     await this.log('ERROR', fileName, message);
   }
 
   public async warning(fileName: string, message: string): Promise<void> {
-    if (typeof window !== 'undefined') return;
     await this.log('WARNING', fileName, message);
   }
 
   public async info(fileName: string, message: string): Promise<void> {
-    if (typeof window !== 'undefined') return;
     await this.log('INFO', fileName, message);
   }
 
   public async debug(fileName: string, message: string): Promise<void> {
-    if (typeof window !== 'undefined') return;
     await this.log('DEBUG', fileName, message);
   }
 }

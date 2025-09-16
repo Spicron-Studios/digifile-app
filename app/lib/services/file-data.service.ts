@@ -7,6 +7,9 @@ import {
   fetchMedicalSchemes as _fetchMedicalSchemes,
   saveNoteWithFiles as _saveNoteWithFiles,
   saveNoteSmart as _saveNoteSmart,
+  updateNoteWithFiles as _updateNoteWithFiles,
+  deleteNote as _deleteNote,
+  getSignedFileUrl as _getSignedFileUrl,
 } from '@/app/api/files/[uid]/other_fn';
 import type {
   DbWriteResponse,
@@ -55,8 +58,31 @@ export async function saveNoteSmart(
   return _saveNoteSmart(payload);
 }
 
+export async function updateNoteWithFiles(payload: {
+  orgId: string;
+  noteUid: string;
+  notes: string;
+  files?: Array<{ name: string; type: string; content: string }> | undefined;
+}): Promise<DbWriteResponse<import('@/app/types/db-types').TabNoteRecord>> {
+  return _updateNoteWithFiles(payload);
+}
+
+export async function deleteNote(payload: {
+  orgId: string;
+  noteUid: string;
+}): Promise<DbWriteResponse<null>> {
+  return _deleteNote(payload);
+}
+
 export async function fetchMedicalSchemes(
   orgId: string
 ): Promise<Array<{ uid: string; scheme_name: string | null }>> {
   return _fetchMedicalSchemes(orgId);
+}
+
+export async function getSignedFileUrl(
+  orgId: string,
+  fileLocation: string
+): Promise<DbWriteResponse<string>> {
+  return _getSignedFileUrl({ orgId, fileLocation });
 }

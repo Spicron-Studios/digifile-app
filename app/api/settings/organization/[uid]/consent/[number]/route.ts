@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/app/lib/auth';
 import { getSupabaseClient } from '@/app/lib/supabase';
+import { getBucket } from '@/app/lib/storage';
 
 export async function GET(
   _request: NextRequest,
@@ -24,7 +25,7 @@ export async function GET(
     const path = `${params.uid}/consent-forms/${params.uid}Consent${params.number}.txt`;
 
     const { data, error } = await supabase.storage
-      .from('DigiFile_Public')
+      .from(getBucket('ASSETS'))
       .download(path);
 
     if (error) {

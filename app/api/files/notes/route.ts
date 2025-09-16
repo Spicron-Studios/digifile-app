@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import db, { tabNotes, tabFiles } from '@/app/lib/drizzle';
 import { Logger } from '@/app/lib/logger';
+import { getBucket } from '@/app/lib/storage';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
           // Upload to Supabase
           const { error } = await supabase.storage
-            .from('note-docs')
+            .from(getBucket('ATTACHMENTS'))
             .upload(storageLocation, fileBuffer, {
               contentType: fileData.type,
             });

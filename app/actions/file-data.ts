@@ -7,6 +7,9 @@ import {
   updateFile as svcUpdateFile,
   saveNoteWithFiles as svcSaveNoteWithFiles,
   saveNoteSmart as svcSaveNoteSmart,
+  updateNoteWithFiles as svcUpdateNoteWithFiles,
+  deleteNote as svcDeleteNote,
+  getSignedFileUrl as svcGetSignedFileUrl,
 } from '@/app/lib/services/file-data.service';
 
 export async function getFile(uid: string) {
@@ -93,6 +96,49 @@ export async function createNoteSmart(payload: {
   };
 
   const res = await svcSaveNoteSmart(smartPayload);
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export async function getSignedAttachmentUrl(payload: {
+  fileLocation: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.orgId) throw new Error('Unauthorized');
+  const res = await svcGetSignedFileUrl(
+    session.user.orgId,
+    payload.fileLocation
+  );
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export async function updateNote(payload: {
+  noteUid: string;
+  notes: string;
+  files?: Array<{ name: string; type: string; content: string }> | undefined;
+}) {
+  const session = await auth();
+  if (!session?.user?.orgId) throw new Error('Unauthorized');
+
+  const res = await svcUpdateNoteWithFiles({
+    orgId: session.user.orgId,
+    noteUid: payload.noteUid,
+    notes: payload.notes,
+    files: payload.files,
+  });
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export async function removeNote(payload: { noteUid: string }) {
+  const session = await auth();
+  if (!session?.user?.orgId) throw new Error('Unauthorized');
+
+  const res = await svcDeleteNote({
+    orgId: session.user.orgId,
+    noteUid: payload.noteUid,
+  });
   if (res.error) throw new Error(res.error);
   return res;
 }

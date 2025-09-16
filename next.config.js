@@ -11,6 +11,9 @@ const nextConfig = {
   },
   experimental: {
     typedRoutes: false,
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
 };
 

@@ -50,6 +50,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+const PUBLIC_ASSETS_BUCKET =
+  process.env.NEXT_PUBLIC_SUPABASE_ASSETS_BUCKET || 'DigiFile_Public';
 
 export function GeneralSettings() {
   const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null);
@@ -104,7 +106,7 @@ export function GeneralSettings() {
       if (!orgInfo?.uid) return;
 
       const { data } = supabase.storage
-        .from('DigiFile_Public')
+        .from(PUBLIC_ASSETS_BUCKET)
         .getPublicUrl(`${orgInfo.uid}/logo/${orgInfo.uid}-logo.jpg`);
 
       if (data?.publicUrl) {

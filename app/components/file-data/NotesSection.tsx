@@ -26,11 +26,27 @@ import {
   Search,
   Upload,
   X,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { FileData, UploadedFile } from '@/app/types/file-data';
-import { createNoteWithFiles, createNoteSmart } from '@/app/actions/file-data';
+import {
+  createNoteWithFiles,
+  createNoteSmart,
+  updateNote,
+  removeNote,
+  getSignedAttachmentUrl,
+} from '@/app/actions/file-data';
 import { handleResult } from '@/app/utils/helper-functions/handle-results';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/app/components/ui/tooltip';
+import AttachmentPreviewModal, {
+  type AttachmentPreview,
+} from '@/app/components/file-data/AttachmentPreviewModal';
 
 type NoteRecord = {
   uid?: string;
@@ -64,7 +80,12 @@ export function NotesSection({
   const [noteContent, setNoteContent] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
+  const [editingNoteUid, setEditingNoteUid] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [previewOpen, setPreviewOpen] = useState<boolean>(false);
+  const [previewAttachment, setPreviewAttachment] =
+    useState<AttachmentPreview | null>(null);
 
   const fileNotes = (file.notes?.file_notes ?? []) as unknown as NoteRecord[];
   const clinicalNotes = (file.notes?.clinical_notes ??
@@ -123,6 +144,43 @@ export function NotesSection({
     setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'));
   }
 
+  function getFileBadgeStyle(fileType: string | null | undefined): {
+    bg: string;
+    label: string;
+  } {
+    const lower = (fileType ?? '').toLowerCase();
+    if (lower === 'application/pdf' || lower.endsWith('/pdf'))
+      return { bg: 'bg-red-100 text-red-700', label: '.pdf' };
+    if (lower.startsWith('image/'))
+      return { bg: 'bg-blue-100 text-blue-700', label: '.img' };
+    if (lower.startsWith('text/') || lower === 'application/txt')
+      return { bg: 'bg-gray-200 text-gray-700', label: '.txt' };
+    return { bg: 'bg-gray-100 text-gray-700', label: '.other' };
+  }
+
+  async function onOpenAttachment(
+    fileName: string | null | undefined,
+    fileType: string | null | undefined,
+    fileLocation: string | null | undefined,
+    e: React.MouseEvent
+  ): Promise<void> {
+    e.stopPropagation();
+    if (!fileLocation) return;
+    const { data, error } = await handleResult(
+      getSignedAttachmentUrl({ fileLocation })
+    );
+    if (error || !data?.data) {
+      alert('Could not open attachment');
+      return;
+    }
+    setPreviewAttachment({
+      fileName: fileName ?? 'Attachment',
+      fileType: fileType ?? null,
+      signedUrl: data.data as unknown as string,
+    });
+    setPreviewOpen(true);
+  }
+
   function formatDateTime(dateString?: string): string {
     if (!dateString) return '';
     return format(new Date(dateString), 'yyyy/MM/dd HH:mm');
@@ -132,6 +190,16 @@ export function NotesSection({
     setActiveNoteTab(tabType);
     setNoteDateTime(new Date());
     setNoteContent('');
+    setUploadedFiles([]);
+    setEditingNoteUid(null);
+    setIsNoteModalOpen(true);
+  }
+
+  function openEditModal(note: NoteRecord, tabType: 'file' | 'clinical'): void {
+    setActiveNoteTab(tabType);
+    setEditingNoteUid(note.uid ?? null);
+    setNoteDateTime(note.time_stamp ? new Date(note.time_stamp) : new Date());
+    setNoteContent(note.notes ?? '');
     setUploadedFiles([]);
     setIsNoteModalOpen(true);
   }
@@ -164,8 +232,9 @@ export function NotesSection({
     });
 
     const hasLinkIds = Boolean(fileInfoPatientId && patientIdFromLink);
-    if (!noteContent.trim()) {
-      alert('Please enter note content');
+    if (!noteContent.trim() && uploadedFiles.length === 0) {
+      alert('Please enter a description or attach at least one document');
+      setIsSavingNote(false);
       return;
     }
 
@@ -201,7 +270,17 @@ export function NotesSection({
     let savedData: { data?: unknown } | null = null;
     let error: { message?: string } | null = null;
 
-    if (hasLinkIds) {
+    if (editingNoteUid) {
+      const payload = {
+        noteUid: editingNoteUid,
+        notes: noteContent,
+        files: processedFiles,
+      };
+      console.log('Note update payload:', payload);
+      const result = await handleResult(updateNote(payload));
+      savedData = (result.data as unknown as { data?: unknown }) ?? null;
+      error = (result.error as unknown as { message?: string }) ?? null;
+    } else if (hasLinkIds) {
       const payload = {
         fileInfoPatientId,
         patientId: patientIdFromLink,
@@ -253,11 +332,12 @@ export function NotesSection({
         }
         const targetKey =
           activeNoteTab === 'file' ? 'file_notes' : 'clinical_notes';
-
-        const nextArray = [
-          savedData.data as NoteRecord,
-          ...((draft.notes[targetKey] as unknown as NoteRecord[]) ?? []),
-        ];
+        const current =
+          (draft.notes[targetKey] as unknown as NoteRecord[]) ?? [];
+        const incoming = savedData.data as NoteRecord;
+        const nextArray = editingNoteUid
+          ? current.map(n => (n.uid === incoming.uid ? incoming : n))
+          : [incoming, ...current];
         // De-duplicate by UID to keep array clean
         const unique: NoteRecord[] = [];
         const seen = new Set<string>();
@@ -273,6 +353,31 @@ export function NotesSection({
       setIsNoteModalOpen(false);
     }
     setIsSavingNote(false);
+  }
+
+  async function onDeleteNote(
+    note: NoteRecord,
+    tab: 'file' | 'clinical'
+  ): Promise<void> {
+    if (!note?.uid) return;
+    const confirmed = window.confirm('Delete this note?');
+    if (!confirmed) return;
+    const { error } = await handleResult(removeNote({ noteUid: note.uid }));
+    if (error) {
+      alert('Failed to delete note');
+      return;
+    }
+    setFile(prev => {
+      const draft = { ...prev } as FileData;
+      const key = tab === 'file' ? 'file_notes' : 'clinical_notes';
+      const arr = (
+        (draft.notes?.[key] as unknown as NoteRecord[]) ?? []
+      ).filter(n => n.uid !== note.uid);
+      if (draft.notes) {
+        (draft.notes as any)[key] = arr;
+      }
+      return draft;
+    });
   }
 
   return (
@@ -362,35 +467,71 @@ export function NotesSection({
                 {filteredFileNotes.map(n => (
                   <div
                     key={n.uid}
-                    className="border rounded-md p-4 bg-white shadow-sm"
+                    className="border rounded-md p-4 bg-white shadow-sm cursor-pointer"
+                    onClick={() => openEditModal(n, 'file')}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-lg font-bold text-primary">
                         {formatDateTime(n.time_stamp)}
                       </h3>
+                      <button
+                        type="button"
+                        aria-label="Delete note"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={e => {
+                          e.stopPropagation();
+                          void onDeleteNote(n, 'file');
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                     <div className="ml-4 mt-2 text-gray-700">
                       <p>{n.notes}</p>
                     </div>
                     {n.files && n.files.length > 0 && (
                       <div className="mt-4 ml-4">
-                        <div className="flex flex-wrap gap-2">
-                          {n.files.map(f => (
-                            <div
-                              key={f?.uid}
-                              className="flex items-center p-2 border rounded bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
-                            >
-                              <a
-                                href={f?.file_location ?? undefined}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                {f?.file_name}
-                              </a>
-                            </div>
-                          ))}
-                        </div>
+                        <TooltipProvider>
+                          <div className="flex flex-wrap gap-2">
+                            {n.files.map(f => {
+                              const style = getFileBadgeStyle(
+                                f?.file_type ?? null
+                              );
+                              const displayName = f?.file_name ?? 'Attachment';
+                              return (
+                                <Tooltip key={f?.uid}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={e =>
+                                        void onOpenAttachment(
+                                          f?.file_name,
+                                          f?.file_type,
+                                          f?.file_location,
+                                          e
+                                        )
+                                      }
+                                      className={`flex items-center gap-2 px-2 py-1 rounded ${style.bg} text-xs max-w-[160px]`}
+                                      title={displayName}
+                                    >
+                                      <span className="font-mono">
+                                        {style.label}
+                                      </span>
+                                      <span className="truncate">
+                                        {displayName}
+                                      </span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <span className="font-medium">
+                                      {displayName}
+                                    </span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        </TooltipProvider>
                       </div>
                     )}
                   </div>
@@ -492,35 +633,71 @@ export function NotesSection({
                 {filteredClinicalNotes.map(n => (
                   <div
                     key={n.uid}
-                    className="border rounded-md p-4 bg-white shadow-sm"
+                    className="border rounded-md p-4 bg-white shadow-sm cursor-pointer"
+                    onClick={() => openEditModal(n, 'clinical')}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-lg font-bold text-primary">
                         {formatDateTime(n.time_stamp)}
                       </h3>
+                      <button
+                        type="button"
+                        aria-label="Delete note"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={e => {
+                          e.stopPropagation();
+                          void onDeleteNote(n, 'clinical');
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                     <div className="ml-4 mt-2 text-gray-700">
                       <p>{n.notes}</p>
                     </div>
                     {n.files && n.files.length > 0 && (
                       <div className="mt-4 ml-4">
-                        <div className="flex flex-wrap gap-2">
-                          {n.files.map(f => (
-                            <div
-                              key={f?.uid}
-                              className="flex items-center p-2 border rounded bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
-                            >
-                              <a
-                                href={f?.file_location ?? undefined}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                {f?.file_name}
-                              </a>
-                            </div>
-                          ))}
-                        </div>
+                        <TooltipProvider>
+                          <div className="flex flex-wrap gap-2">
+                            {n.files.map(f => {
+                              const style = getFileBadgeStyle(
+                                f?.file_type ?? null
+                              );
+                              const displayName = f?.file_name ?? 'Attachment';
+                              return (
+                                <Tooltip key={f?.uid}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={e =>
+                                        void onOpenAttachment(
+                                          f?.file_name,
+                                          f?.file_type,
+                                          f?.file_location,
+                                          e
+                                        )
+                                      }
+                                      className={`flex items-center gap-2 px-2 py-1 rounded ${style.bg} text-xs max-w-[160px]`}
+                                      title={displayName}
+                                    >
+                                      <span className="font-mono">
+                                        {style.label}
+                                      </span>
+                                      <span className="truncate">
+                                        {displayName}
+                                      </span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <span className="font-medium">
+                                      {displayName}
+                                    </span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        </TooltipProvider>
                       </div>
                     )}
                   </div>
@@ -542,7 +719,9 @@ export function NotesSection({
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>
-              Add New {activeNoteTab === 'file' ? 'File' : 'Clinical'} Note
+              {editingNoteUid
+                ? `Edit ${activeNoteTab === 'file' ? 'File' : 'Clinical'} Note`
+                : `Add New ${activeNoteTab === 'file' ? 'File' : 'Clinical'} Note`}
             </DialogTitle>
           </DialogHeader>
 
@@ -660,12 +839,24 @@ export function NotesSection({
             <Button variant="outline" onClick={() => setIsNoteModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveNewNote} disabled={!noteContent.trim()}>
+            <Button
+              onClick={saveNewNote}
+              disabled={
+                isSavingNote ||
+                (!noteContent.trim() && uploadedFiles.length === 0)
+              }
+            >
               Save Note
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AttachmentPreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        attachment={previewAttachment}
+      />
     </>
   );
 }

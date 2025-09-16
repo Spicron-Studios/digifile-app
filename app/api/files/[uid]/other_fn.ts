@@ -15,6 +15,7 @@ import {
   TabNoteRecord,
   SmartNoteData,
 } from '@/app/types/db-types';
+import { getBucket } from '@/app/lib/storage';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -115,7 +116,7 @@ export async function saveNoteWithFiles(
 
         // Upload to Supabase
         const { error } = await supabase.storage
-          .from('note-docs')
+          .from(getBucket('ATTACHMENTS'))
           .upload(storageLocation, fileBuffer, {
             contentType: fileData.type,
           });
@@ -301,7 +302,7 @@ export async function saveNoteSmart(
       timeStamp: data.timeStamp,
       notes: data.notes,
       tabType: data.tabType,
-      files: data.files,
+      files: data.files ?? [],
     };
 
     const result = await saveNoteWithFiles(notePayload);
@@ -313,5 +314,260 @@ export async function saveNoteSmart(
       `Error in smart note save: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     return { error: 'Failed to save note', status: 500 };
+  }
+}
+
+// Update an existing note's description and optionally append new files
+export async function updateNoteWithFiles(params: {
+  orgId: string;
+  noteUid: string;
+  notes: string;
+  files?: Array<{ name: string; type: string; content: string }> | undefined;
+}): Promise<DbWriteResponse<TabNoteRecord>> {
+  const logger = Logger.getInstance();
+  await logger.init();
+
+  try {
+    await logger.info('api/files/[uid]/other_fn.ts', 'Updating existing note');
+
+    // Update the note text
+    await db
+      .update(tabNotes)
+      .set({ notes: params.notes, lastEdit: new Date().toISOString() })
+      .where(
+        and(eq(tabNotes.uid, params.noteUid), eq(tabNotes.orgid, params.orgId))
+      );
+
+    // Fetch the current note (to get timeStamp and tabType)
+    const notesRows = await db
+      .select()
+      .from(tabNotes)
+      .where(
+        and(eq(tabNotes.uid, params.noteUid), eq(tabNotes.orgid, params.orgId))
+      )
+      .limit(1);
+
+    const currentNote = notesRows[0];
+    if (!currentNote) {
+      return { error: 'Note not found', status: 404 };
+    }
+
+    const fileRecords: Array<{
+      uid: string;
+      file_name: string | null;
+      file_type: string | null;
+      file_location: string | null;
+    }> = [];
+
+    // Append any new files
+    if (params.files && params.files.length > 0) {
+      for (const fileData of params.files) {
+        const fileExtension = fileData.name.split('.').pop();
+        const uniqueFileName = `${uuidv4()}.${fileExtension}`;
+        const storageLocation = `${params.orgId}/note-docs/${uniqueFileName}`;
+
+        const base64Data = fileData.content.split(';base64,').pop();
+        if (!base64Data) {
+          await logger.error(
+            'api/files/[uid]/other_fn.ts',
+            `Invalid base64 content for file ${fileData.name}`
+          );
+          continue;
+        }
+        const fileBuffer = Buffer.from(base64Data, 'base64');
+
+        const { error } = await supabase.storage
+          .from(getBucket('ATTACHMENTS'))
+          .upload(storageLocation, fileBuffer, { contentType: fileData.type });
+        if (error) {
+          await logger.error(
+            'api/files/[uid]/other_fn.ts',
+            `Error uploading file: ${error.message}`
+          );
+          continue;
+        }
+
+        const fileUid = uuidv4();
+        await db.insert(tabFiles).values({
+          uid: fileUid,
+          orgid: params.orgId,
+          tabNotesId: params.noteUid,
+          fileName: fileData.name,
+          fileType: fileData.type,
+          fileLocation: storageLocation,
+          active: true,
+          dateCreated: new Date().toISOString(),
+          lastEdit: new Date().toISOString(),
+          locked: false,
+        });
+
+        fileRecords.push({
+          uid: fileUid,
+          file_name: fileData.name,
+          file_type: fileData.type,
+          file_location: storageLocation,
+        });
+      }
+    }
+
+    // Fetch all files for this note to return up-to-date list
+    const allFiles = await db
+      .select()
+      .from(tabFiles)
+      .where(
+        and(eq(tabFiles.tabNotesId, params.noteUid), eq(tabFiles.active, true))
+      );
+
+    const safeTimeStampIso = (
+      currentNote.timeStamp ? new Date(currentNote.timeStamp) : new Date()
+    ).toISOString();
+    const completeNote: TabNoteRecord = {
+      uid: params.noteUid,
+      time_stamp: safeTimeStampIso,
+      notes: params.notes,
+      tab_type: currentNote.tabType ?? '',
+      files: allFiles.map(f => ({
+        uid: f.uid,
+        file_name: f.fileName,
+        file_type: f.fileType,
+        file_location: f.fileLocation,
+      })),
+    };
+
+    await logger.info(
+      'api/files/[uid]/other_fn.ts',
+      'Note updated successfully'
+    );
+    return { data: completeNote, status: 200 };
+  } catch (error) {
+    await logger.error(
+      'api/files/[uid]/other_fn.ts',
+      `Error updating note: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return { error: 'Failed to update note', status: 500 };
+  }
+}
+
+// Soft delete a note and its files
+export async function deleteNote(params: {
+  orgId: string;
+  noteUid: string;
+}): Promise<DbWriteResponse<null>> {
+  const logger = Logger.getInstance();
+  await logger.init();
+
+  try {
+    await logger.info('api/files/[uid]/other_fn.ts', 'Deleting note');
+
+    // Fetch active file locations for this note to remove from storage
+    const filesToDelete = await db
+      .select({ loc: tabFiles.fileLocation })
+      .from(tabFiles)
+      .where(
+        and(eq(tabFiles.tabNotesId, params.noteUid), eq(tabFiles.active, true))
+      );
+
+    const filePaths = filesToDelete
+      .map(f => f.loc)
+      .filter((p): p is string => typeof p === 'string' && p.length > 0);
+
+    if (filePaths.length > 0) {
+      const { data: removed, error: removeError } = await supabase.storage
+        .from(getBucket('ATTACHMENTS'))
+        .remove(filePaths);
+
+      if (removeError) {
+        await logger.error(
+          'api/files/[uid]/other_fn.ts',
+          `Failed to remove ${filePaths.length} storage object(s): ${removeError.message}`
+        );
+      } else {
+        await logger.info(
+          'api/files/[uid]/other_fn.ts',
+          `Removed ${removed?.length ?? 0} storage object(s) for note ${params.noteUid}`
+        );
+      }
+    }
+
+    // Hard delete files first
+    await db
+      .delete(tabFiles)
+      .where(
+        and(
+          eq(tabFiles.tabNotesId, params.noteUid),
+          eq(tabFiles.orgid, params.orgId)
+        )
+      );
+
+    // Hard delete note
+    await db
+      .delete(tabNotes)
+      .where(
+        and(eq(tabNotes.uid, params.noteUid), eq(tabNotes.orgid, params.orgId))
+      );
+
+    await logger.info('api/files/[uid]/other_fn.ts', 'Note deleted');
+    return { data: null, status: 200 };
+  } catch (error) {
+    await logger.error(
+      'api/files/[uid]/other_fn.ts',
+      `Error deleting note: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return { error: 'Failed to delete note', status: 500 };
+  }
+}
+
+// Generate a short-lived signed URL for a note attachment after validating org ownership
+export async function getSignedFileUrl(params: {
+  orgId: string;
+  fileLocation: string;
+}): Promise<DbWriteResponse<string>> {
+  const logger = Logger.getInstance();
+  await logger.init();
+
+  try {
+    await logger.info('api/files/[uid]/other_fn.ts', 'Generating signed URL');
+
+    // Validate that the file belongs to this org and is active
+    const rows = await db
+      .select()
+      .from(tabFiles)
+      .where(
+        and(
+          eq(tabFiles.orgid, params.orgId),
+          eq(tabFiles.fileLocation, params.fileLocation),
+          eq(tabFiles.active, true)
+        )
+      )
+      .limit(1);
+
+    if (!rows[0]) {
+      await logger.warning(
+        'api/files/[uid]/other_fn.ts',
+        `Attachment not found or not accessible: ${params.fileLocation}`
+      );
+      return { error: 'Attachment not found', status: 404 };
+    }
+
+    // Create a signed URL valid for 5 minutes
+    const { data, error } = await supabase.storage
+      .from(getBucket('ATTACHMENTS'))
+      .createSignedUrl(params.fileLocation, 60 * 5);
+
+    if (error || !data?.signedUrl) {
+      await logger.error(
+        'api/files/[uid]/other_fn.ts',
+        `Failed to create signed URL: ${error?.message ?? 'Unknown error'}`
+      );
+      return { error: 'Failed to create signed URL', status: 500 };
+    }
+
+    return { data: data.signedUrl, status: 200 };
+  } catch (error) {
+    await logger.error(
+      'api/files/[uid]/other_fn.ts',
+      `Error generating signed URL: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return { error: 'Failed to create signed URL', status: 500 };
   }
 }

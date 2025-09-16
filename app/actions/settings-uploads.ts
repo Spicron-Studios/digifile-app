@@ -2,6 +2,7 @@
 
 import { auth } from '@/app/lib/auth';
 import { getSupabaseClient } from '@/app/lib/supabase';
+import { getBucket } from '@/app/lib/storage';
 
 export async function uploadOrganizationLogo(
   file: File
@@ -13,11 +14,13 @@ export async function uploadOrganizationLogo(
 
   const path = `${session.user.orgId}/logo/${session.user.orgId}-logo.jpg`;
   const { error } = await supabase.storage
-    .from('DigiFile_Public')
+    .from(getBucket('ASSETS'))
     .upload(path, file, { upsert: true, contentType: 'image/jpeg' });
   if (error) throw new Error('Failed to upload logo');
 
-  const { data } = supabase.storage.from('DigiFile_Public').getPublicUrl(path);
+  const { data } = supabase.storage
+    .from(getBucket('ASSETS'))
+    .getPublicUrl(path);
   return { url: data.publicUrl };
 }
 
@@ -42,11 +45,13 @@ export async function uploadOrganizationAsset(
   }
 
   const { error } = await supabase.storage
-    .from('DigiFile_Public')
+    .from(getBucket('ASSETS'))
     .upload(path, file, { upsert: true, contentType });
   if (error) throw new Error('Failed to upload file');
 
-  const { data } = supabase.storage.from('DigiFile_Public').getPublicUrl(path);
+  const { data } = supabase.storage
+    .from(getBucket('ASSETS'))
+    .getPublicUrl(path);
   return { url: data.publicUrl };
 }
 
@@ -57,7 +62,7 @@ export async function getConsentText(consentNumber: number): Promise<string> {
   if (!supabase) throw new Error('Supabase not configured');
 
   const path = `${session.user.orgId}/consent-forms/${session.user.orgId}Consent${consentNumber}.txt`;
-  const res = await supabase.storage.from('DigiFile_Public').download(path);
+  const res = await supabase.storage.from(getBucket('ASSETS')).download(path);
   if (res.error) throw new Error('File not found');
   const text = await res.data.text();
   return text;
