@@ -69,8 +69,9 @@ interface FileData {
 3.  **Adding Notes**: The doctor navigates to the "Clinical Notes" tab within the `NotesSection` component.
 4.  **Create Note**: They click "Add New Note," which opens a dialog. Here they can enter text, set a timestamp, and attach documents/images. Attachments are handled by uploading them to Supabase Storage.
 5.  **Viewing Attachments**: After a note with attachments is saved, the attachments are displayed as clickable badges. Clicking on a badge opens a preview modal (`AttachmentPreviewModal.tsx`). The system generates a secure, temporary URL to display the content. Images and PDFs are rendered directly within the modal, while other file types are offered as a download.
-6.  **Saving Note**: On saving the note, the `saveNewNote` function in `NotesSection.tsx` is called. It uses either the `createNoteWithFiles` (if a patient link exists) or the `createNoteSmart` server action. The new note is added to the `notes.clinical_notes` array in the main `FileData` state object, and the UI re-renders.
-7.  **Saving File**: Any other changes made to the file are persisted only when the main "Save" button in the layout is clicked.
+6.  **Compact Note Cards (Truncation)**: In the notes list, each note is rendered as a compact card. The note text is truncated to the first 1000 characters with an ellipsis. A "Show more / Show less" toggle expands or collapses the full text inline without opening the edit modal.
+7.  **Saving Note**: On saving the note, the `saveNewNote` function in `NotesSection.tsx` is called. It uses either the `createNoteWithFiles` (if a patient link exists) or the `createNoteSmart` server action. The new note is added to the `notes.clinical_notes` array in the main `FileData` state object, and the UI re-renders.
+8.  **Saving File**: Any other changes made to the file are persisted only when the main "Save" button in the layout is clicked.
 
 ### C. Emergency/Quick File Creation (Doctor Workflow)
 
@@ -201,7 +202,7 @@ This tree illustrates the structure of the files involved in the patient file fe
     │
     ├── components/
     │   └── file-data/
-    │       ├── AttachmentPreviewModal.tsx # (FE) Modal for previewing note attachments (images, PDFs).
+    │       ├── AttachmentPreviewModal.tsx # (FE) Modal for previewing note attachments (images, PDFs, audio).
     │       ├── FileInfoCard.tsx      # (FE) Component for file number/account number.
     │       ├── PatientDetails.tsx    # (FE) Component for patient demographic data.
     │       ├── MedicalAidInfo.tsx    # (FE) Component for medical aid and member details.
@@ -297,3 +298,58 @@ The patient file page (`FileDataPage.tsx`) intentionally uses a single, large st
 
 - **Updating an Existing Patient**: The `patient` table is a master list of all individuals in the system for an organization. When a user edits a patient's details (e.g., their surname or cell phone number) within a specific file, the backend logic in `db_write.ts` updates the corresponding row in the `patient` table. Because this is a central record, the change is **global**. If the user opens a different file linked to the same patient, they will see the updated details. This ensures data consistency.
 - **Deletion Strategy**: The application uses a **soft-delete** strategy for most data, including notes and their associated files. As seen in `app/api/files/[uid]/other_fn.ts`, when a user deletes a note, the `deleteNote` function does not remove the record from the database. Instead, it sets the `active` column on the `tab_notes` and `tab_files` records to `false`. All data retrieval queries are written to only select records `WHERE active = true`. This approach preserves data for auditing and potential recovery while effectively removing it from the user's view.
+
+## 8. Audio Recording in Notes
+
+The system supports in-app audio recordings for both `file_notes` and `clinical_notes` within the note modal (`NotesSection.tsx`).
+
+- Recording: Users can start/stop a microphone recording using the Record/Stop controls. The app uses the browser MediaRecorder API and records in `audio/webm;codecs=opus` when available, falling back to other supported `audio/*` MIME types (e.g., `m4a`).
+- Attachment: On stop, the recording is added to the pending uploads list and is saved alongside the note as a normal attachment.
+- Badges: Audio files display as an `AUDIO` type block in the compact note view and in the modal's existing attachments list (hover shows the original file name).
+- Preview: Clicking an audio attachment opens the preview modal with an inline audio player. New unsaved recordings also show a local preview player in the modal.
+
+## Planned items for the future
+
+### Transcription of audio files
+
+Goal: Generate text transcripts for recorded audio notes and associate them with the relevant note/file.
+
+Recommended architecture:
+
+- Storage and identification:
+  - Store recordings in the existing bucket as `audio/*` (prefer `audio/webm;codecs=opus`), with original file names preserved.
+  - Keep `orgId`, `noteUid`, `fileUid`, and `fileLocation` metadata.
+- Job orchestration:
+  - When a note with audio is saved, enqueue a transcription job (e.g., `tab_transcription_jobs`) with status `pending`.
+  - A background worker consumes jobs, fetches a signed URL, sends the file to a provider, and saves results.
+- Provider options (research summary):
+  - Hosted Whisper (OpenAI Whisper API or managed services): strong accuracy, multi-language, reasonable cost; upload or URL ingestion; latency proportional to length.
+  - Deepgram / AssemblyAI / Speechmatics: production-grade APIs with diarization, topic detection, redaction; webhooks; robust SDKs.
+  - Self-hosted Whisper on GPU: full control and data residency; requires GPU and a queue; higher ops complexity.
+- Data model updates:
+  - New table `tab_transcripts` (or fields on `tab_notes`): `{ uid, noteId, transcript, provider, language, confidence, status, createdAt, updatedAt }`.
+  - Optional `tab_transcription_jobs` to track job lifecycle.
+- Backend integration points:
+  - Server Action: `app/actions/file-data.ts` – add enqueue step after note save when `audio/*` files present.
+  - Service layer: `app/lib/services/file-data.service.ts` – expose `enqueueTranscription`.
+  - API/Worker:
+    - Option A: Extend `app/api/files/[uid]/other_fn.ts` with a job creator and status fetcher.
+    - Option B: Create a dedicated route (e.g., `app/api/transcription/route.ts`) and a background worker (Edge function/cron/queue consumer).
+- UI/UX plan:
+  - Show a small "Transcription: pending/processing/ready" chip on notes that contain audio.
+  - When ready, display transcript under the note with a collapse/expand control and an "Edit" option for minor corrections.
+- Security & compliance:
+  - Use time-limited signed URLs for provider ingestion.
+  - If PHI data is present, ensure provider agreements or choose self-hosted Whisper.
+- Open questions:
+  - Language hints per organization or per note?
+  - Maximum recording length and auto-stop handling?
+  - Cost controls and daily rate limits per org.
+
+Implementation sketch (non-functional outline):
+
+- `db/schema.ts`: add `tab_transcripts` (+ optional `tab_transcription_jobs`).
+- `app/actions/file-data.ts`: after successful note save, call `enqueueTranscription({ orgId, noteUid, fileLocation })` when audio attachments exist.
+- `app/lib/services/file-data.service.ts`: implement `enqueueTranscription`.
+- Worker (queue consumer / cron): pull pending jobs, call provider API, write transcript back to DB, mark job complete.
+- UI: small status indicator in `NotesSection.tsx`; transcript rendering under the note when available.

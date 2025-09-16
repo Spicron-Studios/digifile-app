@@ -87,6 +87,18 @@ export function NotesSection({
   const [previewAttachment, setPreviewAttachment] =
     useState<AttachmentPreview | null>(null);
 
+  const [existingFiles, setExistingFiles] = useState<NoteRecord['files']>([]);
+
+  // Track expanded notes in compact lists
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+
+  // Audio recording state
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<BlobPart[]>([]);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+
   const fileNotes = (file.notes?.file_notes ?? []) as unknown as NoteRecord[];
   const clinicalNotes = (file.notes?.clinical_notes ??
     []) as unknown as NoteRecord[];
@@ -150,12 +162,14 @@ export function NotesSection({
   } {
     const lower = (fileType ?? '').toLowerCase();
     if (lower === 'application/pdf' || lower.endsWith('/pdf'))
-      return { bg: 'bg-red-100 text-red-700', label: '.pdf' };
+      return { bg: 'bg-red-100 text-red-700', label: 'PDF' };
     if (lower.startsWith('image/'))
-      return { bg: 'bg-blue-100 text-blue-700', label: '.img' };
+      return { bg: 'bg-blue-100 text-blue-700', label: 'IMAGE' };
+    if (lower.startsWith('audio/'))
+      return { bg: 'bg-green-100 text-green-700', label: 'AUDIO' };
     if (lower.startsWith('text/') || lower === 'application/txt')
-      return { bg: 'bg-gray-200 text-gray-700', label: '.txt' };
-    return { bg: 'bg-gray-100 text-gray-700', label: '.other' };
+      return { bg: 'bg-gray-200 text-gray-700', label: 'TEXT' };
+    return { bg: 'bg-gray-100 text-gray-700', label: 'OTHER' };
   }
 
   async function onOpenAttachment(
@@ -186,12 +200,43 @@ export function NotesSection({
     return format(new Date(dateString), 'yyyy/MM/dd HH:mm');
   }
 
+  function getDisplayText(
+    noteUid: string | undefined,
+    text: string | undefined
+  ): { display: string; truncated: boolean } {
+    const raw = String(text ?? '');
+    const uid = String(noteUid ?? '');
+    if (!uid) return { display: raw, truncated: false };
+    const isExpanded = expandedNotes.has(uid);
+    if (isExpanded || raw.length <= 1000) {
+      return { display: raw, truncated: false };
+    }
+    return { display: raw.slice(0, 1000) + '…', truncated: true };
+  }
+
+  function toggleExpanded(
+    noteUid: string | undefined,
+    e: React.MouseEvent
+  ): void {
+    e.stopPropagation();
+    const uid = String(noteUid ?? '');
+    if (!uid) return;
+    setExpandedNotes(prev => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      return next;
+    });
+  }
+
   function openNoteModal(tabType: 'file' | 'clinical'): void {
     setActiveNoteTab(tabType);
     setNoteDateTime(new Date());
     setNoteContent('');
     setUploadedFiles([]);
+    setExistingFiles([]);
     setEditingNoteUid(null);
+    setRecordingError(null);
     setIsNoteModalOpen(true);
   }
 
@@ -201,6 +246,8 @@ export function NotesSection({
     setNoteDateTime(note.time_stamp ? new Date(note.time_stamp) : new Date());
     setNoteContent(note.notes ?? '');
     setUploadedFiles([]);
+    setExistingFiles(note.files ?? []);
+    setRecordingError(null);
     setIsNoteModalOpen(true);
   }
 
@@ -214,6 +261,82 @@ export function NotesSection({
 
   function removeFile(index: number): void {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function getSupportedAudioMimeType(): string | null {
+    const candidates = [
+      'audio/mp4',
+      'audio/aac',
+      'audio/mpeg',
+      'audio/webm;codecs=opus',
+      'audio/webm',
+    ];
+    for (const type of candidates) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const MR: any = (globalThis as unknown as { MediaRecorder?: unknown })
+        .MediaRecorder;
+      if (
+        MR &&
+        typeof MR.isTypeSupported === 'function' &&
+        MR.isTypeSupported(type)
+      ) {
+        return type;
+      }
+    }
+    return null;
+  }
+
+  async function startRecording(): Promise<void> {
+    try {
+      setRecordingError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      const mimeType = getSupportedAudioMimeType();
+      const recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined
+      );
+      mediaRecorderRef.current = recorder;
+      recordedChunksRef.current = [];
+      recorder.ondataavailable = (e: BlobEvent) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: recorder.mimeType || 'audio/webm',
+        });
+        const now = new Date();
+        const ext = (recorder.mimeType || 'audio/webm').includes('mp4')
+          ? 'm4a'
+          : ((recorder.mimeType || 'audio/webm').split('/')[1] ?? 'webm');
+        const fname = `note-recording-${format(now, 'yyyyMMdd-HHmmss')}.${ext}`;
+        const file = new File([blob], fname, {
+          type: recorder.mimeType || 'audio/webm',
+          lastModified: now.getTime(),
+        });
+        // Attach to uploads so it gets saved with the note
+        setUploadedFiles(prev => [...prev, file as unknown as UploadedFile]);
+        // Cleanup stream tracks
+        mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+        mediaStreamRef.current = null;
+      };
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      setRecordingError('Microphone permission denied or not available');
+      setIsRecording(false);
+      try {
+        mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+      } catch {}
+    }
+  }
+
+  function stopRecording(): void {
+    if (!mediaRecorderRef.current) return;
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
   }
 
   async function saveNewNote(): Promise<void> {
@@ -487,7 +610,32 @@ export function NotesSection({
                       </button>
                     </div>
                     <div className="ml-4 mt-2 text-gray-700">
-                      <p>{n.notes}</p>
+                      {(() => {
+                        const { display, truncated } = getDisplayText(
+                          n.uid,
+                          n.notes
+                        );
+                        const isExpanded = expandedNotes.has(
+                          String(n.uid ?? '')
+                        );
+                        return (
+                          <>
+                            <p className="whitespace-pre-wrap">{display}</p>
+                            {(truncated || isExpanded) && (
+                              <button
+                                type="button"
+                                className="text-xs text-primary mt-1 underline"
+                                onClick={e => toggleExpanded(n.uid, e)}
+                                aria-label={
+                                  isExpanded ? 'Show less' : 'Show more'
+                                }
+                              >
+                                {isExpanded ? 'Show less' : 'Show more'}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     {n.files && n.files.length > 0 && (
                       <div className="mt-4 ml-4">
@@ -516,9 +664,6 @@ export function NotesSection({
                                     >
                                       <span className="font-mono">
                                         {style.label}
-                                      </span>
-                                      <span className="truncate">
-                                        {displayName}
                                       </span>
                                     </button>
                                   </TooltipTrigger>
@@ -653,7 +798,32 @@ export function NotesSection({
                       </button>
                     </div>
                     <div className="ml-4 mt-2 text-gray-700">
-                      <p>{n.notes}</p>
+                      {(() => {
+                        const { display, truncated } = getDisplayText(
+                          n.uid,
+                          n.notes
+                        );
+                        const isExpanded = expandedNotes.has(
+                          String(n.uid ?? '')
+                        );
+                        return (
+                          <>
+                            <p className="whitespace-pre-wrap">{display}</p>
+                            {(truncated || isExpanded) && (
+                              <button
+                                type="button"
+                                className="text-xs text-primary mt-1 underline"
+                                onClick={e => toggleExpanded(n.uid, e)}
+                                aria-label={
+                                  isExpanded ? 'Show less' : 'Show more'
+                                }
+                              >
+                                {isExpanded ? 'Show less' : 'Show more'}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     {n.files && n.files.length > 0 && (
                       <div className="mt-4 ml-4">
@@ -682,9 +852,6 @@ export function NotesSection({
                                     >
                                       <span className="font-mono">
                                         {style.label}
-                                      </span>
-                                      <span className="truncate">
-                                        {displayName}
                                       </span>
                                     </button>
                                   </TooltipTrigger>
@@ -716,7 +883,7 @@ export function NotesSection({
 
       {/* Add Note Modal */}
       <Dialog open={isNoteModalOpen} onOpenChange={setIsNoteModalOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[900px]">
           <DialogHeader>
             <DialogTitle>
               {editingNoteUid
@@ -726,11 +893,14 @@ export function NotesSection({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="note-date" className="text-right">
+            <div className="grid gap-2">
+              <Label
+                htmlFor="note-date"
+                className="text-sm font-medium text-gray-700"
+              >
                 Date & Time
               </Label>
-              <div className="col-span-3">
+              <div>
                 <div className="flex items-center gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -770,24 +940,29 @@ export function NotesSection({
               </div>
             </div>
 
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="note-content" className="text-right">
+            <div className="grid gap-2">
+              <Label
+                htmlFor="note-content"
+                className="text-sm font-medium text-gray-700"
+              >
                 Note
               </Label>
-              <div className="col-span-3">
+              <div>
                 <Textarea
                   id="note-content"
                   value={noteContent}
                   onChange={e => setNoteContent(e.target.value)}
                   placeholder="Enter note details..."
-                  className="min-h-[200px]"
+                  className="min-h-[360px]"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right">Attachments</Label>
-              <div className="col-span-3 space-y-3">
+            <div className="grid gap-2">
+              <Label className="text-sm font-medium text-gray-700">
+                Attachments
+              </Label>
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
@@ -809,26 +984,109 @@ export function NotesSection({
                   </span>
                 </div>
 
+                {/* Audio recording controls */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant={isRecording ? 'destructive' : 'outline'}
+                    onClick={() => {
+                      if (isRecording) {
+                        stopRecording();
+                      } else {
+                        void startRecording();
+                      }
+                    }}
+                  >
+                    {isRecording ? 'Stop Recording' : 'Record Audio'}
+                  </Button>
+                  {recordingError && (
+                    <span className="text-sm text-red-600">
+                      {recordingError}
+                    </span>
+                  )}
+                </div>
+
+                {/* New recording will appear below in the uploads list with preview */}
+
+                {(existingFiles?.length ?? 0) > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-700">
+                      Existing attachments
+                    </div>
+                    <TooltipProvider>
+                      <div className="flex flex-wrap gap-2">
+                        {existingFiles?.map(f => {
+                          const style = getFileBadgeStyle(f?.file_type ?? null);
+                          const displayName = f?.file_name ?? 'Attachment';
+                          return (
+                            <Tooltip key={f?.uid}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={e =>
+                                    void onOpenAttachment(
+                                      f?.file_name,
+                                      f?.file_type,
+                                      f?.file_location,
+                                      e
+                                    )
+                                  }
+                                  className={`flex items-center gap-2 px-2 py-1 rounded ${style.bg} text-xs max-w-[160px]`}
+                                  title={displayName}
+                                >
+                                  <span className="font-mono">
+                                    {style.label}
+                                  </span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <span className="font-medium">
+                                  {displayName}
+                                </span>
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
+                      </div>
+                    </TooltipProvider>
+                  </div>
+                )}
+
                 {uploadedFiles.length > 0 && (
                   <div className="space-y-2">
-                    {uploadedFiles.map((uf, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
-                        <span className="text-sm truncate">
-                          {(uf as unknown as File).name ?? ''}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
+                    {uploadedFiles.map((uf, index) => {
+                      const f = uf as unknown as File;
+                      const isAudio = (f?.type ?? '').startsWith('audio/');
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded gap-3"
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          <span
+                            className="text-sm truncate flex-1"
+                            title={f?.name ?? ''}
+                          >
+                            {f?.name ?? ''}
+                          </span>
+                          {isAudio && (
+                            <audio
+                              src={URL.createObjectURL(f)}
+                              controls
+                              preload="metadata"
+                              className="max-w-[240px]"
+                            />
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
