@@ -1,54 +1,59 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { hash } from 'bcryptjs';
+import db, { organizationInfo, users } from '@/app/lib/drizzle';
 import { v4 as uuidv4 } from 'uuid';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
+    const organizationUid = uuidv4();
+
     // Create organization
-    const organization = await prisma.organization_info.create({
-      data: {
-        uid: uuidv4(),
-        practice_name: data.practiceInfo.practiceName,
-        bhf_number: data.practiceInfo.bhfNumber,
-        hpcsa: data.practiceInfo.hpcsaNumber,
-        practice_type: data.practiceInfo.practiceType,
-        vat_no: data.practiceInfo.vatNumber,
-        practice_telephone: data.contactDetails.practiceTelephone,
-        accounts_telephone: data.contactDetails.accountsTelephone,
-        postal: data.contactDetails.postalCode,
-        address: data.contactDetails.fullAddress,
-        email: data.contactDetails.practiceEmail,
-        cell: data.contactDetails.cellNumber,
-        fax: data.contactDetails.fax,
-        active: true,
-        date_created: new Date(),
-      },
+    await db.insert(organizationInfo).values({
+      uid: organizationUid,
+      practiceName: data.practiceInfo.practiceName,
+      practiceType: data.practiceInfo.practiceType,
+      vatNo: data.practiceInfo.vatNo,
+      address: data.practiceInfo.address,
+      postal: data.practiceInfo.postal,
+      practiceTelephone: data.practiceInfo.practiceTelephone,
+      accountsTelephone: data.practiceInfo.accountsTelephone,
+      cell: data.practiceInfo.cell,
+      fax: data.practiceInfo.fax,
+      email: data.practiceInfo.email,
+      active: true,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
     });
 
-    // Create user
-    const user = await prisma.users.create({
-      data: {
-        uid: uuidv4(),
-        first_name: data.userCreation.firstName,
-        surname: data.userCreation.lastName,
-        username: data.userCreation.username,
-        secret_key: data.userCreation.password, // Note: Should be hashed in production
-        orgid: organization.uid,
-        active: true,
-        date_created: new Date(),
-      },
+    // Create user with direct password storage (no hashing for now)
+
+    // Hash the password
+    const hashedPassword = await hash(data.userCreation.password, 10);
+
+    // Create the user record
+    await db.insert(users).values({
+      uid: uuidv4(),
+      title: data.userCreation.title,
+      firstName: data.userCreation.firstName,
+      surname: data.userCreation.lastName,
+      cellNo: data.userCreation.cellPhone,
+      secretKey: hashedPassword,
+      email: data.userCreation.email,
+      username: data.userCreation.username,
+      loginKey: data.userCreation.loginKey,
+      active: true,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
+      orgid: organizationUid,
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: 'Registration failed' },
-      { status: 500 }
-    );
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Registration error:', error);
+    }
+    return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
   }
-} 
+}

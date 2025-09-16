@@ -1,36 +1,51 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/app/lib/prisma'
-import { auth } from '@/app/lib/auth'
+import db, { organizationInfo } from '@/app/lib/drizzle';
+import {
+  withAuth,
+  AuthenticatedRequest,
+  createSuccessResponse,
+  createErrorResponse,
+} from '@/app/lib/api-auth';
+import { validateOrganization } from '@/app/lib/api-validation';
+import { eq, and } from 'drizzle-orm';
 
-export async function GET() {
+/**
+ * GET /api/settings/organization
+ * Fetch organization information for the authenticated user's organization
+ */
+async function getOrganizationHandler(request: AuthenticatedRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No organization ID found' }, 
-        { status: 401 }
+    const orgInfoResults = await db
+      .select()
+      .from(organizationInfo)
+      .where(
+        and(
+          eq(organizationInfo.uid, request.auth.user.orgId),
+          eq(organizationInfo.active, true)
+        )
       )
+      .limit(1);
+
+    if (orgInfoResults.length === 0) {
+      return createErrorResponse('Organization not found', 404, 'NOT_FOUND');
     }
 
-    const orgInfo = await prisma.organization_info.findFirst({
-      where: {
-        uid: session.user.orgId
-      }
-    })
+    const orgInfo = orgInfoResults[0];
 
-    if (!orgInfo) {
-      return NextResponse.json(
-        { error: 'Organization not found' },
-        { status: 404 }
-      )
-    }
+    // Validate the response data
+    const validatedOrgInfo = validateOrganization(orgInfo);
 
-    return NextResponse.json(orgInfo)
+    return createSuccessResponse(validatedOrgInfo);
   } catch (error) {
-    console.error('Failed to fetch organization info:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch organization info' },
-      { status: 500 }
-    )
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    return createErrorResponse(
+      `Failed to fetch organization info: ${errorMessage}`,
+      500,
+      'DATABASE_ERROR'
+    );
   }
-} 
+}
+
+export const GET = withAuth(getOrganizationHandler, {
+  loggerContext: 'api/settings/organization/route.ts',
+});

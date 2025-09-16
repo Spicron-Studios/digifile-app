@@ -1,62 +1,50 @@
-import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/prisma'
-import { auth } from '@/app/lib/auth'
+import { NextResponse } from 'next/server';
+import db, { organizationInfo } from '@/app/lib/drizzle';
+import { eq, and } from 'drizzle-orm';
+import { auth } from '@/app/lib/auth';
 
 export async function PUT(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { uid: string } }
 ) {
+  const { uid } = params;
+
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user?.orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No organization ID found' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const data = await request.json()
-    if (!data) {
-      return NextResponse.json(
-        { error: 'Invalid request body' },
-        { status: 400 }
+    const data = await request.json();
+
+    const updatedOrg = await db
+      .update(organizationInfo)
+      .set({
+        practiceName: data.practiceName,
+        practiceType: data.practiceType,
+        vatNo: data.vatNo,
+        address: data.address,
+        postal: data.postal,
+        practiceTelephone: data.practiceTelephone,
+        accountsTelephone: data.accountsTelephone,
+        cell: data.cell,
+        fax: data.fax,
+        email: data.email,
+        lastEdit: new Date().toISOString(),
+      })
+      .where(
+        and(eq(organizationInfo.uid, uid), eq(organizationInfo.active, true))
       )
-    }
+      .returning();
 
-    if (params.uid !== session.user.orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Organization ID mismatch' },
-        { status: 403 }
-      )
-    }
-
-    const updatedOrg = await prisma.organization_info.update({
-      where: {
-        uid: session.user.orgId
-      },
-      data: {
-        practice_name: data.practice_name ?? undefined,
-        practice_type: data.practice_type ?? undefined,
-        bhf_number: data.bhf_number ?? undefined,
-        hpcsa: data.hpcsa ?? undefined,
-        vat_no: data.vat_no ?? undefined,
-        address: data.address ?? undefined,
-        postal: data.postal ?? undefined,
-        practice_telephone: data.practice_telephone ?? undefined,
-        accounts_telephone: data.accounts_telephone ?? undefined,
-        cell: data.cell ?? undefined,
-        fax: data.fax ?? undefined,
-        email: data.email ?? undefined,
-        last_edit: new Date()
-      }
-    })
-
-    return NextResponse.json(updatedOrg)
+    return NextResponse.json(updatedOrg[0]);
   } catch (error) {
-    console.error('Failed to update organization:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Failed to update organization:', error);
+    }
     return NextResponse.json(
       { error: 'Failed to update organization' },
       { status: 500 }
-    )
+    );
   }
-} 
+}

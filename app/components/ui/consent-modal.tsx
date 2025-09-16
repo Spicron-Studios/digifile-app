@@ -1,46 +1,47 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog'
-import { ScrollArea } from './scroll-area'
+import { useState, useEffect } from 'react';
+import { getConsentText } from '@/app/actions/settings-uploads';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
+import { ScrollArea } from './scroll-area';
 
 type ConsentModalProps = {
-  isOpen: boolean
-  onClose: () => void
-  consentNumber: number
-  orgId: string
-}
+  isOpen: boolean;
+  onClose: () => void;
+  consentNumber: number;
+  orgId: string;
+};
 
-export function ConsentModal({ isOpen, onClose, consentNumber, orgId }: ConsentModalProps) {
-  const [content, setContent] = useState<string>('')
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export function ConsentModal({
+  isOpen,
+  onClose,
+  consentNumber,
+  orgId,
+}: ConsentModalProps) {
+  const [content, setContent] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchConsentContent = async () => {
-      if (!isOpen) return
-      
-      try {
-        setIsLoading(true)
-        setError(null)
-        
-        const response = await fetch(`/api/settings/organization/${orgId}/consent/${consentNumber}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch consent document')
-        }
-        
-        const text = await response.text()
-        setContent(text)
-      } catch (error) {
-        console.error('Error fetching consent content:', error)
-        setError('Failed to load consent document')
-      } finally {
-        setIsLoading(false)
-      }
-    }
+      if (!isOpen) return;
 
-    fetchConsentContent()
-  }, [isOpen, consentNumber, orgId])
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const text = await getConsentText(consentNumber);
+        setContent(text);
+      } catch (error) {
+        console.error('Error fetching consent content:', error);
+        setError('Failed to load consent document');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConsentContent();
+  }, [isOpen, consentNumber, orgId]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -59,6 +60,5 @@ export function ConsentModal({ isOpen, onClose, consentNumber, orgId }: ConsentM
         </ScrollArea>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

@@ -1,38 +1,34 @@
-'use server'
+'use server';
 
-import { NextResponse } from 'next/server'
-import { auth } from "@/app/actions/auth"
-import prisma from '@/app/lib/prisma'
+import { NextResponse } from 'next/server';
+import { auth } from '@/app/actions/auth';
+import db, { users } from '@/app/lib/drizzle';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET() {
   try {
     // Verify authentication
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const users = await prisma.users.findMany({
-      where: {
-        AND: [
-          { active: true },
-          { orgid: session.user.orgId } // Use the organization ID from the session
-        ]
-      },
-      select: {
-        username: true
-      }
-    })
-    
-    return NextResponse.json(users)
+    const userList = await db
+      .select({
+        username: users.username,
+      })
+      .from(users)
+      .where(and(eq(users.active, true), eq(users.orgid, session.user.orgId)));
+
+    return NextResponse.json(userList);
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to fetch users' + error }, 
+      { error: 'Failed to fetch users' + error },
       { status: 500 }
-    )
+    );
   }
 }
 
 export async function POST() {
-  return NextResponse.json({ message: 'Method not allowed' }, { status: 405 })
+  return NextResponse.json({ message: 'Method not allowed' }, { status: 405 });
 }

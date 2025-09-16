@@ -10,16 +10,11 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverExternalPackages: ["next-auth"],
     typedRoutes: false,
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
-  typescript: {
-    // !! WARN !!
-    // This will allow production builds to successfully complete
-    // even if your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
-  },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
