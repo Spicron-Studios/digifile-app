@@ -1,9 +1,9 @@
-'use server';
-
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import db, { userCalendarEntries } from '@/app/lib/drizzle';
 import { v4 as uuidv4 } from 'uuid';
+
+export const runtime = 'nodejs';
 
 const appointmentSchema = z.object({
   user_uid: z.string(),

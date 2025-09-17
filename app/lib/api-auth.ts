@@ -22,7 +22,7 @@ export interface ApiResponse<T = unknown> {
  * Standardized authentication wrapper for API routes
  * Ensures consistent auth checking, logging, and error responses
  */
-export async function withAuth<T>(
+export function withAuth<T>(
   handler: (
     _request: AuthenticatedRequest,
     _context?: { params?: Record<string, string | string[]> }

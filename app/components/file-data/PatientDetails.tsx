@@ -33,7 +33,7 @@ type Props = {
     _part: 'year' | 'month' | 'day',
     _value: string,
     _maxLen: number,
-    _nextRef?: React.RefObject<HTMLInputElement>
+    _nextRef?: React.RefObject<HTMLInputElement | null>
   ) => void;
   onInputChange: (_field: string, _value: string) => void;
   onSelectChange: (_field: string, _value: string) => void;

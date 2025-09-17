@@ -8,6 +8,8 @@ import {
 import { validateOrganization } from '@/app/lib/api-validation';
 import { eq, and } from 'drizzle-orm';
 
+export const runtime = 'nodejs';
+
 /**
  * GET /api/settings/organization
  * Fetch organization information for the authenticated user's organization

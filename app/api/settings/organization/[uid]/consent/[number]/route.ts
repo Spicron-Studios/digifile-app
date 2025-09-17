@@ -3,17 +3,16 @@ import { auth } from '@/app/lib/auth';
 import { getSupabaseClient } from '@/app/lib/supabase';
 import { getBucket } from '@/app/lib/storage';
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { uid: string; number: string } }
-) {
+export async function GET(_request: NextRequest, context: unknown) {
   try {
+    const params =
+      (context as { params?: Record<string, unknown> }).params ?? {};
     const session = await auth();
     if (!session?.user?.orgId) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    if (session.user.orgId !== params.uid) {
+    if (session.user.orgId !== String(params.uid)) {
       return new Response('Forbidden', { status: 403 });
     }
 
@@ -22,7 +21,9 @@ export async function GET(
       return new Response('Supabase client not initialized', { status: 500 });
     }
 
-    const path = `${params.uid}/consent-forms/${params.uid}Consent${params.number}.txt`;
+    const uid = String(params.uid);
+    const number = String(params.number);
+    const path = `${uid}/consent-forms/${uid}Consent${number}.txt`;
 
     const { data, error } = await supabase.storage
       .from(getBucket('ASSETS'))

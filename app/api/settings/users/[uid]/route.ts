@@ -1,16 +1,18 @@
-'use server';
-
 import { NextRequest, NextResponse } from 'next/server';
 import db, { users } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
 import { eq, and } from 'drizzle-orm';
 
+export const runtime = 'nodejs';
+
 export async function PUT(
   request: NextRequest,
-  context: { params: { uid: string } }
+  context: unknown
 ): Promise<NextResponse> {
   try {
-    const { uid } = await Promise.resolve(context.params);
+    const params =
+      (context as { params?: Record<string, unknown> }).params ?? {};
+    const uid = String(params.uid ?? '');
 
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -31,7 +33,9 @@ export async function PUT(
         cellNo: data.phone,
         lastEdit: new Date().toISOString(),
       })
-      .where(and(eq(users.uid, uid), eq(users.orgid, session.user.orgId)))
+      .where(
+        and(eq(users.uid, String(uid)), eq(users.orgid, session.user.orgId))
+      )
       .returning();
 
     if (updatedUser.length === 0) {

@@ -6,6 +6,8 @@ import {
 } from '@/app/lib/api-auth';
 import { eq } from 'drizzle-orm';
 
+export const runtime = 'nodejs';
+
 /**
  * GET /api/settings/users/roles
  * Fetch all available roles for the organization

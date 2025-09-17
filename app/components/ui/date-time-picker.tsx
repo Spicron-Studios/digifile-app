@@ -15,11 +15,12 @@ export function DateTimePicker({ id, value, onChange }: DateTimePickerProps) {
     <ReactDatePicker
       id={id}
       selected={value || null}
-      onChange={onChange}
+      onChange={date => {
+        if (onChange) onChange(date);
+      }}
       showTimeSelect
       dateFormat="Pp"
       className="w-full p-2 border rounded"
-      selectsMultiple={false}
     />
   );
 }

@@ -180,13 +180,14 @@ export default function RegistrationClient({
       }
     } else {
       const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-      if (currentIndex < tabs.length - 1 && tabs[currentIndex + 1]) {
+      const nextTabId = tabs[currentIndex + 1]?.id;
+      if (currentIndex < tabs.length - 1 && nextTabId) {
         try {
           if (activeTab === 'practice-info')
             practiceInfoSchema.parse(formData.practiceInfo);
           else if (activeTab === 'user-creation')
             userCreationSchema.parse(formData.userCreation);
-          setActiveTab(tabs[currentIndex + 1].id);
+          setActiveTab(nextTabId);
         } catch (e) {
           if (e instanceof z.ZodError) setErrors(toFieldErrors(e));
         }
@@ -196,8 +197,8 @@ export default function RegistrationClient({
 
   const handlePrevious = (): void => {
     const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-    if (currentIndex > 0 && tabs[currentIndex - 1])
-      setActiveTab(tabs[currentIndex - 1].id);
+    const prevTabId = tabs[currentIndex - 1]?.id;
+    if (currentIndex > 0 && prevTabId) setActiveTab(prevTabId);
   };
 
   const handleCancel = (): void => {
