@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Home, FileText, Settings, Menu, Calendar } from 'lucide-react';
+import { Home, FileText, Settings, Menu } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -23,7 +23,6 @@ import {
 const navItems = [
   { name: 'Home', icon: Home, href: '/sites' },
   { name: 'File Data', icon: FileText, href: '/sites/file-data' },
-  { name: 'Calendar', icon: Calendar, href: '/sites/calendar' },
   { name: 'Settings', icon: Settings, href: '/sites/settings' },
 ];
 
