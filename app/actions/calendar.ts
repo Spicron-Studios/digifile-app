@@ -75,3 +75,54 @@ export async function getCalendarData(
 
   return { accounts, events };
 }
+
+export async function getDayEvents(
+  dateISO: string,
+  userIds: string[]
+): Promise<CalendarEvent[]> {
+  const session = await auth();
+  if (!session?.user?.orgId) return [];
+
+  const start = new Date(dateISO);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setHours(23, 59, 59, 999);
+
+  // Using simple BETWEEN by string compare on timestamp
+  const rows = await db
+    .select({
+      uid: userCalendarEntries.uid,
+      userUid: userCalendarEntries.userUid,
+      startdate: userCalendarEntries.startdate,
+      enddate: userCalendarEntries.enddate,
+      title: userCalendarEntries.title,
+      description: userCalendarEntries.description,
+    })
+    .from(userCalendarEntries)
+    .where(
+      and(
+        eq(userCalendarEntries.active, true),
+        eq(userCalendarEntries.orgid, session.user.orgId),
+        inArray(userCalendarEntries.userUid, userIds)
+      )
+    );
+
+  // Filter to day bounds in JS to avoid extra operators
+  const dayRows = rows.filter(r => {
+    const s = new Date(r.startdate as string);
+    const e = new Date(r.enddate as string);
+    // Include events that intersect the day: start < endOfDay && end > startOfDay
+    return s <= end && e >= start;
+  });
+
+  // Color mapping by user index is unknown here, default blue
+  return dayRows.map(r => ({
+    id: r.uid!,
+    title: r.title ?? '',
+    start: new Date(r.startdate as string),
+    end: new Date(r.enddate as string),
+    resourceId: r.userUid!,
+    color: '#3b82f6',
+    description: r.description ?? null,
+  }));
+}

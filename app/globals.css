@@ -33,6 +33,13 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* Calendar tokens */
+    --calendar-slot-bg: 210 40% 98%;
+    --calendar-slot-alt-bg: 210 40% 96%;
+    --calendar-grid: 215 16% 90%;
+    --calendar-now: 0 84% 60%;
+    --calendar-event-border: 215 16% 82%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -59,6 +66,13 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Calendar tokens (dark) */
+    --calendar-slot-bg: 222 14% 18%;
+    --calendar-slot-alt-bg: 222 14% 16%;
+    --calendar-grid: 222 14% 24%;
+    --calendar-now: 0 84% 60%;
+    --calendar-event-border: 222 14% 28%;
   }
 }
 
@@ -70,3 +84,42 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Calendar theme overrides for react-big-calendar */
+.rbc-theme .rbc-time-view, .rbc-theme .rbc-agenda-view { font-size: 12px; }
+.rbc-theme .rbc-time-content { border-top: 0; }
+.rbc-theme .rbc-time-header { border-bottom: 1px solid hsl(var(--calendar-grid)); }
+.rbc-theme .rbc-time-slot { border-top: 1px solid hsl(var(--calendar-grid)); }
+.rbc-theme .rbc-timeslot-group:nth-child(odd) { background-color: hsl(var(--calendar-slot-bg)); }
+.rbc-theme .rbc-timeslot-group:nth-child(even) { background-color: hsl(var(--calendar-slot-alt-bg)); }
+.rbc-theme .rbc-time-content > * + * > * { border-left: 1px solid hsl(var(--calendar-grid)); }
+
+/* Current time indicator */
+.rbc-theme .rbc-current-time-indicator {
+  background-color: hsl(var(--calendar-now));
+  height: 2px;
+}
+
+/* Event appearance */
+.rbc-theme .rbc-event {
+  border-radius: 8px;
+  border: 1px solid hsl(var(--calendar-event-border));
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  margin-right: 4px; /* clearer separation when overlapping */
+}
+.rbc-theme .rbc-event-label { font-weight: 600; opacity: 0.8; }
+.rbc-theme .rbc-event-content { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+
+/* When events overlap, rbc positions them side-by-side with absolute widths.
+   Add a subtle outline and inner padding to keep them visually distinct. */
+.rbc-theme .rbc-event:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+  pointer-events: none;
+}
+
+/* Subtle hover */
+.rbc-theme .rbc-event:hover { filter: brightness(0.98); }

@@ -6,10 +6,18 @@ import {
   Views,
   dateFnsLocalizer,
 } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { parse, startOfWeek, getDay, format } from 'date-fns';
 import enZA from 'date-fns/locale/en-ZA';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import type { CalendarEvent } from '@/app/types/calendar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/app/components/ui/tooltip';
 
 const locales = { 'en-ZA': enZA } as const;
 const localizer = dateFnsLocalizer({
@@ -29,11 +37,34 @@ export interface BigCalendarProps {
   onSelectEvent?: (_event: CalendarEvent) => void;
 }
 
+const DragAndDropCalendar = withDragAndDrop<
+  CalendarEvent,
+  { id: string; title: string }
+>(RBCalendar as unknown as React.ComponentType<any>);
+
 export default function BigCalendar(
   props: BigCalendarProps
 ): React.JSX.Element {
   const { events, resources, onSelectEvent, onSelectSlot, date, onNavigate } =
     props;
+
+  function hexToRgba(hex: string, alpha: number): string {
+    const normalized: string = hex.replace('#', '');
+    const isShort: boolean = normalized.length === 3;
+    const rHex: string = isShort
+      ? normalized[0] + normalized[0]
+      : normalized.substring(0, 2);
+    const gHex: string = isShort
+      ? normalized[1] + normalized[1]
+      : normalized.substring(2, 4);
+    const bHex: string = isShort
+      ? normalized[2] + normalized[2]
+      : normalized.substring(4, 6);
+    const r: number = parseInt(rHex, 16);
+    const g: number = parseInt(gHex, 16);
+    const b: number = parseInt(bHex, 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
 
   const eventPropGetter = useMemo(() => {
     return (
@@ -44,17 +75,62 @@ export default function BigCalendar(
     ) => {
       return {
         style: {
-          backgroundColor: _event.color,
+          backgroundColor: hexToRgba(_event.color, 0.16),
           borderLeft: `3px solid ${_event.color}`,
+          border: '1px solid hsl(var(--calendar-event-border, var(--border)))',
           color: '#0f172a',
+          borderRadius: '8px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          padding: '4px 6px',
+          lineHeight: 1.2,
+          fontWeight: 500,
         },
       };
     };
   }, []);
 
+  function components() {
+    const Event = ({ event }: { event: CalendarEvent }) => {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="rbc-event-inner">
+                <div className="rbc-event-content truncate">{event.title}</div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <div className="space-y-1">
+                <div className="font-semibold">{event.title}</div>
+                <div className="text-xs text-slate-600">
+                  {event.start.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}{' '}
+                  –{' '}
+                  {event.end.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
+                {event.description ? (
+                  <div className="text-xs text-slate-700">
+                    {event.description}
+                  </div>
+                ) : null}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    };
+
+    return { event: Event } as const;
+  }
+
   return (
     <div className="rbc-theme text-sm">
-      <RBCalendar
+      <DragAndDropCalendar
         localizer={localizer}
         events={events}
         startAccessor="start"
@@ -62,13 +138,15 @@ export default function BigCalendar(
         resources={resources}
         resourceIdAccessor="id"
         resourceTitleAccessor="title"
+        resourceAccessor="resourceId"
         views={[Views.DAY]}
         defaultView={Views.DAY}
         toolbar={false}
         date={date}
+        now={new Date()}
         onNavigate={d => onNavigate?.(d as Date)}
-        step={60}
-        timeslots={1}
+        step={30}
+        timeslots={2}
         min={new Date(1970, 0, 1, 5, 0)}
         max={new Date(1970, 0, 1, 20, 0)}
         selectable
@@ -78,6 +156,11 @@ export default function BigCalendar(
         }
         style={{ height: '100%' }}
         eventPropGetter={eventPropGetter}
+        scrollToTime={new Date(1970, 0, 1, 8, 0)}
+        dayLayoutAlgorithm="no-overlap"
+        components={components()}
+        draggableAccessor={() => true}
+        resizable
       />
     </div>
   );

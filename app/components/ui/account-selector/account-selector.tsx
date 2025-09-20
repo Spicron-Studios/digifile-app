@@ -23,26 +23,28 @@ export default function AccountSelector({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap gap-2">
       {accounts.map(acc => {
         const checked = selectedIds.includes(acc.uid);
         return (
-          <label
+          <button
             key={acc.uid}
-            className="flex items-center gap-2 text-sm cursor-pointer"
+            type="button"
+            onClick={() => toggle(acc.uid)}
+            className={
+              `inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm transition-colors ` +
+              (checked
+                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                : 'bg-white text-slate-700 hover:bg-slate-50')
+            }
+            aria-pressed={checked}
           >
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              checked={checked}
-              onChange={() => toggle(acc.uid)}
-            />
             <span
-              className="w-3 h-3 rounded-full"
+              className="w-2.5 h-2.5 rounded-full"
               style={{ backgroundColor: acc.color }}
             />
-            <span>{acc.name}</span>
-          </label>
+            <span className="whitespace-nowrap">{acc.name}</span>
+          </button>
         );
       })}
     </div>

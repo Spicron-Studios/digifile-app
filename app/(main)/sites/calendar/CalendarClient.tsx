@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { Account, CalendarEvent } from '@/app/types/calendar';
 import BigCalendar from '@/app/components/ui/big-calendar';
 import AccountSelector from '@/app/components/ui/account-selector/account-selector';
@@ -18,6 +18,7 @@ import {
   updateAppointment,
   deleteAppointment,
 } from '@/app/actions/appointments';
+import { getDayEvents } from '@/app/actions/calendar';
 
 export interface CalendarClientProps {
   accounts: Account[];
@@ -43,13 +44,36 @@ export default function CalendarClient({
     description?: string;
   }>(null);
 
-  const visibleEvents = useMemo(
-    () =>
-      events.filter(
-        e => selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
-      ),
-    [events, selectedIds, currentDate]
-  );
+  const [visibleEvents, setVisibleEvents] = useState<CalendarEvent[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    async function load(): Promise<void> {
+      const dayIso = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate()
+      )
+        .toISOString()
+        .slice(0, 10);
+      const dayEvents = await getDayEvents(dayIso, selectedIds);
+      if (!active) return;
+
+      if (dayEvents.length === 0) {
+        const filtered = events.filter(
+          e =>
+            selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
+        );
+        setVisibleEvents(filtered);
+      } else {
+        setVisibleEvents(dayEvents);
+      }
+    }
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [currentDate, selectedIds, events]);
   const resources = useMemo(
     () =>
       accounts
@@ -94,10 +118,24 @@ export default function CalendarClient({
         end,
       });
     }
+    await refreshDay();
   }
 
   async function onDelete(): Promise<void> {
     if (editing?.id) await deleteAppointment(editing.id);
+    await refreshDay();
+  }
+
+  async function refreshDay(): Promise<void> {
+    const dayIso = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate()
+    )
+      .toISOString()
+      .slice(0, 10);
+    const dayEvents = await getDayEvents(dayIso, selectedIds);
+    setVisibleEvents(dayEvents);
   }
 
   return (
@@ -120,6 +158,9 @@ export default function CalendarClient({
               />
             </div>
             <div className="flex flex-col items-end gap-2">
+              <Button variant="outline" onClick={() => void refreshDay()}>
+                Refresh
+              </Button>
               <Button variant="secondary" onClick={() => setModalOpen(true)}>
                 Book Appointment
               </Button>
@@ -144,6 +185,27 @@ export default function CalendarClient({
             resources={resources}
             date={currentDate}
             onNavigate={setCurrentDate}
+            // Drag-n-drop updates
+            onEventDrop={async ({ event, start, end, resourceId }) => {
+              await updateAppointment(event.id, {
+                userUid: (resourceId as string) ?? event.resourceId,
+                title: event.title,
+                description: event.description ?? '',
+                start: (start as Date).toISOString(),
+                end: (end as Date).toISOString(),
+              });
+              await refreshDay();
+            }}
+            onEventResize={async ({ event, start, end }) => {
+              await updateAppointment(event.id, {
+                userUid: event.resourceId,
+                title: event.title,
+                description: event.description ?? '',
+                start: (start as Date).toISOString(),
+                end: (end as Date).toISOString(),
+              });
+              await refreshDay();
+            }}
             onSelectEvent={e =>
               setEditing({
                 id: e.id,
