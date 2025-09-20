@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { hash } from 'bcryptjs';
 import db, { organizationInfo, users } from '@/app/lib/drizzle';
 import { v4 as uuidv4 } from 'uuid';

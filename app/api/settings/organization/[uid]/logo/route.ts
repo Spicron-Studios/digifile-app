@@ -3,10 +3,8 @@ import { getSupabaseClient } from '@/app/lib/supabase';
 import { auth } from '@/app/lib/auth';
 import { getBucket } from '@/app/lib/storage';
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { uid: string } }
-) {
+export async function PUT(request: NextRequest, context: unknown) {
+  const params = (context as { params?: Record<string, unknown> }).params ?? {};
   const supabase = getSupabaseClient();
   if (!supabase) {
     return NextResponse.json(
@@ -25,7 +23,7 @@ export async function PUT(
     }
 
     // Verify the requested org matches the session org
-    if (session.user.orgId !== params.uid) {
+    if (session.user.orgId !== String(params.uid)) {
       return NextResponse.json(
         { error: 'Unauthorized - Organization mismatch' },
         { status: 403 }
@@ -55,9 +53,11 @@ export async function PUT(
     }
 
     // Get the public URL
+    const uid = String(params.uid);
+
     const { data: urlData } = supabase.storage
       .from(getBucket('ASSETS'))
-      .getPublicUrl(`${params.uid}/logo/${params.uid}-logo.jpg`);
+      .getPublicUrl(`${uid}/logo/${uid}-logo.jpg`);
 
     return NextResponse.json({ url: urlData.publicUrl });
   } catch (error) {

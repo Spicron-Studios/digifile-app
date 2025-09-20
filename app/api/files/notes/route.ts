@@ -5,6 +5,8 @@ import db, { tabNotes, tabFiles } from '@/app/lib/drizzle';
 import { Logger } from '@/app/lib/logger';
 import { getBucket } from '@/app/lib/storage';
 
+export const runtime = 'nodejs';
+
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;

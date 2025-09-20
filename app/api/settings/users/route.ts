@@ -1,9 +1,9 @@
-'use server';
-
 import { NextResponse } from 'next/server';
 import db, { users } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
 import { eq, and } from 'drizzle-orm';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {

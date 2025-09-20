@@ -364,7 +364,10 @@ export async function handleCreateFile(
     );
 
     // Create patient record if patient data is provided
-    // Removed unused variable per lint rules
+    // Track created patient and relationship rows for downstream response shaping
+    let newPatientRecord: typeof patient.$inferSelect | null = null;
+    let newFilePatientRows: Array<typeof fileinfoPatient.$inferSelect> | null =
+      null;
 
     if (
       data.patient &&
@@ -427,10 +430,11 @@ export async function handleCreateFile(
         })
         .returning();
 
-      const newPatientRecord = newPatient[0];
-      if (!newPatientRecord) {
+      const newPatientRecordLocal = newPatient[0];
+      if (!newPatientRecordLocal) {
         throw new Error('Failed to create patient');
       }
+      newPatientRecord = newPatientRecordLocal;
 
       await logger.info(
         'api/files/[uid]/db_write.ts',
@@ -441,7 +445,7 @@ export async function handleCreateFile(
       const relationshipUid = uuidv4();
 
       // Create the fileinfo_patient relationship
-      const newFilePatient = await db
+      const newFilePatientRowsLocal = await db
         .insert(fileinfoPatient)
         .values({
           uid: relationshipUid,
@@ -454,7 +458,9 @@ export async function handleCreateFile(
         })
         .returning();
 
-      if (!newFilePatient[0]) {
+      newFilePatientRows = newFilePatientRowsLocal;
+
+      if (!newFilePatientRowsLocal[0]) {
         throw new Error('Failed to create file-patient link');
       }
 
@@ -516,18 +522,13 @@ export async function handleCreateFile(
       result.data &&
       !result.data.fileinfo_patient &&
       newPatientRecord &&
-      newFilePatient[0]
+      newFilePatientRows &&
+      newFilePatientRows[0]
     ) {
       result.data.fileinfo_patient = [
         {
-          uid: newFilePatient[0].uid,
+          uid: newFilePatientRows[0].uid,
           patientid: newPatientRecord.uid,
-          fileid: newFileUid,
-          orgid: orgId,
-          active: true,
-          dateCreated: newFilePatient[0].dateCreated,
-          lastEdit: newFilePatient[0].lastEdit,
-          locked: false,
         },
       ];
     }

@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import db, { organizationInfo } from '@/app/lib/drizzle';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/app/lib/auth';
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { uid: string } }
-) {
-  const { uid } = params;
+export async function PUT(request: Request, context: unknown) {
+  const params = (context as { params?: Record<string, unknown> }).params ?? {};
+  const uid = String(params.uid);
 
   try {
     const session = await auth();
