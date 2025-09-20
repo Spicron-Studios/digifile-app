@@ -26,6 +26,7 @@ import {
   type PracticeType,
 } from '@/app/actions/practice-types';
 import { createClient } from '@supabase/supabase-js';
+import { GeneralSettingsSkeleton } from '@/app/components/ui/skeletons';
 
 type OrganizationInfo = {
   uid: string;
@@ -213,11 +214,7 @@ export function GeneralSettings() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-gray-500">Loading organization information...</div>
-      </div>
-    );
+    return <GeneralSettingsSkeleton />;
   }
 
   if (error) {

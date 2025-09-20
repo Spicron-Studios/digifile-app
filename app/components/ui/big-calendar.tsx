@@ -9,7 +9,7 @@ import {
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { parse, startOfWeek, getDay, format } from 'date-fns';
-import enZA from 'date-fns/locale/en-ZA';
+import { enZA } from 'date-fns/locale/en-ZA';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import type { CalendarEvent } from '@/app/types/calendar';
 import {
@@ -69,16 +69,20 @@ export default function BigCalendar(
 
   function hexToRgba(hex: string, alpha: number): string {
     const normalized: string = hex.replace('#', '');
-    const isShort: boolean = normalized.length === 3;
+    if (!normalized || normalized.length < 3) return 'rgba(0, 0, 0, 0)';
+
+    // Type assertion to ensure we have a valid hex string
+    const safeNormalized = normalized as string & { length: 3 | 6 | 9 | 12 };
+    const isShort: boolean = safeNormalized.length === 3;
     const rHex: string = isShort
-      ? normalized[0] + normalized[0]
-      : normalized.substring(0, 2);
+      ? safeNormalized[0] + safeNormalized[0]
+      : safeNormalized.substring(0, 2);
     const gHex: string = isShort
-      ? normalized[1] + normalized[1]
-      : normalized.substring(2, 4);
+      ? safeNormalized[1] + safeNormalized[1]
+      : safeNormalized.substring(2, 4);
     const bHex: string = isShort
-      ? normalized[2] + normalized[2]
-      : normalized.substring(4, 6);
+      ? safeNormalized[2] + safeNormalized[2]
+      : safeNormalized.substring(4, 6);
     const r: number = parseInt(rHex, 16);
     const g: number = parseInt(gHex, 16);
     const b: number = parseInt(bHex, 16);

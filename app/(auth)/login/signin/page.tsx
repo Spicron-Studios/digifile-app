@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
+import { AuthSkeleton } from '@/app/components/ui/skeletons';
 
 export default function SigninPage() {
   const router = useRouter();
@@ -53,6 +54,10 @@ export default function SigninPage() {
       setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return <AuthSkeleton />;
+  }
 
   return (
     <div className="container mx-auto max-w-md mt-20 p-6">

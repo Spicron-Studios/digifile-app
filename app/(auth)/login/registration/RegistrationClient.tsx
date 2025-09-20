@@ -17,6 +17,7 @@ import {
   TabsTrigger,
 } from '@/app/components/ui/tabs';
 import type { PracticeType } from '@/app/actions/practice-types';
+import { AuthSkeleton } from '@/app/components/ui/skeletons';
 
 const practiceInfoSchema = z.object({
   practiceName: z.string().min(1, 'Practice name is required'),
@@ -123,6 +124,7 @@ export default function RegistrationClient({
     },
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const tabs = [
     { id: 'practice-info', label: 'Practice Info' },
@@ -206,6 +208,7 @@ export default function RegistrationClient({
   };
 
   const handleVerificationSubmit = async (): Promise<void> => {
+    setIsLoading(true);
     try {
       practiceInfoSchema.parse(formData.practiceInfo);
       userCreationSchema.parse(formData.userCreation);
@@ -223,8 +226,14 @@ export default function RegistrationClient({
         // For client-side components, we can't use the server logger
         setErrors({ general: ['Registration failed. Please try again.'] });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return <AuthSkeleton />;
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-8">

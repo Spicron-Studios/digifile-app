@@ -34,15 +34,18 @@ export default function CalendarClient({
   );
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [editing, setEditing] = useState<null | {
-    id?: string;
-    userUid?: string;
-    date?: string;
-    time?: string;
-    endTime?: string;
-    title?: string;
-    description?: string;
-  }>(null);
+  const [editing, setEditing] = useState<
+    | undefined
+    | {
+        id?: string | undefined;
+        userUid?: string | undefined;
+        date?: string | undefined;
+        time?: string | undefined;
+        endTime?: string | undefined;
+        title?: string | undefined;
+        description?: string | undefined;
+      }
+  >(undefined);
 
   const [visibleEvents, setVisibleEvents] = useState<CalendarEvent[]>([]);
 
@@ -100,13 +103,13 @@ export default function CalendarClient({
   }
 
   async function onSave(values: {
-    id?: string;
+    id?: string | undefined;
     userUid: string;
     date: string;
     time: string;
     endTime: string;
     title: string;
-    description?: string;
+    description?: string | undefined;
   }): Promise<void> {
     const start = `${values.date}T${values.time}:00.000Z`;
     const end = `${values.date}T${values.endTime}:00.000Z`;
@@ -254,7 +257,7 @@ export default function CalendarClient({
             }
             onSelectSlot={slot =>
               setEditing({
-                userUid: selectedIds[0],
+                userUid: selectedIds[0]!,
                 date: slot.start.toISOString().slice(0, 10),
                 time: `${String(slot.start.getHours()).padStart(2, '0')}:00`,
                 endTime: `${String(slot.end.getHours()).padStart(2, '0')}:00`,
@@ -265,14 +268,14 @@ export default function CalendarClient({
       </Card>
 
       <AppointmentModal
-        open={modalOpen || editing !== null}
+        open={modalOpen || editing !== undefined}
         accounts={accounts}
         defaultDate={currentDate}
-        initialValues={editing ?? undefined}
+        initialValues={editing as any}
         onOpenChange={o => {
           if (!o) {
             setModalOpen(false);
-            setEditing(null);
+            setEditing(undefined);
           } else {
             setModalOpen(true);
           }

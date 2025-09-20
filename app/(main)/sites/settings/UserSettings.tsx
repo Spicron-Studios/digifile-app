@@ -22,6 +22,7 @@ import {
   getUserRoles,
   updateUserRoles,
 } from '@/app/actions/users';
+import { UserSettingsSkeleton } from '@/app/components/ui/skeletons';
 
 type User = {
   uid: string;
@@ -214,11 +215,7 @@ export function UserSettings() {
   };
 
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p>Loading...</p>
-      </div>
-    );
+    return <UserSettingsSkeleton />;
   }
 
   if (status === 'unauthenticated') {
