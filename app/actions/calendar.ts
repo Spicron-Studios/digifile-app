@@ -81,7 +81,10 @@ export async function getDayEvents(
   userIds: string[]
 ): Promise<CalendarEvent[]> {
   const session = await auth();
-  if (!session?.user?.orgId) return [];
+  if (!session?.user?.orgId) {
+    console.log('[getDayEvents] unauthorized or missing org');
+    return [];
+  }
 
   const start = new Date(dateISO);
   start.setHours(0, 0, 0, 0);
@@ -106,6 +109,14 @@ export async function getDayEvents(
         inArray(userCalendarEntries.userUid, userIds)
       )
     );
+  console.log(
+    '[getDayEvents] db rows',
+    rows.length,
+    'for',
+    dateISO,
+    'users',
+    userIds
+  );
 
   // Filter to day bounds in JS to avoid extra operators
   const dayRows = rows.filter(r => {
@@ -114,6 +125,7 @@ export async function getDayEvents(
     // Include events that intersect the day: start < endOfDay && end > startOfDay
     return s <= end && e >= start;
   });
+  console.log('[getDayEvents] filtered to day', dayRows.length);
 
   // Color mapping by user index is unknown here, default blue
   return dayRows.map(r => ({

@@ -35,6 +35,17 @@ export interface BigCalendarProps {
   onNavigate?: (_date: Date) => void;
   onSelectSlot?: (_range: { start: Date; end: Date }) => void;
   onSelectEvent?: (_event: CalendarEvent) => void;
+  onEventDrop?: (_args: {
+    event: CalendarEvent;
+    start: Date;
+    end: Date;
+    resourceId?: string;
+  }) => void | Promise<void>;
+  onEventResize?: (_args: {
+    event: CalendarEvent;
+    start: Date;
+    end: Date;
+  }) => void | Promise<void>;
 }
 
 const DragAndDropCalendar = withDragAndDrop<
@@ -45,8 +56,16 @@ const DragAndDropCalendar = withDragAndDrop<
 export default function BigCalendar(
   props: BigCalendarProps
 ): React.JSX.Element {
-  const { events, resources, onSelectEvent, onSelectSlot, date, onNavigate } =
-    props;
+  const {
+    events,
+    resources,
+    onSelectEvent,
+    onSelectSlot,
+    date,
+    onNavigate,
+    onEventDrop,
+    onEventResize,
+  } = props;
 
   function hexToRgba(hex: string, alpha: number): string {
     const normalized: string = hex.replace('#', '');
@@ -153,6 +172,25 @@ export default function BigCalendar(
         onSelectEvent={e => onSelectEvent?.(e as CalendarEvent)}
         onSelectSlot={slot =>
           onSelectSlot?.({ start: slot.start as Date, end: slot.end as Date })
+        }
+        onEventDrop={args =>
+          onEventDrop?.(
+            args as unknown as {
+              event: CalendarEvent;
+              start: Date;
+              end: Date;
+              resourceId?: string;
+            }
+          )
+        }
+        onEventResize={args =>
+          onEventResize?.(
+            args as unknown as {
+              event: CalendarEvent;
+              start: Date;
+              end: Date;
+            }
+          )
         }
         style={{ height: '100%' }}
         eventPropGetter={eventPropGetter}
