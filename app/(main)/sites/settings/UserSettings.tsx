@@ -22,6 +22,7 @@ import {
   getUserRoles,
   updateUserRoles,
 } from '@/app/actions/users';
+import { handleResult } from '@/app/utils/helper-functions/handle-results';
 import { UserSettingsSkeleton } from '@/app/components/ui/skeletons';
 
 type User = {
@@ -72,9 +73,11 @@ export function UserSettings() {
     r => r.role.name.toLowerCase() === 'organizer'
   );
 
-  const hasRoleManagementAccess = (roles: any) => {
+  const hasRoleManagementAccess = (
+    roles: { role: { uid: string; name: string } }[]
+  ) => {
     return roles?.some(
-      (r: any) =>
+      r =>
         r.role.name.toLowerCase() === 'admin' ||
         r.role.name.toLowerCase() === 'organizer'
     );
@@ -106,21 +109,25 @@ export function UserSettings() {
     const fetchUserData = async () => {
       if (!selectedUser) return;
 
-      try {
-        const [rolesData, userRolesData] = await Promise.all([
-          getAvailableRoles(),
-          getUserRoles(selectedUser.uid),
-        ]);
+      const [rolesResult, userRolesResult] = await Promise.all([
+        handleResult(getAvailableRoles()),
+        handleResult(getUserRoles(selectedUser.uid)),
+      ]);
 
-        setAvailableRoles(rolesData || []);
-        setUserRoles(userRolesData || []);
-      } catch (error) {
+      if (rolesResult.error || userRolesResult.error) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Failed to fetch role data:', error);
+          console.error(
+            'Failed to fetch role data:',
+            rolesResult.error || userRolesResult.error
+          );
         }
         toast.error('Failed to load role information');
         setUserRoles([]);
+        return;
       }
+
+      setAvailableRoles(rolesResult.data || []);
+      setUserRoles(userRolesResult.data || []);
     };
 
     fetchUserData();
@@ -147,38 +154,43 @@ export function UserSettings() {
     }));
   };
 
-  const handleSaveUser = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSaveUser = async (e?: FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
     if (!selectedUser) return;
 
-    try {
-      const updated = await updateUser(selectedUser.uid, formData);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('User updated successfully:', updated);
-      }
+    const { data: updated, error } = await handleResult(
+      updateUser(selectedUser.uid, formData)
+    );
 
-      setUsers(prev =>
-        prev.map(user =>
-          user.uid === selectedUser.uid
-            ? {
-                ...user,
-                title: updated?.title ?? user.title,
-                first_name: updated?.firstName ?? user.first_name,
-                surname: updated?.surname ?? user.surname,
-                email: updated?.email ?? user.email,
-                username: updated?.username ?? user.username,
-                cell_no: updated?.cellNo ?? user.cell_no,
-              }
-            : user
-        )
-      );
-
-      setSelectedUser(null);
-    } catch (error) {
+    if (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Error while updating user:', error);
       }
+      toast.error('Failed to update user');
+      return;
     }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('User updated successfully:', updated);
+    }
+
+    setUsers(prev =>
+      prev.map(user =>
+        user.uid === selectedUser.uid
+          ? {
+              ...user,
+              title: updated?.title ?? user.title,
+              first_name: updated?.firstName ?? user.first_name,
+              surname: updated?.surname ?? user.surname,
+              email: updated?.email ?? user.email,
+              username: updated?.username ?? user.username,
+              cell_no: updated?.cellNo ?? user.cell_no,
+            }
+          : user
+      )
+    );
+
+    setSelectedUser(null);
   };
 
   const handleResetPassword = () => {
@@ -367,99 +379,101 @@ export function UserSettings() {
               </form>
             </Card>
 
-            {selectedUser && hasRoleManagementAccess(session?.user?.roles) && (
-              <Card className="p-6">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold">User Roles</h3>
+            {selectedUser &&
+              hasRoleManagementAccess(session?.user?.roles ?? []) && (
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold">User Roles</h3>
 
-                  {/* Current Roles Section */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-700">
-                      Current Roles
-                    </h4>
-                    {userRoles.length === 0 ? (
-                      <p className="text-sm text-gray-500 italic">
-                        No roles assigned
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {userRoles.map(role => (
-                          <div
-                            key={role.uid}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                          >
-                            <div>
-                              <span className="font-medium">
-                                {role.role_name}
-                              </span>
-                              {role.description && (
-                                <p className="text-sm text-gray-500">
-                                  {role.description}
-                                </p>
-                              )}
-                            </div>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() =>
-                                handleRoleChange(role.uid, 'remove')
-                              }
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Available Roles Section */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-700">
-                      Available Roles
-                    </h4>
+                    {/* Current Roles Section */}
                     <div className="space-y-2">
-                      {availableRoles
-                        .filter(
-                          role => !userRoles.some(ur => ur.uid === role.uid)
-                        )
-                        .map(role => (
-                          <div
-                            key={role.uid}
-                            className="flex items-center justify-between p-3 bg-white rounded-lg border"
-                          >
-                            <div>
-                              <span className="font-medium">
-                                {role.role_name}
-                              </span>
-                              {role.description && (
-                                <p className="text-sm text-gray-500">
-                                  {role.description}
-                                </p>
-                              )}
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRoleChange(role.uid, 'add')}
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Current Roles
+                      </h4>
+                      {userRoles.length === 0 ? (
+                        <p className="text-sm text-gray-500 italic">
+                          No roles assigned
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {userRoles.map(role => (
+                            <div
+                              key={role.uid}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                             >
-                              Add Role
-                            </Button>
-                          </div>
-                        ))}
+                              <div>
+                                <span className="font-medium">
+                                  {role.role_name}
+                                </span>
+                                {role.description && (
+                                  <p className="text-sm text-gray-500">
+                                    {role.description}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() =>
+                                  handleRoleChange(role.uid, 'remove')
+                                }
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Available Roles Section */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Available Roles
+                      </h4>
+                      <div className="space-y-2">
+                        {availableRoles
+                          .filter(
+                            role => !userRoles.some(ur => ur.uid === role.uid)
+                          )
+                          .map(role => (
+                            <div
+                              key={role.uid}
+                              className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                            >
+                              <div>
+                                <span className="font-medium">
+                                  {role.role_name}
+                                </span>
+                                {role.description && (
+                                  <p className="text-sm text-gray-500">
+                                    {role.description}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  handleRoleChange(role.uid, 'add')
+                                }
+                              >
+                                Add Role
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            )}
+                </Card>
+              )}
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">
               <button
                 type="submit"
-                onClick={e => {
-                  e.preventDefault();
-                  handleSaveUser(e as any);
+                onClick={() => {
+                  handleSaveUser();
                 }}
                 className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
               >

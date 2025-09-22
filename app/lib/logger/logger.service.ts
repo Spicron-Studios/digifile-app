@@ -17,6 +17,10 @@ export class Logger {
   private initialized: boolean = false;
 
   private constructor() {
+    // Server-only module - throw error if used on client
+    if (typeof window !== 'undefined') {
+      throw new Error('Logger service can only be used on the server side');
+    }
     this.config = {
       enabled: (process.env.LOGGER_ENABLED ?? 'true') === 'true',
       consoleEnabled: (process.env.LOGGER_CONSOLE_ENABLED ?? 'true') === 'true',
@@ -99,16 +103,22 @@ export class Logger {
     if (!this.isServer()) return;
 
     try {
-      const [fs, path] = await Promise.all([
-        import('fs').then(m => m.promises),
-        import('path'),
-      ]);
+      // Only run on server - check for Node.js globals
+      if (
+        typeof globalThis !== 'undefined' &&
+        typeof globalThis.process !== 'undefined'
+      ) {
+        const [fs, path] = await Promise.all([
+          import('fs').then(m => m.promises),
+          import('path'),
+        ]);
 
-      const logDir = path.join(process.cwd(), this.config.logDirectory);
-      await fs.mkdir(logDir, { recursive: true });
-      const date = new Date().toISOString().split('T')[0];
-      const logFile = path.join(logDir, `app-${date}.log`);
-      await fs.appendFile(logFile, message + '\n');
+        const logDir = path.join(process.cwd(), this.config.logDirectory);
+        await fs.mkdir(logDir, { recursive: true });
+        const date = new Date().toISOString().split('T')[0];
+        const logFile = path.join(logDir, `app-${date}.log`);
+        await fs.appendFile(logFile, message + '\n');
+      }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console

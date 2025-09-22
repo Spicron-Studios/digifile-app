@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
 import FileInfoCard from '@/app/components/file-data/FileInfoCard';
@@ -37,6 +37,11 @@ export default function FileDataPage(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const isNewRecord = uid === 'new-record';
   const [extraInfo, setExtraInfo] = useState<string>('');
+
+  // Create null refs for member date parts
+  const memberYearRef = useRef<HTMLInputElement | null>(null);
+  const memberMonthRef = useRef<HTMLInputElement | null>(null);
+  const memberDayRef = useRef<HTMLInputElement | null>(null);
   const [coverType, setCoverType] = useState<string>('medical-aid');
   const [sameAsPatient, setSameAsPatient] = useState<boolean>(false);
 
@@ -643,7 +648,7 @@ export default function FileDataPage(): React.JSX.Element {
   }, [file]);
 
   // Function to save the file data
-  const handleSave = async (): Promise<void> => {
+  const handleSave = useCallback(async (): Promise<void> => {
     if (!file) return;
 
     const setSavingGlobal = (
@@ -677,7 +682,7 @@ export default function FileDataPage(): React.JSX.Element {
     }
 
     if (typeof setSavingGlobal === 'function') setSavingGlobal(false);
-  };
+  }, [file, isNewRecord, uid, setFile, router]);
 
   // Listen for save trigger from layout
   useEffect(() => {
@@ -790,11 +795,10 @@ export default function FileDataPage(): React.JSX.Element {
                             onMemberSelectChange={handleMemberSelectChange}
                             memberDateParts={memberDateOfBirth}
                             onMemberDatePartChange={handleMemberDatePartChange}
-                            // casting refs to any to satisfy differing nullable types
                             memberRefs={{
-                              yearRef: null as any,
-                              monthRef: null as any,
-                              dayRef: null as any,
+                              yearRef: memberYearRef,
+                              monthRef: memberMonthRef,
+                              dayRef: memberDayRef,
                             }}
                             onMedicalAidFieldChange={(field, value) =>
                               setFile(prev =>

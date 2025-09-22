@@ -35,7 +35,7 @@ export function withAuth<T>(
 ) {
   return async (
     _request: NextRequest,
-    _context?: any
+    _context?: unknown
   ): Promise<NextResponse<ApiResponse<T>>> => {
     const logger = Logger.getInstance();
     await logger.init();
@@ -60,11 +60,14 @@ export function withAuth<T>(
       }
 
       // Check organization access for parameterized routes
-      if (_context?.params?.uid && options.allowSelfAccess) {
-        if (session.user.orgId !== _context.params.uid) {
+      const context = _context as
+        | { params?: Record<string, string | string[]> }
+        | undefined;
+      if (context?.params?.uid && options.allowSelfAccess) {
+        if (session.user.orgId !== context.params.uid) {
           await logger.warning(
             options.loggerContext,
-            `Forbidden access attempt - Organization mismatch: ${session.user.orgId} vs ${_context.params.uid}`
+            `Forbidden access attempt - Organization mismatch: ${session.user.orgId} vs ${context.params.uid}`
           );
           return NextResponse.json(
             {
@@ -113,7 +116,10 @@ export function withAuth<T>(
       );
 
       // Call the handler
-      return await handler(authenticatedRequest, _context);
+      return await handler(
+        authenticatedRequest,
+        _context as { params?: Record<string, string | string[]> } | undefined
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';

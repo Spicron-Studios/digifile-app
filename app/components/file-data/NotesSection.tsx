@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import React, {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from 'react';
 import { TabsContent } from '@/app/components/ui/tabs';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -29,7 +35,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import type { FileData, UploadedFile } from '@/app/types/file-data';
+import type { FileData, UploadedFile, FileNotes } from '@/app/types/file-data';
 import {
   createNoteWithFiles,
   createNoteSmart,
@@ -99,58 +105,66 @@ export function NotesSection({
   const recordedChunksRef = useRef<BlobPart[]>([]);
   const [recordingError, setRecordingError] = useState<string | null>(null);
 
-  const fileNotes = (file.notes?.file_notes ?? []) as unknown as NoteRecord[];
-  const clinicalNotes = (file.notes?.clinical_notes ??
-    []) as unknown as NoteRecord[];
+  const fileNotes = useMemo(
+    () => (file.notes?.file_notes ?? []) as unknown as NoteRecord[],
+    [file.notes?.file_notes]
+  );
+  const clinicalNotes = useMemo(
+    () => (file.notes?.clinical_notes ?? []) as unknown as NoteRecord[],
+    [file.notes?.clinical_notes]
+  );
+
+  const filterAndSortNotes = useCallback(
+    (notes: NoteRecord[]): NoteRecord[] => {
+      let filtered = (notes ?? []).filter((n): n is NoteRecord => Boolean(n));
+
+      // De-duplicate by UID to prevent repeated display on state merges or server joins
+      const seen = new Set<string>();
+      filtered = filtered.filter(n => {
+        const id = n.uid ?? '';
+        if (!id) return true;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+
+      if (searchQuery.trim()) {
+        filtered = filtered.filter(n =>
+          (n.notes ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      if (startDate) {
+        filtered = filtered.filter(n =>
+          n.time_stamp
+            ? new Date(n.time_stamp).getTime() >= startDate.getTime()
+            : true
+        );
+      }
+      if (endDate) {
+        filtered = filtered.filter(n =>
+          n.time_stamp
+            ? new Date(n.time_stamp).getTime() <= endDate.getTime()
+            : true
+        );
+      }
+      filtered = [...filtered].sort((a, b) => {
+        const dateA = a.time_stamp ? new Date(a.time_stamp).getTime() : 0;
+        const dateB = b.time_stamp ? new Date(b.time_stamp).getTime() : 0;
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      });
+      return filtered;
+    },
+    [searchQuery, startDate, endDate, sortOrder]
+  );
 
   const filteredFileNotes = useMemo(
     () => filterAndSortNotes(fileNotes),
-    [fileNotes, searchQuery, startDate, endDate, sortOrder]
+    [fileNotes, filterAndSortNotes]
   );
   const filteredClinicalNotes = useMemo(
     () => filterAndSortNotes(clinicalNotes),
-    [clinicalNotes, searchQuery, startDate, endDate, sortOrder]
+    [clinicalNotes, filterAndSortNotes]
   );
-
-  function filterAndSortNotes(notes: NoteRecord[]): NoteRecord[] {
-    let filtered = (notes ?? []).filter((n): n is NoteRecord => Boolean(n));
-
-    // De-duplicate by UID to prevent repeated display on state merges or server joins
-    const seen = new Set<string>();
-    filtered = filtered.filter(n => {
-      const id = n.uid ?? '';
-      if (!id) return true;
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
-
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(n =>
-        (n.notes ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    if (startDate) {
-      filtered = filtered.filter(n =>
-        n.time_stamp
-          ? new Date(n.time_stamp).getTime() >= startDate.getTime()
-          : true
-      );
-    }
-    if (endDate) {
-      filtered = filtered.filter(n =>
-        n.time_stamp
-          ? new Date(n.time_stamp).getTime() <= endDate.getTime()
-          : true
-      );
-    }
-    filtered = [...filtered].sort((a, b) => {
-      const dateA = a.time_stamp ? new Date(a.time_stamp).getTime() : 0;
-      const dateB = b.time_stamp ? new Date(b.time_stamp).getTime() : 0;
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
-    return filtered;
-  }
 
   function toggleSortOrder(): void {
     setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'));
@@ -496,10 +510,18 @@ export function NotesSection({
       const arr = (
         (draft.notes?.[key] as unknown as NoteRecord[]) ?? []
       ).filter(n => n.uid !== note.uid);
-      if (draft.notes) {
-        (draft.notes as any)[key] = arr;
-      }
-      return draft;
+
+      return {
+        ...draft,
+        notes: draft.notes
+          ? {
+              ...draft.notes,
+              [key]: arr,
+            }
+          : ({
+              [key]: arr,
+            } as FileNotes),
+      };
     });
   }
 

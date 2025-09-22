@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
+import Image from 'next/image';
 
 export type AttachmentPreview = {
   fileName: string;
@@ -53,10 +54,13 @@ export function AttachmentPreviewModal({
 
         <div className="mt-2 min-h-[400px] flex items-center justify-center bg-gray-50 rounded">
           {attachment && isImage(fileType) && (
-            <img
+            <Image
               src={signedUrl}
               alt={fileName}
+              width={800}
+              height={600}
               className="max-h-[70vh] max-w-full object-contain"
+              style={{ width: 'auto', height: 'auto' }}
             />
           )}
           {attachment && isPdf(fileType) && (

@@ -19,6 +19,8 @@ import {
   deleteAppointment,
 } from '@/app/actions/appointments';
 import { getDayEvents } from '@/app/actions/calendar';
+import { handleResult } from '@/app/utils/helper-functions/handle-results';
+import { Logger } from '@/app/lib/logger';
 
 export interface CalendarClientProps {
   accounts: Account[];
@@ -29,6 +31,8 @@ export default function CalendarClient({
   accounts,
   events,
 }: CalendarClientProps): React.JSX.Element {
+  const logger = Logger.getInstance();
+
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     accounts.map(a => a.uid)
   );
@@ -37,13 +41,13 @@ export default function CalendarClient({
   const [editing, setEditing] = useState<
     | undefined
     | {
-        id?: string | undefined;
-        userUid?: string | undefined;
-        date?: string | undefined;
-        time?: string | undefined;
-        endTime?: string | undefined;
-        title?: string | undefined;
-        description?: string | undefined;
+        id?: string;
+        userUid?: string;
+        date?: string;
+        time?: string;
+        endTime?: string;
+        title?: string;
+        description?: string;
       }
   >(undefined);
 
@@ -52,10 +56,10 @@ export default function CalendarClient({
   useEffect(() => {
     let active = true;
     async function load(): Promise<void> {
-      console.log('[CalendarClient] refresh useEffect', {
-        currentDate: currentDate.toISOString(),
-        selectedIds,
-      });
+      await logger.debug(
+        'CalendarClient.tsx',
+        `refresh useEffect triggered: ${JSON.stringify({ currentDate: currentDate.toISOString(), selectedIds })}`
+      );
       const dayIso = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
@@ -63,8 +67,33 @@ export default function CalendarClient({
       )
         .toISOString()
         .slice(0, 10);
-      const dayEvents = await getDayEvents(dayIso, selectedIds);
-      console.log('[CalendarClient] getDayEvents returned', dayEvents.length);
+
+      const { data: dayEvents, error } = await handleResult(
+        getDayEvents(dayIso, selectedIds)
+      );
+
+      if (error) {
+        await logger.error(
+          'CalendarClient.tsx',
+          `Failed to fetch day events: ${error}`
+        );
+        // Fallback to filtering existing events
+        const filtered = events.filter(
+          e =>
+            selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
+        );
+        await logger.info(
+          'CalendarClient.tsx',
+          `Using fallback filtered events: ${filtered.length} events`
+        );
+        setVisibleEvents(filtered);
+        return;
+      }
+
+      await logger.info(
+        'CalendarClient.tsx',
+        `getDayEvents returned ${dayEvents.length} events`
+      );
       if (!active) return;
 
       if (dayEvents.length === 0) {
@@ -72,9 +101,9 @@ export default function CalendarClient({
           e =>
             selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
         );
-        console.log(
-          '[CalendarClient] fallback filtered events',
-          filtered.length
+        await logger.info(
+          'CalendarClient.tsx',
+          `Using fallback filtered events: ${filtered.length} events`
         );
         setVisibleEvents(filtered);
       } else {
@@ -85,7 +114,7 @@ export default function CalendarClient({
     return () => {
       active = false;
     };
-  }, [currentDate, selectedIds, events]);
+  }, [currentDate, selectedIds, events, logger]);
   const resources = useMemo(
     () =>
       accounts
@@ -146,14 +175,23 @@ export default function CalendarClient({
     )
       .toISOString()
       .slice(0, 10);
-    console.log('[CalendarClient] manual refresh', { dayIso, selectedIds });
+    await logger.debug(
+      'CalendarClient.tsx',
+      `Manual refresh triggered: ${JSON.stringify({ dayIso, selectedIds })}`
+    );
     const dayEvents = await getDayEvents(dayIso, selectedIds);
-    console.log('[CalendarClient] manual refresh returned', dayEvents.length);
+    await logger.info(
+      'CalendarClient.tsx',
+      `Manual refresh returned ${dayEvents.length} events`
+    );
     if (dayEvents.length === 0) {
       const filtered = events.filter(
         e => selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
       );
-      console.log('[CalendarClient] manual refresh fallback', filtered.length);
+      await logger.info(
+        'CalendarClient.tsx',
+        `Manual refresh using fallback: ${filtered.length} events`
+      );
       setVisibleEvents(filtered);
     } else {
       setVisibleEvents(dayEvents);
@@ -205,16 +243,14 @@ export default function CalendarClient({
           <BigCalendar
             events={visibleEvents}
             resources={resources}
-            date={currentDate}
+            _date={currentDate}
             onNavigate={setCurrentDate}
             // Drag-n-drop updates
             onEventDrop={async ({ event, start, end, resourceId }) => {
-              console.log('[CalendarClient] onEventDrop', {
-                id: event.id,
-                start,
-                end,
-                resourceId,
-              });
+              await logger.info(
+                'CalendarClient.tsx',
+                `Event dropped: id=${event.id}, start=${(start as Date).toISOString()}, end=${(end as Date).toISOString()}, resourceId=${resourceId}`
+              );
               await updateAppointment(event.id, {
                 userUid: (resourceId as string) ?? event.resourceId,
                 title: event.title,
@@ -222,17 +258,17 @@ export default function CalendarClient({
                 start: (start as Date).toISOString(),
                 end: (end as Date).toISOString(),
               });
-              console.log(
-                '[CalendarClient] onEventDrop -> updateAppointment done'
+              await logger.info(
+                'CalendarClient.tsx',
+                'Event drop update completed'
               );
               await refreshDay();
             }}
             onEventResize={async ({ event, start, end }) => {
-              console.log('[CalendarClient] onEventResize', {
-                id: event.id,
-                start,
-                end,
-              });
+              await logger.info(
+                'CalendarClient.tsx',
+                `Event resized: id=${event.id}, start=${(start as Date).toISOString()}, end=${(end as Date).toISOString()}`
+              );
               await updateAppointment(event.id, {
                 userUid: event.resourceId,
                 title: event.title,
@@ -240,8 +276,9 @@ export default function CalendarClient({
                 start: (start as Date).toISOString(),
                 end: (end as Date).toISOString(),
               });
-              console.log(
-                '[CalendarClient] onEventResize -> updateAppointment done'
+              await logger.info(
+                'CalendarClient.tsx',
+                'Event resize update completed'
               );
               await refreshDay();
             }}
@@ -271,7 +308,7 @@ export default function CalendarClient({
         open={modalOpen || editing !== undefined}
         accounts={accounts}
         defaultDate={currentDate}
-        initialValues={editing as any}
+        initialValues={editing ?? {}}
         onOpenChange={o => {
           if (!o) {
             setModalOpen(false);

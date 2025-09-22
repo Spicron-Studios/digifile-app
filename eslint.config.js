@@ -24,11 +24,6 @@ const eslintConfig = [
       'no-var': 'error',
       eqeqeq: 'error',
       'no-duplicate-imports': 'error',
-    },
-  },
-  {
-    files: ['**/*.ts', '**/*.tsx'],
-    rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_' },
