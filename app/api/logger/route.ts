@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Logger } from '@/app/lib/logger';
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {

@@ -20,7 +20,7 @@ import {
 } from '@/app/actions/appointments';
 import { getDayEvents } from '@/app/actions/calendar';
 import { handleResult } from '@/app/utils/helper-functions/handle-results';
-import { getLogger } from '@/app/lib/logger';
+import { getClientLogger } from '@/lib/logger/client';
 
 export interface CalendarClientProps {
   accounts: Account[];
@@ -31,7 +31,7 @@ export default function CalendarClient({
   accounts,
   events,
 }: CalendarClientProps): React.JSX.Element {
-  const logger = useMemo(() => getLogger(), []);
+  const logger = useMemo(() => getClientLogger(), []);
 
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     accounts.map(a => a.uid)
@@ -52,6 +52,10 @@ export default function CalendarClient({
   >(undefined);
 
   const [visibleEvents, setVisibleEvents] = useState<CalendarEvent[]>([]);
+  const [status, setStatus] = useState<{
+    kind: 'info' | 'warning';
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -87,6 +91,10 @@ export default function CalendarClient({
           `Using fallback filtered events: ${filtered.length} events`
         );
         setVisibleEvents(filtered);
+        setStatus({
+          kind: 'warning',
+          text: 'Could not refresh events from server. Showing cached results for selected day.',
+        });
         return;
       }
 
@@ -106,8 +114,13 @@ export default function CalendarClient({
           `Using fallback filtered events: ${filtered.length} events`
         );
         setVisibleEvents(filtered);
+        setStatus({
+          kind: 'info',
+          text: 'No events scheduled for the selected day.',
+        });
       } else {
         setVisibleEvents(dayEvents);
+        setStatus(null);
       }
     }
     void load();
@@ -193,8 +206,13 @@ export default function CalendarClient({
         `Manual refresh using fallback: ${filtered.length} events`
       );
       setVisibleEvents(filtered);
+      setStatus({
+        kind: 'info',
+        text: 'No events scheduled for the selected day.',
+      });
     } else {
       setVisibleEvents(dayEvents);
+      setStatus(null);
     }
   }
 
@@ -237,6 +255,19 @@ export default function CalendarClient({
           </CardContent>
         </Card>
       </div>
+
+      {status ? (
+        <div
+          className={cn(
+            'text-xs px-2 py-1 rounded border',
+            status.kind === 'warning'
+              ? 'text-amber-700 bg-amber-50 border-amber-200'
+              : 'text-slate-700 bg-slate-50 border-slate-200'
+          )}
+        >
+          {status.text}
+        </div>
+      ) : null}
 
       <Card className="flex-1" style={{ height: '70vh' }}>
         <CardContent className="h-full p-3">
