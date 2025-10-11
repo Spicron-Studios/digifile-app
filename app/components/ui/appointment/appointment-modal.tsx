@@ -1,208 +1,206 @@
-"use client"
+'use client';
 
-import { useState, useTransition } from "react"
-import { z } from "zod"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog"
-import { Button } from "@/app/components/ui/button"
-import { Input } from "@/app/components/ui/input"
-import { Label } from "@/app/components/ui/label"
-import { Account, CalendarEvent } from "@/app/types/calendar"
-import { addAppointment, deleteAppointment, updateAppointment } from "@/app/actions/appointments"
-import { DateTimePicker } from "@/app/components/ui/date-time-picker"
-import { useRouter } from "next/navigation"
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/app/components/ui/dialog';
+import { Input } from '@/app/components/ui/input';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Button } from '@/app/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
+import type { Account } from '@/app/types/calendar';
 
-interface AppointmentModalProps {
-  accounts: Account[]
-  onAppointmentAdded: () => void
-  selectedEvent?: CalendarEvent
-  onOpenChange?: (open: boolean) => void
-  defaultOpen?: boolean
+const FormSchema = z.object({
+  id: z.string().optional(),
+  userUid: z.string(),
+  date: z.string(), // YYYY-MM-DD
+  time: z.string(), // HH:mm
+  endTime: z.string(), // HH:mm
+  title: z.string().min(1),
+  description: z.string().optional(),
+});
+
+export interface AppointmentModalProps {
+  open: boolean;
+  accounts: Account[];
+  defaultDate: Date;
+  initialValues?: Partial<z.infer<typeof FormSchema>>;
+  onOpenChange: (_open: boolean) => void;
+  onSave: (_values: z.infer<typeof FormSchema>) => Promise<void> | void;
+  onDelete?: () => Promise<void> | void;
 }
 
-const appointmentSchema = z.object({
-  user_uid: z.string().nonempty("Please select a user"),
-  startdate: z.date(),
-  enddate: z.date(),
-  title: z.string().nonempty("Title is required"),
-  description: z.string().optional(),
-}).refine(data => data.enddate > data.startdate, {
-  message: "End date must be after start date",
-  path: ["enddate"],
-})
-
-type AppointmentFormData = z.infer<typeof appointmentSchema>
-
-export function AppointmentModal({ 
-  accounts, 
-  onAppointmentAdded, 
-  selectedEvent,
-  onOpenChange,
-  defaultOpen = false
-}: AppointmentModalProps) {
-  const [open, setOpen] = useState(defaultOpen)
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
-  const form = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema),
+export default function AppointmentModal(
+  props: AppointmentModalProps
+): React.JSX.Element {
+  const {
+    open,
+    accounts,
+    defaultDate,
+    initialValues,
+    onOpenChange,
+    onSave,
+    onDelete,
+  } = props;
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
     defaultValues: {
-      user_uid: selectedEvent?.accountId || '',
-      startdate: selectedEvent ? new Date(selectedEvent.start) : new Date(),
-      enddate: selectedEvent ? new Date(selectedEvent.end) : new Date(),
-      title: selectedEvent?.title || '',
-      description: selectedEvent?.description || '',
+      userUid: accounts[0]?.uid ?? '',
+      date: defaultDate.toISOString().slice(0, 10),
+      time: '09:00',
+      endTime: '10:00',
+      title: '',
+      description: '',
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    if (initialValues) {
+      form.reset({
+        userUid: initialValues.userUid ?? accounts[0]?.uid ?? '',
+        date: initialValues.date ?? defaultDate.toISOString().slice(0, 10),
+        time: initialValues.time ?? '09:00',
+        endTime: initialValues.endTime ?? '10:00',
+        title: initialValues.title ?? '',
+        description: initialValues.description ?? '',
+        id: initialValues.id,
+      });
     }
-  })
+  }, [open, initialValues, accounts, defaultDate, form]);
 
-  const router = useRouter()
-
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen)
-    onOpenChange?.(newOpen)
-    if (!newOpen) {
-      form.reset()
+  function buildTimeOptions(): Array<{ value: string; label: string }> {
+    const options: Array<{ value: string; label: string }> = [];
+    const startMinutes: number = 5 * 60; // 05:00
+    const endMinutes: number = 20 * 60; // 20:00
+    for (let m = startMinutes; m <= endMinutes; m += 15) {
+      const hours24: number = Math.floor(m / 60);
+      const minutes: number = m % 60;
+      const value: string = `${String(hours24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      const hours12: number = ((hours24 + 11) % 12) + 1;
+      const suffix: string = hours24 < 12 ? 'am' : 'pm';
+      const label: string = `${hours12}:${String(minutes).padStart(2, '0')}${suffix}`;
+      options.push({ value, label });
     }
+    return options;
   }
 
-  const handleDelete = async () => {
-    console.log("handleDelete called");
-    debugger;
-    if (!selectedEvent?.id) {
-      setError("Cannot delete: Invalid appointment ID")
-      return
-    }
-
-    startTransition(async () => {
-      try {
-        await deleteAppointment(selectedEvent.id)
-        onAppointmentAdded()
-        handleOpenChange(false)
-        router.refresh()
-      } catch (error) {
-        setError(error instanceof Error ? error.message : "Failed to delete appointment")
-      }
-    })
-  }
-
-  const onSubmit = async (data: AppointmentFormData) => {
-    setError(null)
-    startTransition(async () => {
-      try {
-        if (selectedEvent?.id) {
-          await updateAppointment(selectedEvent.id, data)
-        } else {
-          await addAppointment(data)
-        }
-        onAppointmentAdded()
-        handleOpenChange(false)
-        router.refresh()
-      } catch (error) {
-        setError(error instanceof Error ? error.message : "Failed to save appointment")
-      }
-    })
-  }
-
-  const handleDateChange = (field: 'startdate' | 'enddate') => (date: Date | null) => {
-    form.setValue(field, date || new Date(), { 
-      shouldValidate: true,
-      shouldDirty: true 
-    })
-  }
+  const timeOptions = buildTimeOptions();
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          {selectedEvent ? "Edit Appointment" : "Add Appointment"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {selectedEvent ? "Edit Appointment" : "Add New Appointment"}
+            {form.getValues('id') ? 'Edit Appointment' : 'Book Appointment'}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {/* User Selection */}
-          <div>
-            <Label htmlFor="user_uid">User</Label>
-            <select id="user_uid" {...form.register("user_uid")} className="w-full p-2 border rounded">
-              <option value="">Select a user</option>
-              {accounts.map(account => (
-                <option key={account.AccountID} value={account.AccountID}>
-                  {account.Name}
-                </option>
-              ))}
-            </select>
-            {form.formState.errors.user_uid && <p className="text-red-500 text-sm">{form.formState.errors.user_uid.message}</p>}
+        <form
+          className="space-y-3"
+          onSubmit={form.handleSubmit(async values => {
+            await onSave(values);
+            onOpenChange(false);
+          })}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium">Date</label>
+              <Input type="date" {...form.register('date')} />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Doctor</label>
+              <Select
+                value={form.watch('userUid')}
+                onValueChange={v => form.setValue('userUid', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map(a => (
+                    <SelectItem key={a.uid} value={a.uid}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Start</label>
+              <Select
+                value={form.watch('time')}
+                onValueChange={v => form.setValue('time', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {timeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">End</label>
+              <Select
+                value={form.watch('endTime')}
+                onValueChange={v => form.setValue('endTime', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {timeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-
-          {/* Start DateTime */}
           <div>
-            <Label htmlFor="startdate">Start Date and Time</Label>
-            <DateTimePicker
-              id="startdate"
-              value={form.watch('startdate')}
-              onChange={handleDateChange('startdate')}
-            />
-            {form.formState.errors.startdate && <p className="text-red-500 text-sm">{form.formState.errors.startdate.message}</p>}
+            <label className="text-xs font-medium">Title</label>
+            <Input {...form.register('title')} />
           </div>
-
-          {/* End DateTime */}
           <div>
-            <Label htmlFor="enddate">End Date and Time</Label>
-            <DateTimePicker
-              id="enddate"
-              value={form.watch('enddate')}
-              onChange={handleDateChange('enddate')}
-            />
-            {form.formState.errors.enddate && <p className="text-red-500 text-sm">{form.formState.errors.enddate.message}</p>}
+            <label className="text-xs font-medium">Description</label>
+            <Textarea rows={3} {...form.register('description')} />
           </div>
-
-          {/* Title */}
-          <div>
-            <Label htmlFor="title">Appointment Title</Label>
-            <Input id="title" {...form.register("title")} />
-            {form.formState.errors.title && <p className="text-red-500 text-sm">{form.formState.errors.title.message}</p>}
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Input id="description" {...form.register("description")} />
-            {form.formState.errors.description && <p className="text-red-500 text-sm">{form.formState.errors.description.message}</p>}
-          </div>
-
-          <div className="flex justify-end gap-2">
-            {selectedEvent && (
+          <div className="flex justify-between pt-2">
+            {form.getValues('id') ? (
               <Button
                 type="button"
                 variant="destructive"
-                onClick={handleDelete}
-                disabled={isPending}
+                onClick={async () => {
+                  await onDelete?.();
+                  onOpenChange(false);
+                }}
               >
                 Delete
               </Button>
+            ) : (
+              <span />
             )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isPending}
-            >
-              {isPending ? "Saving..." : (selectedEvent ? "Update" : "Add")}
-            </Button>
+            <Button type="submit">Save</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

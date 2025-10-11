@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 
 interface EditorProps {
   content: string;
-  onChange?: (content: string) => void;
+  onChange?: (_content: string) => void;
 }
 
 export function Editor({ content, onChange }: EditorProps) {
@@ -14,7 +14,8 @@ export function Editor({ content, onChange }: EditorProps) {
     content: content,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+        class:
+          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
       },
     },
     onUpdate: ({ editor }) => {
@@ -27,4 +28,4 @@ export function Editor({ content, onChange }: EditorProps) {
       <EditorContent editor={editor} />
     </div>
   );
-} 
+}

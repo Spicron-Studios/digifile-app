@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Booking System - Day View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .calendar-grid-mini {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+        .day-view-grid {
+            display: grid;
+            gap: 4px;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="p-4 h-screen flex flex-col">
+        <!-- Top Controls -->
+        <div class="flex flex-col md:flex-row gap-2 mb-2">
+            <!-- Left: Controls -->
+            <div class="w-full md:w-1/2 bg-white p-2 rounded-lg shadow-md">
+                <h2 class="text-md font-semibold mb-1 border-b pb-1">Controls</h2>
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="font-medium text-gray-700 text-sm mb-1">Display Doctors:</h3>
+                        <div id="doctorSelection" class="space-y-1">
+                            <!-- Doctor checkboxes will be here -->
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <button id="manageDoctorsBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700 transition duration-300 shadow-sm text-xs">Manage Doctors</button>
+                        <button id="addAppointmentBtn" class="bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 transition duration-300 shadow-sm text-xs">Book Appointment</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Mini Calendar -->
+            <div class="w-full md:w-1/2 bg-white p-2 rounded-lg shadow-md">
+                <div class="flex justify-between items-center mb-1">
+                    <button id="prevMonth" class="p-1 rounded-full hover:bg-gray-200 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <h3 id="currentMonthYear" class="text-sm font-semibold"></h3>
+                    <button id="nextMonth" class="p-1 rounded-full hover:bg-gray-200 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 text-center text-xs font-semibold text-gray-500 mb-1">
+                    <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                </div>
+                <div id="miniCalendarDays" class="calendar-grid-mini gap-px">
+                    <!-- Mini calendar days will be generated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Day View -->
+        <main class="flex-grow bg-white p-4 rounded-lg shadow-lg overflow-y-auto">
+            <p id="main-view-date" class="text-gray-600 text-base font-semibold mb-4"></p>
+            <div id="dayViewContainer" class="day-view-grid">
+                <!-- Day view content will be generated here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Appointment Modal -->
+    <div id="appointmentModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-2xl font-bold" id="appointmentModalTitle">Book Appointment</h2>
+                <button class="close-modal p-2 rounded-full hover:bg-gray-200 transition">&times;</button>
+            </div>
+            <div class="p-6">
+                <form id="appointmentForm">
+                    <input type="hidden" id="appointmentId">
+                    
+                    <div class="mb-4">
+                        <label for="appointmentDate" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="appointmentDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="appointmentTime" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                        <input type="time" id="appointmentTime" step="3600" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                     <div class="mb-4">
+                        <label for="appointmentDoctor" class="block text-sm font-medium text-gray-700 mb-1">Doctor</label>
+                        <select id="appointmentDoctor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="patientName" class="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
+                        <input type="text" id="patientName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+                     <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" id="deleteAppointmentBtn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition hidden">Delete</button>
+                        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">Save Appointment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Manage Doctors Modal -->
+    <div id="manageDoctorsModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Manage Doctors</h2>
+                <button class="close-modal p-2 rounded-full hover:bg-gray-200 transition">&times;</button>
+            </div>
+            <div class="p-6">
+                 <div class="flex items-center gap-2 mb-4">
+                    <input type="text" id="newDoctorName" placeholder="Add new doctor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <button id="addDoctorBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-300 shadow-sm">Add</button>
+                </div>
+                <div id="doctorList" class="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
+                    <!-- Doctors will be listed here for removal -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // State management
+        let calendarNavDate = new Date(); // For the mini calendar
+        let selectedDate = new Date(); // For the main day view
+        
+        const getInitialAppointments = () => {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            return {
+                [`${todayStr}-14:00-Dr. Smith`]: { date: todayStr, time: '14:00', doctor: 'Dr. Smith', patientName: 'John Doe', description: 'Annual Checkup' },
+                [`${todayStr}-15:00-Dr. Smith`]: { date: todayStr, time: '15:00', doctor: 'Dr. Smith', patientName: 'Jane Roe', description: 'Follow-up' },
+                [`${todayStr}-15:00-Dr. Jones`]: { date: todayStr, time: '15:00', doctor: 'Dr. Jones', patientName: 'Peter Pan', description: 'Consultation' },
+                [`${todayStr}-15:00-Dr. Green`]: { date: todayStr, time: '15:00', doctor: 'Dr. Green', patientName: 'Alice Wonderland', description: 'New Patient' },
+                [`${todayStr}-15:00-Dr. Gold`]: { date: todayStr, time: '15:00', doctor: 'Dr. Gold', patientName: 'Bob Builder', description: 'Prescription Refill' }
+            };
+        };
+        
+        const DOCTOR_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#eab308', '#14b8a6'];
+        let doctors = JSON.parse(localStorage.getItem('doctors')) || [
+            { name: 'Dr. Smith', color: '#ef4444' },
+            { name: 'Dr. Jones', color: '#3b82f6' },
+            { name: 'Dr. Green', color: '#22c55e' },
+            { name: 'Dr. Gold', color: '#eab308' }
+        ];
+        let selectedDoctors = doctors.map(d => d.name);
+        let appointments = JSON.parse(localStorage.getItem('appointments')) || getInitialAppointments();
+
+        // --- DOM Elements ---
+        const mainViewDate = document.getElementById('main-view-date');
+        const miniCalendarDays = document.getElementById('miniCalendarDays');
+        const currentMonthYear = document.getElementById('currentMonthYear');
+        const dayViewContainer = document.getElementById('dayViewContainer');
+        const doctorSelection = document.getElementById('doctorSelection');
+        
+        // --- Modals & Buttons ---
+        const appointmentModal = document.getElementById('appointmentModal');
+        const manageDoctorsModal = document.getElementById('manageDoctorsModal');
+        
+        // --- LOCAL STORAGE HELPERS ---
+        const saveDoctors = () => localStorage.setItem('doctors', JSON.stringify(doctors));
+        const saveAppointments = () => localStorage.setItem('appointments', JSON.stringify(appointments));
+
+        // --- RENDER FUNCTIONS ---
+        function renderMiniCalendar() {
+            miniCalendarDays.innerHTML = '';
+            const year = calendarNavDate.getFullYear();
+            const month = calendarNavDate.getMonth();
+            currentMonthYear.textContent = `${calendarNavDate.toLocaleString('default', { month: 'long' })} ${year}`;
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                miniCalendarDays.innerHTML += `<div></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDate = new Date(year, month, day);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const isToday = dayDate.toDateString() === new Date().toDateString();
+                const isSelected = dayDate.toDateString() === selectedDate.toDateString();
+
+                const dayCell = document.createElement('div');
+                dayCell.className = `p-1 text-center text-xs cursor-pointer rounded-full transition ${isSelected ? 'bg-indigo-600 text-white' : isToday ? 'bg-indigo-200' : 'hover:bg-gray-200'}`;
+                dayCell.dataset.date = dateStr;
+                dayCell.textContent = day;
+                miniCalendarDays.appendChild(dayCell);
+            }
+        }
+
+        function renderDoctorSelection() {
+            doctorSelection.innerHTML = '';
+            doctors.forEach(doc => {
+                const isChecked = selectedDoctors.includes(doc.name);
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                div.innerHTML = `
+                    <input type="checkbox" id="doc-${doc.name}" data-name="${doc.name}" class="mr-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${isChecked ? 'checked' : ''}>
+                    <label for="doc-${doc.name}" class="flex items-center text-sm">
+                        <span class="w-3 h-3 rounded-full mr-2" style="background-color: ${doc.color};"></span>
+                        ${doc.name}
+                    </label>
+                `;
+                doctorSelection.appendChild(div);
+            });
+        }
+        
+        function renderDayView() {
+            mainViewDate.textContent = selectedDate.toLocaleDateString('en-ZA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            const visibleDoctors = doctors.filter(d => selectedDoctors.includes(d.name));
+            if (visibleDoctors.length === 0) {
+                dayViewContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Select a doctor to view their schedule.</p>';
+                dayViewContainer.style.gridTemplateColumns = '1fr';
+                return;
+            }
+
+            dayViewContainer.style.gridTemplateColumns = `60px repeat(${visibleDoctors.length}, 1fr)`;
+            dayViewContainer.innerHTML = ''; // Clear previous view
+
+            // Header row
+            dayViewContainer.innerHTML += '<div></div>'; // Empty cell for time column
+            visibleDoctors.forEach(doc => {
+                dayViewContainer.innerHTML += `<div class="font-semibold text-center sticky top-0 bg-white py-2 border-b">${doc.name}</div>`;
+            });
+
+            // Time slots
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            for (let hour = 9; hour <= 17; hour++) {
+                const time = `${String(hour).padStart(2, '0')}:00`;
+                dayViewContainer.innerHTML += `<div class="text-xs text-gray-500 text-right pr-2 pt-2 border-r">${time}</div>`;
+                
+                visibleDoctors.forEach(doc => {
+                    const appointmentId = `${dateStr}-${time}-${doc.name}`;
+                    const appointment = appointments[appointmentId];
+                    let cellHTML;
+                    if (appointment) {
+                        cellHTML = `
+                            <div class="p-2 rounded-md text-xs cursor-pointer h-full appointment-slot" style="background-color: ${doc.color}20; border-left: 3px solid ${doc.color};" data-id="${appointmentId}">
+                                <strong class="text-gray-800">${appointment.patientName}</strong><br>
+                                <p class="text-gray-600">${appointment.description.substring(0, 40)}</p>
+                            </div>`;
+                    } else {
+                         cellHTML = `<div class="bg-gray-50 hover:bg-green-100 h-full cursor-pointer empty-slot border-l border-t border-dashed" data-date="${dateStr}" data-time="${time}" data-doctor="${doc.name}"></div>`;
+                    }
+                    dayViewContainer.innerHTML += cellHTML;
+                });
+            }
+        }
+
+        function renderDoctorListForManager() {
+            const doctorList = document.getElementById('doctorList');
+            doctorList.innerHTML = '';
+            doctors.forEach((doc, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-gray-100 p-2 rounded-md';
+                div.innerHTML = `
+                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2" style="background-color: ${doc.color};"></span>${doc.name}</span>
+                    <button data-index="${index}" class="text-red-500 hover:text-red-700 remove-doctor-btn font-bold text-lg">&times;</button>
+                `;
+                doctorList.appendChild(div);
+            });
+        }
+        
+        // --- EVENT LISTENERS ---
+        // Calendar Navigation
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            calendarNavDate.setMonth(calendarNavDate.getMonth() - 1);
+            renderMiniCalendar();
+        });
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            calendarNavDate.setMonth(calendarNavDate.getMonth() + 1);
+            renderMiniCalendar();
+        });
+        miniCalendarDays.addEventListener('click', (e) => {
+            if (e.target.dataset.date) {
+                selectedDate = new Date(e.target.dataset.date + 'T00:00:00');
+                renderAll();
+            }
+        });
+
+        // Doctor Selection
+        doctorSelection.addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                const doctorName = e.target.dataset.name;
+                if (e.target.checked) {
+                    selectedDoctors.push(doctorName);
+                } else {
+                    selectedDoctors = selectedDoctors.filter(name => name !== doctorName);
+                }
+                renderDayView();
+            }
+        });
+
+        // Day View Clicks
+        dayViewContainer.addEventListener('click', (e) => {
+            const target = e.target.closest('.empty-slot, .appointment-slot');
+            if (!target) return;
+            
+            if (target.classList.contains('empty-slot')) {
+                const { date, time, doctor } = target.dataset;
+                openAppointmentModal({ date, time, doctor });
+            } else {
+                const appointment = appointments[target.dataset.id];
+                openAppointmentModal(appointment, target.dataset.id);
+            }
+        });
+
+        // Modal Open/Close
+        document.getElementById('manageDoctorsBtn').addEventListener('click', () => {
+            renderDoctorListForManager();
+            manageDoctorsModal.classList.remove('hidden');
+            manageDoctorsModal.classList.add('flex');
+        });
+
+        document.getElementById('addAppointmentBtn').addEventListener('click', () => {
+             openAppointmentModal({ date: selectedDate.toISOString().split('T')[0] });
+        });
+
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.fixed').classList.add('hidden');
+                btn.closest('.fixed').classList.remove('flex');
+            });
+        });
+
+        // Doctor Management
+        document.getElementById('addDoctorBtn').addEventListener('click', () => {
+            const newDoctorName = document.getElementById('newDoctorName').value.trim();
+            if (newDoctorName && !doctors.some(d => d.name === newDoctorName)) {
+                const newColor = DOCTOR_COLORS[doctors.length % DOCTOR_COLORS.length];
+                doctors.push({ name: newDoctorName, color: newColor });
+                saveDoctors();
+                renderDoctorListForManager();
+                renderAll();
+                document.getElementById('newDoctorName').value = '';
+            }
+        });
+        document.getElementById('doctorList').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-doctor-btn')) {
+                const doctorToRemove = doctors[e.target.dataset.index];
+                doctors.splice(e.target.dataset.index, 1);
+                selectedDoctors = selectedDoctors.filter(name => name !== doctorToRemove.name);
+                // remove appointments for this doctor
+                Object.keys(appointments).forEach(key => {
+                    if (key.endsWith(doctorToRemove.name)) {
+                        delete appointments[key];
+                    }
+                });
+                saveDoctors();
+                saveAppointments();
+                renderDoctorListForManager();
+                renderAll();
+            }
+        });
+
+        // Appointment Form
+        function openAppointmentModal(data, id = null) {
+            const form = document.getElementById('appointmentForm');
+            form.reset();
+            
+            const doctorDropdown = document.getElementById('appointmentDoctor');
+            doctorDropdown.innerHTML = doctors.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+
+            document.getElementById('appointmentId').value = id || '';
+            document.getElementById('appointmentDate').value = data.date || selectedDate.toISOString().split('T')[0];
+            
+            if (id) { // Editing
+                document.getElementById('appointmentModalTitle').textContent = 'Edit Appointment';
+                document.getElementById('patientName').value = data.patientName;
+                document.getElementById('description').value = data.description;
+                document.getElementById('appointmentTime').value = data.time;
+                doctorDropdown.value = data.doctor;
+                document.getElementById('deleteAppointmentBtn').classList.remove('hidden');
+            } else { // New
+                document.getElementById('appointmentModalTitle').textContent = 'Book New Appointment';
+                document.getElementById('appointmentTime').value = data.time || '';
+                doctorDropdown.value = data.doctor || (doctors.length > 0 ? doctors[0].name : '');
+                document.getElementById('deleteAppointmentBtn').classList.add('hidden');
+            }
+            appointmentModal.classList.remove('hidden');
+            appointmentModal.classList.add('flex');
+        }
+
+        document.getElementById('appointmentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = document.getElementById('appointmentDate').value;
+            const time = document.getElementById('appointmentTime').value.substring(0, 5); // ensure HH:MM format
+            const doctor = document.getElementById('appointmentDoctor').value;
+            let id = document.getElementById('appointmentId').value;
+            if (!id) {
+                id = `${date}-${time}-${doctor}`;
+            } else { // if editing, old id might be stale if doc/time changed
+                delete appointments[id];
+                id = `${date}-${time}-${doctor}`;
+            }
+
+            appointments[id] = {
+                date, time, doctor,
+                patientName: document.getElementById('patientName').value,
+                description: document.getElementById('description').value,
+            };
+            saveAppointments();
+            appointmentModal.classList.add('hidden');
+            appointmentModal.classList.remove('flex');
+            renderAll();
+        });
+
+        document.getElementById('deleteAppointmentBtn').addEventListener('click', () => {
+            const id = document.getElementById('appointmentId').value;
+            if (id && appointments[id]) {
+                delete appointments[id];
+                saveAppointments();
+                appointmentModal.classList.add('hidden');
+                appointmentModal.classList.remove('flex');
+                renderAll();
+            }
+        });
+
+
+        // --- INITIALIZATION ---
+        function renderAll() {
+            renderMiniCalendar();
+            renderDoctorSelection();
+            renderDayView();
+        }
+        renderAll();
+    });
+    </script>
+</body>
+</html>
+
+
+
+
+

@@ -1,67 +1,52 @@
-import { Account } from "@/app/types/calendar"
-import { Button } from "@/app/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/ui/dialog"
-import { AccountList } from "./account-list"
+'use client';
 
-interface AccountSelectorProps {
-  accounts: Account[]
-  selectedAccounts: string[]
-  onToggleAccount: (accountId: string) => void
-  onAddAccount: (account: Account) => void
+import React from 'react';
+import type { Account } from '@/app/types/calendar';
+
+export interface AccountSelectorProps {
+  accounts: Account[];
+  selectedIds: string[];
+  onChange: (_selected: string[]) => void;
 }
 
-export function AccountSelector({
+export default function AccountSelector({
   accounts,
-  selectedAccounts,
-  onToggleAccount,
-}: AccountSelectorProps) {
-  return (
-    <div className="flex items-center gap-4 w-full border rounded-lg p-2 bg-white">
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="shrink-0"
-            disabled={selectedAccounts.length >= 51}
-          >
-            Add Account
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Select Accounts</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {accounts.map((account) => (
-              <div key={account.AccountID} className="flex items-center gap-4">
-                <input
-                  type="checkbox"
-                  id={account.AccountID}
-                  checked={selectedAccounts.includes(account.AccountID)}
-                  onChange={() => onToggleAccount(account.AccountID)}
-                  className="h-4 w-4 rounded border-gray-300"
-                  disabled={!selectedAccounts.includes(account.AccountID) && selectedAccounts.length >= 51}
-                />
-                <label htmlFor={account.AccountID} className="text-sm font-medium">
-                  {account.Name}
-                </label>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-      <AccountList
-        accounts={accounts}
-        selectedAccounts={selectedAccounts}
-        onRemoveAccount={onToggleAccount}
-      />
-    </div>
-  )
-}
+  selectedIds,
+  onChange,
+}: AccountSelectorProps): React.JSX.Element {
+  function toggle(id: string): void {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter(x => x !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  }
 
+  return (
+    <div className="flex flex-wrap gap-2">
+      {accounts.map(acc => {
+        const checked = selectedIds.includes(acc.uid);
+        return (
+          <button
+            key={acc.uid}
+            type="button"
+            onClick={() => toggle(acc.uid)}
+            className={
+              `inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm transition-colors ` +
+              (checked
+                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                : 'bg-white text-slate-700 hover:bg-slate-50')
+            }
+            aria-pressed={checked}
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: acc.color }}
+            />
+            <span className="whitespace-nowrap">{acc.name}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}

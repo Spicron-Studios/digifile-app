@@ -1,3 +1,5 @@
-import { GET, POST } from "@/app/lib/auth"
+import { GET, POST } from '@/app/lib/auth';
 
-export { GET, POST } 
+export const runtime = 'nodejs';
+
+export { GET, POST };

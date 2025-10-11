@@ -1,34 +1,36 @@
-'use client'
+'use client';
 
-import { Button } from "@/app/components/ui/button"
-import { LogOut, User } from 'lucide-react'
-import { signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import type { Session } from 'next-auth'
+import { Button } from '@/app/components/ui/button';
+import { LogOut, User } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import type { Session } from 'next-auth';
 
 interface ClientHeaderProps {
-  session: Session | null
+  session: Session | null;
 }
 
 export function ClientHeader({ session }: ClientHeaderProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleSignOutClick = async () => {
     try {
       // Call signOut with redirect false to handle navigation manually
-      await signOut({ 
+      await signOut({
         redirect: false,
-        callbackUrl: '/login/signin'
-      })
-      
+        callbackUrl: '/login/signin',
+      });
+
       // Force a hard navigation to signin page
-      window.location.href = '/login/signin'
+      window.location.href = '/login/signin';
     } catch (error) {
-      console.error('Error signing out:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error signing out:', error);
+      }
       // Fallback navigation if the signOut fails
-      router.push('/login/signin')
+      router.push('/login/signin');
     }
-  }
+  };
 
   return (
     <header className="h-16 border-b bg-white/75 backdrop-blur-sm">
@@ -39,8 +41,8 @@ export function ClientHeader({ session }: ClientHeaderProps) {
             {session?.user?.name || 'Guest'}
           </span>
         </div>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           onClick={handleSignOutClick}
           className="gap-2"
@@ -50,5 +52,5 @@ export function ClientHeader({ session }: ClientHeaderProps) {
         </Button>
       </div>
     </header>
-  )
-} 
+  );
+}
