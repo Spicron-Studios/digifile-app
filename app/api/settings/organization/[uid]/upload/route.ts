@@ -3,6 +3,7 @@ import { auth } from '@/app/lib/auth';
 import { getSupabaseClient } from '@/app/lib/supabase';
 import { getBucket } from '@/app/lib/storage';
 import { Logger } from '@/app/lib/logger/logger.service';
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest, context: unknown) {
   const params = (context as { params?: Record<string, unknown> }).params ?? {};

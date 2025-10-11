@@ -98,33 +98,10 @@ export class Logger {
     return `[${timestamp}] [${origin}] (${level}) - ${fileName} - ${message}`;
   }
 
-  private async writeToFile(message: string): Promise<void> {
-    if (!this.isServer()) return;
-
-    try {
-      // Only run on server - check for Node.js globals
-      if (
-        typeof globalThis !== 'undefined' &&
-        typeof globalThis.process !== 'undefined'
-      ) {
-        const [fs, path] = await Promise.all([
-          import('fs').then(m => m.promises),
-          import('path'),
-        ]);
-
-        const logDir = path.join(process.cwd(), this.config.logDirectory);
-        await fs.mkdir(logDir, { recursive: true });
-        const date = new Date().toISOString().split('T')[0];
-        const logFile = path.join(logDir, `app-${date}.log`);
-        await fs.appendFile(logFile, message + '\n');
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to write to log file:', error);
-      }
-      // Swallow file write errors to avoid breaking the application
-    }
+  private async writeToFile(_message: string): Promise<void> {
+    // File logging is disabled in this build to ensure compatibility with Edge runtime
+    // and avoid Node.js module imports being crawled by the client/edge bundler.
+    return;
   }
 
   private async writeLog(entry: LogEntry): Promise<void> {

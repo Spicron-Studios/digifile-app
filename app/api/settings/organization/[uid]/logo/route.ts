@@ -1,4 +1,5 @@
 import { Logger } from '@/app/lib/logger/logger.service';
+export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/app/lib/supabase';
 import { auth } from '@/app/lib/auth';

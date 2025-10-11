@@ -1,10 +1,15 @@
-import type { Logger } from './logger.service';
 export * from './types';
 
-export type ClientOrServerLogger = Pick<
-  Logger,
-  'init' | 'error' | 'warning' | 'info' | 'debug' | 'success' | 'checkpoint'
-> & { side: 'client' | 'server' };
+export type ClientOrServerLogger = {
+  side: 'client' | 'server';
+  init(): Promise<void>;
+  error(_fileName: string, _message: string): Promise<void>;
+  warning(_fileName: string, _message: string): Promise<void>;
+  info(_fileName: string, _message: string): Promise<void>;
+  debug(_fileName: string, _message: string): Promise<void>;
+  success(_fileName: string, _message: string): Promise<void>;
+  checkpoint(_fileName: string, _message: string): Promise<void>;
+};
 
 export function getLogger(): ClientOrServerLogger {
   if (typeof window === 'undefined') {
