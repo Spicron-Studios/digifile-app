@@ -1,4 +1,4 @@
-export { Logger } from './logger.service';
+import type { Logger } from './logger.service';
 export * from './types';
 
 export type ClientOrServerLogger = Pick<
@@ -8,8 +8,40 @@ export type ClientOrServerLogger = Pick<
 
 export function getLogger(): ClientOrServerLogger {
   if (typeof window === 'undefined') {
-    const instance = Logger.getInstance();
-    return Object.assign(instance, { side: 'server' as const });
+    // Return a lightweight proxy that defers importing the server logger until method call time.
+    const serverProxy: ClientOrServerLogger = {
+      side: 'server',
+      async init(): Promise<void> {
+        const { Logger } = await import('./logger.service');
+        const instance = Logger.getInstance();
+        await instance.init();
+      },
+      async error(fileName: string, message: string): Promise<void> {
+        const { Logger } = await import('./logger.service');
+        await Logger.getInstance().error(fileName, message);
+      },
+      async warning(fileName: string, message: string): Promise<void> {
+        const { Logger } = await import('./logger.service');
+        await Logger.getInstance().warning(fileName, message);
+      },
+      async info(fileName: string, message: string): Promise<void> {
+        const { Logger } = await import('./logger.service');
+        await Logger.getInstance().info(fileName, message);
+      },
+      async debug(fileName: string, message: string): Promise<void> {
+        const { Logger } = await import('./logger.service');
+        await Logger.getInstance().debug(fileName, message);
+      },
+      async success(fileName: string, message: string): Promise<void> {
+        const { Logger } = await import('./logger.service');
+        await Logger.getInstance().success(fileName, message);
+      },
+      async checkpoint(fileName: string, message: string): Promise<void> {
+        const { Logger } = await import('./logger.service');
+        await Logger.getInstance().checkpoint(fileName, message);
+      },
+    };
+    return serverProxy;
   }
   // Client-side shim that forwards to server via API, and also logs to browser console
   const client = createClientLogger();

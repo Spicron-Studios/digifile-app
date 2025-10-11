@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Logger } from '@/app/lib/logger';
+import { Logger } from '@/app/lib/logger/logger.service';
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -42,8 +42,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const m = error instanceof Error ? error.message : 'Unknown error';
-    // eslint-disable-next-line no-console
-    console.error('[api/logger] failed:', m);
+    const logger = Logger.getInstance();
+    await logger.init();
+    await logger.error('api/logger/route.ts', `[api/logger] failed: ${m}`);
     return NextResponse.json({ ok: false }, { status: 500 });
   }
 }

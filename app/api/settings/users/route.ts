@@ -1,3 +1,4 @@
+import { Logger } from '@/app/lib/logger/logger.service';
 import { NextResponse } from 'next/server';
 import db, { users } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
@@ -43,9 +44,12 @@ export async function GET() {
 
     return NextResponse.json(usersList);
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Failed to fetch users:', error);
-    }
+    const logger = Logger.getInstance();
+    await logger.init();
+    await logger.error(
+      'api/settings/users/route.ts',
+      `Failed to fetch users: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     return NextResponse.json(
       { error: 'Failed to fetch users' },
       { status: 500 }

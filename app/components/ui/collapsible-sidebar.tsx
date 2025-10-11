@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import * as React from 'react';
 import {
@@ -38,7 +39,12 @@ function SidebarWrapper() {
   const isCollapsed = state === 'collapsed';
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('SidebarWrapper rendered, state:', state);
+    const logger = getLogger();
+    // Fire-and-forget; no await inside render
+    void logger.debug(
+      'app/components/ui/collapsible-sidebar.tsx',
+      `SidebarWrapper rendered, state: ${JSON.stringify(state)}`
+    );
   }
 
   return (

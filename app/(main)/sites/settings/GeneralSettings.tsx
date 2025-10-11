@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import { useState, useEffect, FormEvent } from 'react';
 import { Upload } from 'lucide-react';
@@ -74,9 +75,11 @@ export function GeneralSettings() {
         const data = await getOrganization();
         setOrgInfo(data);
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching organization info:', error);
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/(main)/sites/settings/GeneralSettings.tsx',
+          `Error fetching organization info: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
         setError(error instanceof Error ? error.message : 'An error occurred');
       } finally {
         setIsLoading(false);
@@ -92,9 +95,11 @@ export function GeneralSettings() {
         const data = await getPracticeTypes();
         setPracticeTypes(data);
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching practice types:', error);
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/(main)/sites/settings/GeneralSettings.tsx',
+          `Error fetching practice types: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     };
 
@@ -146,9 +151,11 @@ export function GeneralSettings() {
       setOrgInfo(updated);
       toast.success('Organization information updated successfully');
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error updating organization info:', error);
-      }
+      const logger = getLogger();
+      await logger.error(
+        'app/(main)/sites/settings/GeneralSettings.tsx',
+        `Error updating organization info: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       toast.error(
         error instanceof Error
           ? error.message
@@ -179,9 +186,11 @@ export function GeneralSettings() {
         `${type === 'logo' ? 'Logo' : 'Consent document'} uploaded successfully`
       );
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Upload error:', error);
-      }
+      const logger = getLogger();
+      await logger.error(
+        'app/(main)/sites/settings/GeneralSettings.tsx',
+        `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       toast.error(
         error instanceof Error ? error.message : 'Failed to upload file'
       );

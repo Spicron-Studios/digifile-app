@@ -5,7 +5,7 @@ import db, {
   fileinfoPatient,
   patient,
 } from '@/app/lib/drizzle';
-import { Logger } from '@/app/lib/logger';
+import { Logger } from '@/app/lib/logger/logger.service';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { eq, and, asc } from 'drizzle-orm';

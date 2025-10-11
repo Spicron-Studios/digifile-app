@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import { Button } from '@/app/components/ui/button';
 import { LogOut, User } from 'lucide-react';
@@ -24,9 +25,11 @@ export function ClientHeader({ session }: ClientHeaderProps) {
       // Force a hard navigation to signin page
       window.location.href = '/login/signin';
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error signing out:', error);
-      }
+      const logger = getLogger();
+      await logger.error(
+        'app/components/ui/client-header.tsx',
+        `Error signing out: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       // Fallback navigation if the signOut fails
       router.push('/login/signin');
     }
