@@ -20,7 +20,7 @@ import {
 } from '@/app/actions/appointments';
 import { getDayEvents } from '@/app/actions/calendar';
 import { handleResult } from '@/app/utils/helper-functions/handle-results';
-import { Logger } from '@/app/lib/logger';
+import { getLogger } from '@/app/lib/logger';
 
 export interface CalendarClientProps {
   accounts: Account[];
@@ -31,7 +31,7 @@ export default function CalendarClient({
   accounts,
   events,
 }: CalendarClientProps): React.JSX.Element {
-  const logger = Logger.getInstance();
+  const logger = useMemo(() => getLogger(), []);
 
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     accounts.map(a => a.uid)

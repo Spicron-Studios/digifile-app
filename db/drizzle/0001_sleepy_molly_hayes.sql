@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "role_id" uuid;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_role_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("uid") ON DELETE no action ON UPDATE no action;

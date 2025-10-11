@@ -7,7 +7,7 @@ export interface AuthenticatedRequest extends NextRequest {
     user: {
       id: string;
       orgId: string;
-      roles: Array<{ role: { uid: string; name: string } }>;
+      role: { uid: string; name: string } | null;
     };
   };
 }
@@ -81,17 +81,15 @@ export function withAuth<T>(
 
       // Check role requirements
       if (options.requireRoles && options.requireRoles.length > 0) {
-        const userRoles = session.user.roles.map(r =>
-          r.role.name.toLowerCase()
-        );
-        const hasRequiredRole = options.requireRoles.some(role =>
-          userRoles.includes(role.toLowerCase())
+        const userRoleName = (session.user.role?.name ?? '').toLowerCase();
+        const hasRequiredRole = options.requireRoles.some(
+          role => userRoleName === role.toLowerCase()
         );
 
         if (!hasRequiredRole) {
           await logger.warning(
             options.loggerContext,
-            `Access denied - Required roles: ${options.requireRoles.join(', ')}, User roles: ${userRoles.join(', ')}`
+            `Access denied - Required roles: ${options.requireRoles.join(', ')}, User role: ${userRoleName}`
           );
           return NextResponse.json(
             { error: 'Insufficient permissions', type: 'ROLE_ERROR' },
@@ -106,7 +104,7 @@ export function withAuth<T>(
         user: {
           id: session.user.id,
           orgId: session.user.orgId,
-          roles: session.user.roles,
+          role: session.user.role ?? null,
         },
       };
 
@@ -178,22 +176,36 @@ export async function validateRequestData<T>(
 /**
  * Check if user has admin privileges
  */
-export function isAdmin(roles: Array<{ role: { name: string } }>): boolean {
-  return roles.some(r => r.role.name.toLowerCase() === 'admin');
+export function isAdmin(role: { name: string } | null | undefined): boolean {
+  return (role?.name ?? '').toLowerCase() === 'admin';
 }
 
 /**
  * Check if user has organizer privileges
  */
-export function isOrganizer(roles: Array<{ role: { name: string } }>): boolean {
-  return roles.some(r => r.role.name.toLowerCase() === 'organizer');
+export function isOrganizer(
+  role: { name: string } | null | undefined
+): boolean {
+  return (role?.name ?? '').toLowerCase() === 'organizer';
+}
+
+export function isSuperUser(
+  role: { name: string } | null | undefined
+): boolean {
+  return (role?.name ?? '').toLowerCase() === 'superuser';
 }
 
 /**
  * Check if user has admin or organizer privileges
  */
 export function isAdminOrOrganizer(
-  roles: Array<{ role: { name: string } }>
+  role: { name: string } | null | undefined
 ): boolean {
-  return isAdmin(roles) || isOrganizer(roles);
+  return isAdmin(role) || isOrganizer(role);
+}
+
+export function hasElevatedAccess(
+  role: { name: string } | null | undefined
+): boolean {
+  return isAdmin(role) || isOrganizer(role) || isSuperUser(role);
 }

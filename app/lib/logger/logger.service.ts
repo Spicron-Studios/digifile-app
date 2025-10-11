@@ -10,6 +10,7 @@
  */
 
 import { LogLevel, LoggerConfig, LogEntry } from './types';
+import chalk from 'chalk';
 
 export class Logger {
   private static instance: Logger;
@@ -17,10 +18,6 @@ export class Logger {
   private initialized: boolean = false;
 
   private constructor() {
-    // Server-only module - throw error if used on client
-    if (typeof window !== 'undefined') {
-      throw new Error('Logger service can only be used on the server side');
-    }
     this.config = {
       enabled: (process.env.LOGGER_ENABLED ?? 'true') === 'true',
       consoleEnabled: (process.env.LOGGER_CONSOLE_ENABLED ?? 'true') === 'true',
@@ -35,6 +32,8 @@ export class Logger {
         WARNING: true,
         INFO: true,
         DEBUG: true,
+        SUCCESS: true,
+        CHECKPOINT: true,
       },
       maxFileSize: 104857600, // 100MB (reserved for future rotation logic)
       maxLogFiles: 10, // (reserved for future rotation logic)
@@ -153,27 +152,48 @@ export class Logger {
   }
 
   private consoleOutput(level: LogLevel, message: string): void {
+    const colored = this.colorize(level, message);
     switch (level) {
       case 'ERROR':
         // eslint-disable-next-line no-console
-        console.error(message);
+        console.error(colored);
         break;
       case 'WARNING':
         // eslint-disable-next-line no-console
-        console.warn(message);
+        console.warn(colored);
         break;
       case 'INFO':
+      case 'SUCCESS':
+      case 'CHECKPOINT':
         // eslint-disable-next-line no-console
-        console.info(message);
+        console.info(colored);
         break;
       case 'DEBUG':
         // eslint-disable-next-line no-console
         if (console.debug) {
-          console.debug(message);
+          console.debug(colored);
         } else {
-          console.log(message);
+          console.log(colored);
         }
         break;
+    }
+  }
+
+  private colorize(level: LogLevel, message: string): string {
+    switch (level) {
+      case 'ERROR':
+        return chalk.red(message);
+      case 'WARNING':
+        return chalk.hex('#FFA500')(message); // Orange
+      case 'INFO':
+        return chalk.cyanBright(message); // Light blue
+      case 'SUCCESS':
+        return chalk.greenBright(message); // Light green
+      case 'CHECKPOINT':
+        return chalk.whiteBright(message); // White
+      case 'DEBUG':
+      default:
+        return message;
     }
   }
 
@@ -206,5 +226,13 @@ export class Logger {
 
   public async debug(fileName: string, message: string): Promise<void> {
     await this.log('DEBUG', fileName, message);
+  }
+
+  public async success(fileName: string, message: string): Promise<void> {
+    await this.log('SUCCESS', fileName, message);
+  }
+
+  public async checkpoint(fileName: string, message: string): Promise<void> {
+    await this.log('CHECKPOINT', fileName, message);
   }
 }

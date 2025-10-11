@@ -1,8 +1,8 @@
 'use server';
 
-import db, { users, roles, userRoles } from '@/app/lib/drizzle';
+import db, { users, roles } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export type SimpleUser = {
   uid: string;
@@ -12,18 +12,16 @@ export type SimpleUser = {
   email: string | null;
   username: string | null;
   cell_no: string | null;
+  role_id: string | null;
 };
 
 export async function getUsers(): Promise<SimpleUser[]> {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
 
-  const isAdmin = session.user.roles.some(
-    r => r.role.name.toLowerCase() === 'admin'
-  );
-  const isOrganizer = session.user.roles.some(
-    r => r.role.name.toLowerCase() === 'organizer'
-  );
+  const roleName = (session.user.role?.name ?? '').toLowerCase();
+  const isAdmin = roleName === 'admin';
+  const isOrganizer = roleName === 'organizer';
 
   const whereConditions = [
     eq(users.active, true),
@@ -43,6 +41,7 @@ export async function getUsers(): Promise<SimpleUser[]> {
       email: users.email,
       username: users.username,
       cell_no: users.cellNo,
+      role_id: users.roleId,
     })
     .from(users)
     .where(and(...whereConditions));
@@ -104,96 +103,77 @@ export async function getAvailableRoles(): Promise<Role[]> {
   }));
 }
 
-export async function getUserRoles(userUid: string): Promise<Role[]> {
+export async function getUserRole(userUid: string): Promise<Role | null> {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
 
-  const rows = await db
+  const userWithRole = await db
     .select({
-      uid: roles.uid,
-      role_name: roles.roleName,
+      uid: users.uid,
+      roleId: users.roleId,
+      roleName: roles.roleName,
       description: roles.description,
     })
-    .from(userRoles)
-    .innerJoin(roles, eq(userRoles.roleid, roles.uid))
-    .where(
-      and(
-        eq(userRoles.userid, userUid),
-        eq(userRoles.orgid, session.user.orgId),
-        eq(userRoles.active, true)
-      )
-    );
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.uid))
+    .where(and(eq(users.uid, userUid), eq(users.orgid, session.user.orgId)))
+    .limit(1);
 
-  return rows.map(r => ({
-    uid: r.uid || '',
-    role_name: r.role_name || '',
-    description: r.description || null,
-  }));
+  if (userWithRole.length > 0) {
+    const user = userWithRole[0];
+    if (user && user.roleId) {
+      return {
+        uid: user.roleId,
+        role_name: user.roleName || 'Unknown',
+        description: user.description,
+      };
+    }
+  }
+
+  return null;
 }
 
-export async function updateUserRoles(
+export async function updateUserRole(
   userUid: string,
-  roleIds: string[],
-  action: 'add' | 'remove'
-): Promise<Role[]> {
+  roleId: string
+): Promise<Role | null> {
   const session = await auth();
   if (!session?.user?.orgId) throw new Error('Unauthorized');
 
-  if (action === 'add') {
-    const roleId = roleIds[0];
+  // Check if user has elevated access
+  const name = (session.user.role?.name ?? '').toLowerCase();
+  const hasElevated =
+    name === 'admin' || name === 'organizer' || name === 'superuser';
 
-    // Check if role assignment already exists
-    const existing = await db
-      .select()
-      .from(userRoles)
-      .where(
-        and(
-          eq(userRoles.userid, userUid),
-          roleId ? eq(userRoles.roleid, roleId) : undefined,
-          eq(userRoles.orgid, session.user.orgId)
-        )
-      )
-      .limit(1);
-
-    if (existing.length > 0 && existing[0]) {
-      // Reactivate existing role
-      await db
-        .update(userRoles)
-        .set({
-          active: true,
-          lastEdit: new Date().toISOString(),
-        })
-        .where(eq(userRoles.uid, existing[0].uid));
-    } else {
-      // Create new role assignment
-      await db.insert(userRoles).values({
-        uid: crypto.randomUUID(),
-        userid: userUid,
-        roleid: roleId,
-        orgid: session.user.orgId,
-        active: true,
-        dateCreated: new Date().toISOString(),
-        lastEdit: new Date().toISOString(),
-        locked: false,
-      });
-    }
-  } else {
-    // Deactivate roles
-    await db
-      .update(userRoles)
-      .set({
-        active: false,
-        lastEdit: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(userRoles.userid, userUid),
-          inArray(userRoles.roleid, roleIds),
-          eq(userRoles.orgid, session.user.orgId),
-          eq(userRoles.active, true)
-        )
-      );
+  if (!hasElevated) {
+    throw new Error('Forbidden');
   }
 
-  return getUserRoles(userUid);
+  const updated = await db
+    .update(users)
+    .set({
+      roleId: roleId,
+      lastEdit: new Date().toISOString(),
+    })
+    .where(and(eq(users.uid, userUid), eq(users.orgid, session.user.orgId)))
+    .returning();
+
+  if (updated.length > 0) {
+    // Return role details
+    const role = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.uid, roleId))
+      .limit(1);
+
+    return role.length > 0 && role[0]
+      ? {
+          uid: role[0].uid,
+          role_name: role[0].roleName || 'Unknown',
+          description: role[0].description || null,
+        }
+      : null;
+  }
+
+  return null;
 }

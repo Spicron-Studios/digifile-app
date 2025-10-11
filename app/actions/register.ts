@@ -1,26 +1,65 @@
 'use server';
 
-import db, { organizationInfo, users } from '@/app/lib/drizzle';
+import db, { organizationInfo, users, roles } from '@/app/lib/drizzle';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import { and, eq, inArray } from 'drizzle-orm';
 
 // Payload shapes sent from the registration client
 const practiceInfoSchema = z.object({
   practiceName: z.string().min(1),
   bhfNumber: z.string().min(1),
-  hpcsaNumber: z.string().optional().nullable(),
-  practiceType: z.string().optional().nullable(),
-  vatNumber: z.string().optional().nullable(),
+  hpcsaNumber: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
+  practiceType: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
+  vatNumber: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
 });
 
 const contactDetailsSchema = z.object({
-  practiceTelephone: z.string().optional().nullable(),
-  accountsTelephone: z.string().optional().nullable(),
-  postalCode: z.string().optional().nullable(),
-  fullAddress: z.string().optional().nullable(),
-  practiceEmail: z.string().email().optional().nullable(),
-  cellNumber: z.string().optional().nullable(),
-  fax: z.string().optional().nullable(),
+  practiceTelephone: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
+  accountsTelephone: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
+  postalCode: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
+  fullAddress: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
+  practiceEmail: z
+    .union([z.string().email(), z.literal(''), z.null(), z.undefined()])
+    .transform(val => (val === '' ? null : val)),
+  cellNumber: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
+  fax: z
+    .string()
+    .transform(val => (val === '' ? null : val))
+    .optional()
+    .nullable(),
 });
 
 const userCreationSchema = z
@@ -51,6 +90,7 @@ export async function registerOrganization(
   const userCreation = userCreationSchema.parse(payload.userCreation);
 
   const organizationUid = uuidv4();
+  const userUid = uuidv4();
 
   // Create organization
   await db.insert(organizationInfo).values({
@@ -76,14 +116,42 @@ export async function registerOrganization(
     consentToReleaseOfInformation: null,
   });
 
-  // Create user with direct password storage (no hashing for now)
+  // Ensure SuperUser role exists
+  const existingSuperUser = await db
+    .select({ uid: roles.uid })
+    .from(roles)
+    .where(
+      and(
+        inArray(roles.roleName, ['SuperUser', 'superuser', 'SUPERUSER']),
+        eq(roles.active, true)
+      )
+    )
+    .limit(1);
+
+  let superUserRoleId = existingSuperUser[0]?.uid;
+
+  if (!superUserRoleId) {
+    superUserRoleId = uuidv4();
+    await db.insert(roles).values({
+      uid: superUserRoleId,
+      roleName: 'SuperUser',
+      description: 'Highest level role; full organization control',
+      active: true,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
+      locked: false,
+    });
+  }
+
+  // Create user with direct role assignment
   await db.insert(users).values({
-    uid: uuidv4(),
+    uid: userUid,
     firstName: userCreation.firstName,
     surname: userCreation.lastName,
     username: userCreation.username,
     secretKey: userCreation.password, // Store password directly in secretKey field
     orgid: organizationUid,
+    roleId: superUserRoleId, // Direct role assignment
     active: true,
     dateCreated: new Date().toISOString(),
     lastEdit: new Date().toISOString(),

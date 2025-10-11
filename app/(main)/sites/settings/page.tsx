@@ -14,12 +14,11 @@ import { DebitOrderSettings } from './DebitOrderSettings';
 export default function SettingsPage() {
   const { data: session } = useSession();
 
-  // Helper function to check if user has admin or organizer role
-  const hasAdminAccess = session?.user?.roles?.some(
-    r =>
-      r.role.name.toLowerCase() === 'admin' ||
-      r.role.name.toLowerCase() === 'organizer'
-  );
+  // Helper function to check if user has org-admin level access
+  const hasAdminAccess = session?.user?.roles?.some(r => {
+    const name = r.role.name.toLowerCase();
+    return name === 'admin' || name === 'organizer' || name === 'superuser';
+  });
 
   // If user doesn't have admin access, they can only see user settings
   const defaultTab = hasAdminAccess ? 'general' : 'users';

@@ -19,8 +19,8 @@ import {
   getUsers,
   updateUser,
   getAvailableRoles,
-  getUserRoles,
-  updateUserRoles,
+  getUserRole,
+  updateUserRole,
 } from '@/app/actions/users';
 import { handleResult } from '@/app/utils/helper-functions/handle-results';
 import { UserSettingsSkeleton } from '@/app/components/ui/skeletons';
@@ -33,6 +33,7 @@ type User = {
   email: string | null;
   username: string | null;
   cell_no: string | null;
+  role_id: string | null;
 };
 
 interface UpdateUserPayload {
@@ -64,7 +65,7 @@ export function UserSettings() {
     phone: '',
   });
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
-  const [userRoles, setUserRoles] = useState<Role[]>([]);
+  const [userRole, setUserRole] = useState<Role | null>(null);
 
   const isAdmin = session?.user?.roles?.some(
     r => r.role.name.toLowerCase() === 'admin'
@@ -72,15 +73,17 @@ export function UserSettings() {
   const isOrganizer = session?.user?.roles?.some(
     r => r.role.name.toLowerCase() === 'organizer'
   );
+  const isSuperUser = session?.user?.roles?.some(
+    r => r.role.name.toLowerCase() === 'superuser'
+  );
 
   const hasRoleManagementAccess = (
     roles: { role: { uid: string; name: string } }[]
   ) => {
-    return roles?.some(
-      r =>
-        r.role.name.toLowerCase() === 'admin' ||
-        r.role.name.toLowerCase() === 'organizer'
-    );
+    return roles?.some(r => {
+      const name = r.role.name.toLowerCase();
+      return name === 'admin' || name === 'organizer' || name === 'superuser';
+    });
   };
 
   // Fetch users effect
@@ -109,25 +112,25 @@ export function UserSettings() {
     const fetchUserData = async () => {
       if (!selectedUser) return;
 
-      const [rolesResult, userRolesResult] = await Promise.all([
+      const [rolesResult, userRoleResult] = await Promise.all([
         handleResult(getAvailableRoles()),
-        handleResult(getUserRoles(selectedUser.uid)),
+        handleResult(getUserRole(selectedUser.uid)),
       ]);
 
-      if (rolesResult.error || userRolesResult.error) {
+      if (rolesResult.error || userRoleResult.error) {
         if (process.env.NODE_ENV === 'development') {
           console.error(
             'Failed to fetch role data:',
-            rolesResult.error || userRolesResult.error
+            rolesResult.error || userRoleResult.error
           );
         }
         toast.error('Failed to load role information');
-        setUserRoles([]);
+        setUserRole(null);
         return;
       }
 
       setAvailableRoles(rolesResult.data || []);
-      setUserRoles(userRolesResult.data || []);
+      setUserRole(userRoleResult.data || null);
     };
 
     fetchUserData();
@@ -200,29 +203,23 @@ export function UserSettings() {
     }
   };
 
-  const handleRoleChange = async (roleId: string, action: 'add' | 'remove') => {
+  const handleRoleChange = async (roleId: string) => {
     if (!selectedUser) return;
 
     try {
-      await updateUserRoles(selectedUser.uid, [roleId], action);
-
-      if (action === 'add') {
-        const roleToAdd = availableRoles.find(role => role.uid === roleId);
-        if (roleToAdd) {
-          setUserRoles(prev => [...prev, roleToAdd]);
-        }
-      } else {
-        setUserRoles(prev => prev.filter(role => role.uid !== roleId));
-      }
-
-      toast.success(
-        `Role ${action === 'add' ? 'added' : 'removed'} successfully`
+      const { data: updatedRole } = await handleResult(
+        updateUserRole(selectedUser.uid, roleId)
       );
+
+      if (updatedRole) {
+        setUserRole(updatedRole);
+        toast.success('Role updated successfully');
+      }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to update user roles:', error);
+        console.error('Failed to update user role:', error);
       }
-      toast.error('Failed to update user roles');
+      toast.error('Failed to update user role');
     }
   };
 
@@ -383,86 +380,41 @@ export function UserSettings() {
               hasRoleManagementAccess(session?.user?.roles ?? []) && (
                 <Card className="p-6">
                   <div className="space-y-4">
-                    <h3 className="text-xl font-semibold">User Roles</h3>
+                    <h3 className="text-xl font-semibold">User Role</h3>
 
-                    {/* Current Roles Section */}
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-gray-700">
-                        Current Roles
-                      </h4>
-                      {userRoles.length === 0 ? (
-                        <p className="text-sm text-gray-500 italic">
-                          No roles assigned
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {userRoles.map(role => (
-                            <div
-                              key={role.uid}
-                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                            >
-                              <div>
-                                <span className="font-medium">
-                                  {role.role_name}
-                                </span>
-                                {role.description && (
-                                  <p className="text-sm text-gray-500">
-                                    {role.description}
-                                  </p>
-                                )}
-                              </div>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() =>
-                                  handleRoleChange(role.uid, 'remove')
-                                }
-                              >
-                                Remove
-                              </Button>
-                            </div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Select Role
+                      </label>
+                      <Select
+                        value={userRole?.uid || ''}
+                        onValueChange={handleRoleChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableRoles.map(role => (
+                            <SelectItem key={role.uid} value={role.uid}>
+                              {role.role_name}
+                            </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                      {userRole && (
+                        <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
+                          <div>
+                            <span className="font-medium">
+                              Current Role: {userRole.role_name}
+                            </span>
+                            {userRole.description && (
+                              <p className="text-sm text-gray-500 mt-1">
+                                {userRole.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       )}
-                    </div>
-
-                    {/* Available Roles Section */}
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-gray-700">
-                        Available Roles
-                      </h4>
-                      <div className="space-y-2">
-                        {availableRoles
-                          .filter(
-                            role => !userRoles.some(ur => ur.uid === role.uid)
-                          )
-                          .map(role => (
-                            <div
-                              key={role.uid}
-                              className="flex items-center justify-between p-3 bg-white rounded-lg border"
-                            >
-                              <div>
-                                <span className="font-medium">
-                                  {role.role_name}
-                                </span>
-                                {role.description && (
-                                  <p className="text-sm text-gray-500">
-                                    {role.description}
-                                  </p>
-                                )}
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  handleRoleChange(role.uid, 'add')
-                                }
-                              >
-                                Add Role
-                              </Button>
-                            </div>
-                          ))}
-                      </div>
                     </div>
                   </div>
                 </Card>
@@ -488,7 +440,7 @@ export function UserSettings() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">User List</h2>
-              {(isAdmin || isOrganizer) && (
+              {(isAdmin || isOrganizer || isSuperUser) && (
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -511,7 +463,10 @@ export function UserSettings() {
                   <Button
                     onClick={() => setSelectedUser(user)}
                     disabled={
-                      !isAdmin && !isOrganizer && user.uid !== session?.user?.id
+                      !isAdmin &&
+                      !isOrganizer &&
+                      !isSuperUser &&
+                      user.uid !== session?.user?.id
                     }
                   >
                     Edit
