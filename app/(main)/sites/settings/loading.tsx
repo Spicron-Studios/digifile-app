@@ -1,7 +1,8 @@
 import React from 'react';
+import { GeneralSettingsSkeleton } from '@/app/components/ui/skeletons';
 
 const loading = () => {
-  return <div>loading...</div>;
+  return <GeneralSettingsSkeleton />;
 };
 
 export default loading;

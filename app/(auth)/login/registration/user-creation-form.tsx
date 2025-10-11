@@ -31,7 +31,11 @@ interface UserCreationFormProps {
   errors?: { [key: string]: string[] };
 }
 
-export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
+export function UserCreationForm({
+  value,
+  onChange,
+  errors,
+}: UserCreationFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,8 +80,18 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
     },
   ];
 
+  const hasErrors = errors && Object.keys(errors).length > 0;
+
   return (
     <div className="space-y-6 p-4">
+      {hasErrors && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm font-medium text-red-800">
+            Please fill in all required fields marked with an asterisk (*)
+          </p>
+        </div>
+      )}
+
       {/* Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="grid gap-2">
@@ -109,22 +123,34 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
       {/* Row 2 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="grid gap-2">
-          <Label htmlFor="firstName">First Name</Label>
+          <Label htmlFor="firstName">
+            First Name <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="firstName"
             placeholder="Enter first name"
             value={value.firstName}
             onChange={handleInputChange('firstName')}
+            className={errors?.firstName ? 'border-red-500' : ''}
           />
+          {errors?.firstName && (
+            <p className="text-sm text-red-600">{errors.firstName[0]}</p>
+          )}
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="lastName">Last Name</Label>
+          <Label htmlFor="lastName">
+            Last Name <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="lastName"
             placeholder="Enter last name"
             value={value.lastName}
             onChange={handleInputChange('lastName')}
+            className={errors?.lastName ? 'border-red-500' : ''}
           />
+          {errors?.lastName && (
+            <p className="text-sm text-red-600">{errors.lastName[0]}</p>
+          )}
         </div>
       </div>
 
@@ -152,18 +178,26 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
 
       {/* Row 4 */}
       <div className="grid gap-2">
-        <Label htmlFor="username">Username</Label>
+        <Label htmlFor="username">
+          Username <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="username"
           placeholder="Enter username"
           value={value.username}
           onChange={handleInputChange('username')}
+          className={errors?.username ? 'border-red-500' : ''}
         />
+        {errors?.username && (
+          <p className="text-sm text-red-600">{errors.username[0]}</p>
+        )}
       </div>
 
       {/* Row 5 */}
       <div className="grid gap-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">
+          Password <span className="text-red-500">*</span>
+        </Label>
         <div className="relative">
           <Input
             id="password"
@@ -171,6 +205,7 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
             placeholder="Enter password"
             value={value.password}
             onChange={handleInputChange('password')}
+            className={errors?.password ? 'border-red-500' : ''}
           />
           <button
             type="button"
@@ -184,6 +219,9 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
             )}
           </button>
         </div>
+        {errors?.password && (
+          <p className="text-sm text-red-600">{errors.password[0]}</p>
+        )}
         <ul className="text-sm text-muted-foreground ml-2 list-disc list-inside">
           {passwordRequirements.map((req, index) => (
             <li
@@ -204,7 +242,9 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
 
       {/* Row 6 */}
       <div className="grid gap-2">
-        <Label htmlFor="confirmPassword">Re-enter Password</Label>
+        <Label htmlFor="confirmPassword">
+          Re-enter Password <span className="text-red-500">*</span>
+        </Label>
         <div className="relative">
           <Input
             id="confirmPassword"
@@ -212,6 +252,7 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
             placeholder="Confirm password"
             value={value.confirmPassword}
             onChange={handleInputChange('confirmPassword')}
+            className={errors?.confirmPassword ? 'border-red-500' : ''}
           />
           <button
             type="button"
@@ -225,7 +266,10 @@ export function UserCreationForm({ value, onChange }: UserCreationFormProps) {
             )}
           </button>
         </div>
-        {value.confirmPassword && (
+        {errors?.confirmPassword && (
+          <p className="text-sm text-red-600">{errors.confirmPassword[0]}</p>
+        )}
+        {!errors?.confirmPassword && value.confirmPassword && (
           <p
             className={`text-sm ${value.password === value.confirmPassword ? 'text-green-600' : 'text-red-600'}`}
           >

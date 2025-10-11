@@ -10,6 +10,7 @@
  */
 
 import { LogLevel, LoggerConfig, LogEntry } from './types';
+import chalk from 'chalk';
 
 export class Logger {
   private static instance: Logger;
@@ -31,6 +32,8 @@ export class Logger {
         WARNING: true,
         INFO: true,
         DEBUG: true,
+        SUCCESS: true,
+        CHECKPOINT: true,
       },
       maxFileSize: 104857600, // 100MB (reserved for future rotation logic)
       maxLogFiles: 10, // (reserved for future rotation logic)
@@ -99,16 +102,22 @@ export class Logger {
     if (!this.isServer()) return;
 
     try {
-      const [fs, path] = await Promise.all([
-        import('fs').then(m => m.promises),
-        import('path'),
-      ]);
+      // Only run on server - check for Node.js globals
+      if (
+        typeof globalThis !== 'undefined' &&
+        typeof globalThis.process !== 'undefined'
+      ) {
+        const [fs, path] = await Promise.all([
+          import('fs').then(m => m.promises),
+          import('path'),
+        ]);
 
-      const logDir = path.join(process.cwd(), this.config.logDirectory);
-      await fs.mkdir(logDir, { recursive: true });
-      const date = new Date().toISOString().split('T')[0];
-      const logFile = path.join(logDir, `app-${date}.log`);
-      await fs.appendFile(logFile, message + '\n');
+        const logDir = path.join(process.cwd(), this.config.logDirectory);
+        await fs.mkdir(logDir, { recursive: true });
+        const date = new Date().toISOString().split('T')[0];
+        const logFile = path.join(logDir, `app-${date}.log`);
+        await fs.appendFile(logFile, message + '\n');
+      }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
@@ -143,27 +152,48 @@ export class Logger {
   }
 
   private consoleOutput(level: LogLevel, message: string): void {
+    const colored = this.colorize(level, message);
     switch (level) {
       case 'ERROR':
         // eslint-disable-next-line no-console
-        console.error(message);
+        console.error(colored);
         break;
       case 'WARNING':
         // eslint-disable-next-line no-console
-        console.warn(message);
+        console.warn(colored);
         break;
       case 'INFO':
+      case 'SUCCESS':
+      case 'CHECKPOINT':
         // eslint-disable-next-line no-console
-        console.info(message);
+        console.info(colored);
         break;
       case 'DEBUG':
         // eslint-disable-next-line no-console
         if (console.debug) {
-          console.debug(message);
+          console.debug(colored);
         } else {
-          console.log(message);
+          console.log(colored);
         }
         break;
+    }
+  }
+
+  private colorize(level: LogLevel, message: string): string {
+    switch (level) {
+      case 'ERROR':
+        return chalk.red(message);
+      case 'WARNING':
+        return chalk.hex('#FFA500')(message); // Orange
+      case 'INFO':
+        return chalk.cyanBright(message); // Light blue
+      case 'SUCCESS':
+        return chalk.greenBright(message); // Light green
+      case 'CHECKPOINT':
+        return chalk.whiteBright(message); // White
+      case 'DEBUG':
+      default:
+        return message;
     }
   }
 
@@ -196,5 +226,13 @@ export class Logger {
 
   public async debug(fileName: string, message: string): Promise<void> {
     await this.log('DEBUG', fileName, message);
+  }
+
+  public async success(fileName: string, message: string): Promise<void> {
+    await this.log('SUCCESS', fileName, message);
+  }
+
+  public async checkpoint(fileName: string, message: string): Promise<void> {
+    await this.log('CHECKPOINT', fileName, message);
   }
 }

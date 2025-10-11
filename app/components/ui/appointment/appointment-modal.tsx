@@ -81,6 +81,24 @@ export default function AppointmentModal(
     }
   }, [open, initialValues, accounts, defaultDate, form]);
 
+  function buildTimeOptions(): Array<{ value: string; label: string }> {
+    const options: Array<{ value: string; label: string }> = [];
+    const startMinutes: number = 5 * 60; // 05:00
+    const endMinutes: number = 20 * 60; // 20:00
+    for (let m = startMinutes; m <= endMinutes; m += 15) {
+      const hours24: number = Math.floor(m / 60);
+      const minutes: number = m % 60;
+      const value: string = `${String(hours24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      const hours12: number = ((hours24 + 11) % 12) + 1;
+      const suffix: string = hours24 < 12 ? 'am' : 'pm';
+      const label: string = `${hours12}:${String(minutes).padStart(2, '0')}${suffix}`;
+      options.push({ value, label });
+    }
+    return options;
+  }
+
+  const timeOptions = buildTimeOptions();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -121,11 +139,39 @@ export default function AppointmentModal(
             </div>
             <div>
               <label className="text-xs font-medium">Start</label>
-              <Input type="time" step="1800" {...form.register('time')} />
+              <Select
+                value={form.watch('time')}
+                onValueChange={v => form.setValue('time', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {timeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-xs font-medium">End</label>
-              <Input type="time" step="1800" {...form.register('endTime')} />
+              <Select
+                value={form.watch('endTime')}
+                onValueChange={v => form.setValue('endTime', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {timeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div>

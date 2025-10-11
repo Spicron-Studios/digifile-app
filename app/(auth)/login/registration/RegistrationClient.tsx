@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/app/components/ui/button';
 import { PracticeInfoForm } from './practice-info-form';
 import { ContactDetailsForm } from './contact-details-form';
@@ -17,6 +18,7 @@ import {
   TabsTrigger,
 } from '@/app/components/ui/tabs';
 import type { PracticeType } from '@/app/actions/practice-types';
+import { AuthSkeleton } from '@/app/components/ui/skeletons';
 
 const practiceInfoSchema = z.object({
   practiceName: z.string().min(1, 'Practice name is required'),
@@ -123,6 +125,7 @@ export default function RegistrationClient({
     },
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const tabs = [
     { id: 'practice-info', label: 'Practice Info' },
@@ -152,6 +155,7 @@ export default function RegistrationClient({
       try {
         practiceInfoSchema.parse(formData.practiceInfo);
         userCreationSchema.parse(formData.userCreation);
+        setErrors({});
         setShowVerificationModal(true);
       } catch (e) {
         if (e instanceof z.ZodError) {
@@ -187,6 +191,7 @@ export default function RegistrationClient({
             practiceInfoSchema.parse(formData.practiceInfo);
           else if (activeTab === 'user-creation')
             userCreationSchema.parse(formData.userCreation);
+          setErrors({});
           setActiveTab(nextTabId);
         } catch (e) {
           if (e instanceof z.ZodError) setErrors(toFieldErrors(e));
@@ -198,7 +203,10 @@ export default function RegistrationClient({
   const handlePrevious = (): void => {
     const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
     const prevTabId = tabs[currentIndex - 1]?.id;
-    if (currentIndex > 0 && prevTabId) setActiveTab(prevTabId);
+    if (currentIndex > 0 && prevTabId) {
+      setErrors({});
+      setActiveTab(prevTabId);
+    }
   };
 
   const handleCancel = (): void => {
@@ -206,16 +214,39 @@ export default function RegistrationClient({
   };
 
   const handleVerificationSubmit = async (): Promise<void> => {
+    setIsLoading(true);
     try {
       practiceInfoSchema.parse(formData.practiceInfo);
       userCreationSchema.parse(formData.userCreation);
+
+      // Register the organization and user
       await registerOrganization({
         practiceInfo: formData.practiceInfo,
         contactDetails: formData.contactDetails,
         userCreation: formData.userCreation,
       });
-      setShowVerificationModal(false);
-      router.push('/success');
+
+      // Automatically sign in the user
+      const result = await signIn('credentials', {
+        bfhNumber: formData.practiceInfo.bhfNumber,
+        username: formData.userCreation.username,
+        password: formData.userCreation.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setErrors({
+          general: [
+            'Registration successful, but auto sign-in failed. Please sign in manually.',
+          ],
+        });
+        router.push('/login/signin');
+      } else {
+        setShowVerificationModal(false);
+        // Redirect to the main app
+        router.push('/sites');
+        router.refresh();
+      }
     } catch (e) {
       if (e instanceof z.ZodError) setErrors(toFieldErrors(e));
       else {
@@ -223,11 +254,17 @@ export default function RegistrationClient({
         // For client-side components, we can't use the server logger
         setErrors({ general: ['Registration failed. Please try again.'] });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (isLoading) {
+    return <AuthSkeleton />;
+  }
+
   return (
-    <div className="container mx-auto py-6 space-y-8">
+    <div className="container mx-auto py-6 space-y-8 max-w-[1400px] w-full">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           {tabs.map(tab => (
@@ -246,7 +283,10 @@ export default function RegistrationClient({
             </TabsTrigger>
           ))}
         </TabsList>
-        <TabsContent value="practice-info">
+        <TabsContent
+          value="practice-info"
+          className="max-h-[65vh] overflow-y-auto border border-gray-200 rounded-lg"
+        >
           <PracticeInfoForm
             value={formData.practiceInfo}
             onChange={value =>
@@ -256,7 +296,10 @@ export default function RegistrationClient({
             practiceTypes={practiceTypes}
           />
         </TabsContent>
-        <TabsContent value="contact-details">
+        <TabsContent
+          value="contact-details"
+          className="max-h-[65vh] overflow-y-auto border border-gray-200 rounded-lg"
+        >
           <ContactDetailsForm
             value={formData.contactDetails}
             onChange={value =>
@@ -264,7 +307,10 @@ export default function RegistrationClient({
             }
           />
         </TabsContent>
-        <TabsContent value="user-creation">
+        <TabsContent
+          value="user-creation"
+          className="max-h-[65vh] overflow-y-auto border border-gray-200 rounded-lg"
+        >
           <UserCreationForm
             value={formData.userCreation}
             onChange={value =>
@@ -273,7 +319,10 @@ export default function RegistrationClient({
             errors={errors}
           />
         </TabsContent>
-        <TabsContent value="extra-info">
+        <TabsContent
+          value="extra-info"
+          className="max-h-[65vh] overflow-y-auto border border-gray-200 rounded-lg"
+        >
           <ExtraInfoForm
             value={formData.extraInfo}
             onChange={value =>

@@ -40,5 +40,5 @@ export function colorForIndex(index: number): string {
   const paletteLength: number = DEFAULT_ACCOUNT_COLORS.length;
   if (paletteLength === 0) return '#3b82f6';
   const normalized: number = Math.abs(index) % paletteLength;
-  return DEFAULT_ACCOUNT_COLORS[normalized];
+  return DEFAULT_ACCOUNT_COLORS[normalized] ?? '#3b82f6';
 }

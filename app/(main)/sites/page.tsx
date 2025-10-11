@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { ListSkeleton } from '@/app/components/ui/skeletons';
 
 export default function SitesPage() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function SitesPage() {
   }, [status]);
 
   if (status === 'loading' || isLoading) {
-    return <div>Loading...</div>;
+    return <ListSkeleton items={5} />;
   }
 
   return (

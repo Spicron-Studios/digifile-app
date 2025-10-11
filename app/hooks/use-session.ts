@@ -24,7 +24,7 @@ export const useSession = () => {
           user: {
             id: 'current-user', // TODO: Get actual user ID from auth data
             orgId: data.user.orgId,
-            roles: data.user.roles || [],
+            role: data.user.role ?? null,
             name: data.user.name || null,
             email: data.user.email || null,
           },

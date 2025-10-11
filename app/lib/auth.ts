@@ -1,12 +1,7 @@
 import NextAuth from 'next-auth';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import db, {
-  organizationInfo,
-  users,
-  userRoles,
-  roles,
-} from '@/app/lib/drizzle';
+import db, { organizationInfo, users, roles } from '@/app/lib/drizzle';
 import { eq, and } from 'drizzle-orm';
 
 // Only keep ExtendedUser interface
@@ -33,37 +28,32 @@ export const {
         token.id = user.uid;
         token.orgId = user.orgid;
 
-        // Get user roles using Drizzle
-        const userRolesList = await db
-          .select()
-          .from(userRoles)
-          .where(
-            and(
-              eq(userRoles.userid, user.uid),
-              eq(userRoles.active, true),
-              eq(userRoles.orgid, user.orgid)
-            )
-          );
-
-        const rolesWithDetails = await Promise.all(
-          userRolesList.map(async userRole => {
-            const roleDetails = await db
-              .select()
-              .from(roles)
-              .where(
-                and(eq(roles.uid, userRole.roleid!), eq(roles.active, true))
-              )
-              .limit(1);
-
-            return {
-              role: {
-                uid: roleDetails[0]?.uid || '',
-                name: roleDetails[0]?.roleName || '',
-              },
-            };
+        // Get user role directly from user table
+        const userWithRole = await db
+          .select({
+            uid: users.uid,
+            orgid: users.orgid,
+            roleId: users.roleId,
+            roleName: roles.roleName,
           })
-        );
-        token.roles = rolesWithDetails;
+          .from(users)
+          .leftJoin(roles, eq(users.roleId, roles.uid))
+          .where(and(eq(users.uid, user.uid), eq(users.active, true)))
+          .limit(1);
+
+        if (userWithRole.length > 0) {
+          const userData = userWithRole[0];
+          if (userData && userData.roleId) {
+            token.role = {
+              uid: userData.roleId,
+              name: userData.roleName || 'Unknown',
+            };
+          } else {
+            token.role = null;
+          }
+        } else {
+          token.role = null;
+        }
       }
       return token;
     },
@@ -74,7 +64,9 @@ export const {
           ...session.user,
           id: token.id as string,
           orgId: token.orgId as string,
-          roles: token.roles,
+          role:
+            (token as unknown as { role: { uid: string; name: string } | null })
+              .role ?? null,
         },
       };
     },
@@ -83,7 +75,7 @@ export const {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        bfhNumber: { label: 'BFH Number', type: 'text' },
+        bhfNumber: { label: 'BFH Number', type: 'text' },
         username: { label: 'Username', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },

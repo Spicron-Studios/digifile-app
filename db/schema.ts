@@ -87,6 +87,7 @@ export const users = pgTable(
     dateCreated: timestamp('date_created', { precision: 6, mode: 'string' }),
     lastEdit: timestamp('last_edit', { precision: 6, mode: 'string' }),
     orgid: uuid(),
+    roleId: uuid('role_id'), // Direct role assignment
     locked: boolean(),
   },
   table => [
@@ -94,6 +95,11 @@ export const users = pgTable(
       columns: [table.orgid],
       foreignColumns: [organizationInfo.uid],
       name: 'users_organization_info_fk',
+    }),
+    foreignKey({
+      columns: [table.roleId],
+      foreignColumns: [roles.uid],
+      name: 'users_role_fk',
     }),
   ]
 );
@@ -571,12 +577,17 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.orgid],
     references: [organizationInfo.uid],
   }),
+  role: one(roles, {
+    fields: [users.roleId],
+    references: [roles.uid],
+  }),
   userRoles: many(userRoles),
   userCalendarEntries: many(userCalendarEntries),
   signatures: many(signature),
 }));
 
 export const rolesRelations = relations(roles, ({ many }) => ({
+  users: many(users),
   userRoles: many(userRoles),
 }));
 

@@ -9,7 +9,7 @@ import {
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { parse, startOfWeek, getDay, format } from 'date-fns';
-import enZA from 'date-fns/locale/en-ZA';
+import { enZA } from 'date-fns/locale/en-ZA';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import type { CalendarEvent } from '@/app/types/calendar';
 import {
@@ -31,35 +31,63 @@ const localizer = dateFnsLocalizer({
 export interface BigCalendarProps {
   events: CalendarEvent[];
   resources: Array<{ id: string; title: string }>;
-  date: Date;
+  _date: Date;
   onNavigate?: (_date: Date) => void;
-  onSelectSlot?: (_range: { start: Date; end: Date }) => void;
+  onSelectSlot?: (_slotInfo: { start: Date; end: Date }) => void;
   onSelectEvent?: (_event: CalendarEvent) => void;
+  onEventDrop?: (_args: {
+    event: CalendarEvent;
+    start: Date;
+    end: Date;
+    resourceId?: string;
+  }) => void | Promise<void>;
+  onEventResize?: (_args: {
+    event: CalendarEvent;
+    start: Date;
+    end: Date;
+  }) => void | Promise<void>;
+  [key: string]: unknown;
 }
 
 const DragAndDropCalendar = withDragAndDrop<
   CalendarEvent,
   { id: string; title: string }
->(RBCalendar as unknown as React.ComponentType<any>);
+>(RBCalendar as any);
 
 export default function BigCalendar(
   props: BigCalendarProps
 ): React.JSX.Element {
-  const { events, resources, onSelectEvent, onSelectSlot, date, onNavigate } =
-    props;
+  const {
+    events,
+    resources,
+    onSelectEvent,
+    onSelectSlot,
+    _date,
+    onNavigate,
+    onEventDrop,
+    onEventResize,
+  } = props;
 
   function hexToRgba(hex: string, alpha: number): string {
     const normalized: string = hex.replace('#', '');
-    const isShort: boolean = normalized.length === 3;
-    const rHex: string = isShort
-      ? normalized[0] + normalized[0]
-      : normalized.substring(0, 2);
-    const gHex: string = isShort
-      ? normalized[1] + normalized[1]
-      : normalized.substring(2, 4);
-    const bHex: string = isShort
-      ? normalized[2] + normalized[2]
-      : normalized.substring(4, 6);
+    if (!normalized || normalized.length < 3) return 'rgba(0, 0, 0, 0)';
+
+    // Type assertion to ensure we have a valid hex string
+    const safeNormalized: string & { length: 3 | 6 | 9 | 12 } =
+      normalized as string & { length: 3 | 6 | 9 | 12 };
+    const isShort: boolean = safeNormalized.length === 3;
+    const rHex: string =
+      isShort && safeNormalized[0]
+        ? safeNormalized[0] + safeNormalized[0]
+        : safeNormalized.substring(0, 2);
+    const gHex: string =
+      isShort && safeNormalized[1]
+        ? safeNormalized[1] + safeNormalized[1]
+        : safeNormalized.substring(2, 4);
+    const bHex: string =
+      isShort && safeNormalized[2]
+        ? safeNormalized[2] + safeNormalized[2]
+        : safeNormalized.substring(4, 6);
     const r: number = parseInt(rHex, 16);
     const g: number = parseInt(gHex, 16);
     const b: number = parseInt(bHex, 16);
@@ -73,10 +101,11 @@ export default function BigCalendar(
       _end: Date,
       _isSelected: boolean
     ) => {
+      const { color } = _event;
       return {
         style: {
-          backgroundColor: hexToRgba(_event.color, 0.16),
-          borderLeft: `3px solid ${_event.color}`,
+          backgroundColor: hexToRgba(color, 0.16),
+          borderLeft: `3px solid ${color}`,
           border: '1px solid hsl(var(--calendar-event-border, var(--border)))',
           color: '#0f172a',
           borderRadius: '8px',
@@ -142,17 +171,31 @@ export default function BigCalendar(
         views={[Views.DAY]}
         defaultView={Views.DAY}
         toolbar={false}
-        date={date}
-        now={new Date()}
-        onNavigate={d => onNavigate?.(d as Date)}
+        date={_date}
+        onNavigate={(_date: Date) => onNavigate?.(_date)}
         step={30}
         timeslots={2}
         min={new Date(1970, 0, 1, 5, 0)}
         max={new Date(1970, 0, 1, 20, 0)}
         selectable
-        onSelectEvent={e => onSelectEvent?.(e as CalendarEvent)}
-        onSelectSlot={slot =>
-          onSelectSlot?.({ start: slot.start as Date, end: slot.end as Date })
+        onSelectEvent={(e: CalendarEvent) => onSelectEvent?.(e)}
+        onSelectSlot={(_slotInfo: { start: Date; end: Date }) =>
+          onSelectSlot?.({ start: _slotInfo.start, end: _slotInfo.end })
+        }
+        onEventDrop={(_args: any) =>
+          onEventDrop?.({
+            event: _args.event,
+            start: _args.start,
+            end: _args.end,
+            resourceId: _args.resourceId,
+          })
+        }
+        onEventResize={(_args: any) =>
+          onEventResize?.({
+            event: _args.event,
+            start: _args.start,
+            end: _args.end,
+          })
         }
         style={{ height: '100%' }}
         eventPropGetter={eventPropGetter}

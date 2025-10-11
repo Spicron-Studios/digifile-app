@@ -1,49 +1,46 @@
-export { Logger } from './logger.service';
-export * from './types';
+import type { LogLevel } from './types';
 
-export type ClientOrServerLogger = Pick<
-  Logger,
-  'init' | 'error' | 'warning' | 'info' | 'debug' | 'success' | 'checkpoint'
-> & { side: 'client' | 'server' };
-
-export function getLogger(): ClientOrServerLogger {
-  if (typeof window === 'undefined') {
-    const instance = Logger.getInstance();
-    return Object.assign(instance, { side: 'server' as const });
-  }
-  // Client-side shim that forwards to server via API, and also logs to browser console
-  const client = createClientLogger();
-  return client;
+export interface ClientLogger {
+  init(): Promise<void>;
+  error(_fileName: string, _message: string): Promise<void>;
+  warning(_fileName: string, _message: string): Promise<void>;
+  info(_fileName: string, _message: string): Promise<void>;
+  debug(_fileName: string, _message: string): Promise<void>;
+  success(_fileName: string, _message: string): Promise<void>;
+  checkpoint(_fileName: string, _message: string): Promise<void>;
 }
 
-function createClientLogger(): ClientOrServerLogger {
-  async function send(
-    level: string,
-    fileName: string,
-    message: string
-  ): Promise<void> {
-    try {
-      await fetch('/api/logger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level, fileName, message }),
-        keepalive: true,
-      });
-    } catch {
-      // swallow
-    }
-  }
+function browser(
+  level: 'error' | 'warn' | 'info' | 'debug' | 'log',
+  msg: string
+): void {
+  // eslint-disable-next-line no-console
+  (console[level] ?? console.log)(msg);
+}
 
-  function browser(
-    level: 'error' | 'warn' | 'info' | 'debug' | 'log',
-    msg: string
-  ): void {
-    // eslint-disable-next-line no-console
-    (console[level] ?? console.log)(msg);
+async function send(
+  level: LogLevel,
+  fileName: string,
+  message: string
+): Promise<void> {
+  try {
+    await fetch('/api/logger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level, fileName, message }),
+      keepalive: true,
+    });
+  } catch {
+    // swallow
   }
+}
 
-  return {
-    side: 'client',
+let instance: ClientLogger | undefined;
+
+export function getClientLogger(): ClientLogger {
+  if (instance) return instance;
+
+  instance = {
     async init(): Promise<void> {
       browser('info', '[Logger][CLIENT] initialized');
     },
@@ -72,4 +69,6 @@ function createClientLogger(): ClientOrServerLogger {
       await send('CHECKPOINT', fileName, message);
     },
   };
+
+  return instance;
 }

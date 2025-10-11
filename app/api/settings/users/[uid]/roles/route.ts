@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db, { userRoles, roles } from '@/app/lib/drizzle';
+import db, { roles, users } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
 import { Logger } from '@/app/lib/logger';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
-// Get roles for a specific user
+// Get role for a specific user
 export async function GET(
   _request: NextRequest,
   context: unknown
@@ -21,53 +21,69 @@ export async function GET(
     if (!session?.user?.orgId) {
       await logger.warning(
         'api/settings/users/[uid]/roles/route.ts',
-        'Unauthorized access attempt to user roles'
+        'Unauthorized access attempt to user role'
       );
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch user roles using Drizzle join
-    const userRolesList = await db
+    // Permission: allow if requesting own role or user has elevated role
+    const roleName = (session.user.role?.name ?? '').toLowerCase();
+    const hasElevated =
+      roleName === 'admin' ||
+      roleName === 'organizer' ||
+      roleName === 'superuser';
+    if (uid !== session.user.id && !hasElevated) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Fetch user role directly from user table
+    const userWithRole = await db
       .select({
-        uid: roles.uid,
-        role_name: roles.roleName,
+        uid: users.uid,
+        roleId: users.roleId,
+        roleName: roles.roleName,
         description: roles.description,
       })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleid, roles.uid))
-      .where(
-        and(
-          eq(userRoles.userid, uid),
-          eq(userRoles.orgid, session.user.orgId),
-          eq(userRoles.active, true)
-        )
-      );
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.uid))
+      .where(and(eq(users.uid, uid), eq(users.orgid, session.user.orgId)))
+      .limit(1);
 
-    // Transform the result to match the expected shape
-    const rolesList = userRolesList.map(ur => ({
-      uid: ur.uid || '',
-      role_name: ur.role_name || '',
-      description: ur.description || null,
-    }));
+    if (userWithRole.length > 0) {
+      const user = userWithRole[0];
+      if (user && user.roleId) {
+        const roleDetails = {
+          uid: user.roleId,
+          role_name: user.roleName || 'Unknown',
+          description: user.description || null,
+        };
+
+        await logger.info(
+          'api/settings/users/[uid]/roles/route.ts',
+          `Retrieved role ${roleDetails.role_name} for user ${uid}`
+        );
+        return NextResponse.json(roleDetails);
+      }
+    }
 
     await logger.info(
       'api/settings/users/[uid]/roles/route.ts',
-      `Retrieved ${rolesList.length} roles for user ${uid}`
+      `No role found for user ${uid}`
     );
-    return NextResponse.json(rolesList);
+    return NextResponse.json(null);
   } catch (error) {
     await logger.error(
       'api/settings/users/[uid]/roles/route.ts',
-      `Failed to fetch user roles: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to fetch user role: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     return NextResponse.json(
-      { error: 'Failed to fetch user roles' },
+      { error: 'Failed to fetch user role' },
       { status: 500 }
     );
   }
 }
 
-// Add or remove roles for a user
+// Update role for a user
 export async function PUT(
   request: NextRequest,
   context: unknown
@@ -84,14 +100,14 @@ export async function PUT(
     if (!session?.user?.orgId) {
       await logger.warning(
         'api/settings/users/[uid]/roles/route.ts',
-        'Unauthorized access attempt to update user roles'
+        'Unauthorized access attempt to update user role'
       );
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { roleIds, action } = await request.json();
+    const { roleId } = await request.json();
 
-    if (!Array.isArray(roleIds) || !['add', 'remove'].includes(action)) {
+    if (!roleId || typeof roleId !== 'string') {
       await logger.warning(
         'api/settings/users/[uid]/roles/route.ts',
         'Invalid request body for role update'
@@ -104,132 +120,70 @@ export async function PUT(
 
     await logger.info(
       'api/settings/users/[uid]/roles/route.ts',
-      `Processing role ${action} for user ${uid}`
+      `Updating role for user ${uid} to ${roleId}`
     );
 
-    if (action === 'add') {
-      await logger.debug(
-        'api/settings/users/[uid]/roles/route.ts',
-        'Adding role to user'
-      );
-
-      // Check for existing role (active or inactive)
-      const existingRole = await db
-        .select()
-        .from(userRoles)
-        .where(
-          and(
-            eq(userRoles.userid, uid),
-            eq(userRoles.roleid, roleIds[0]),
-            eq(userRoles.orgid, session.user.orgId)
-          )
-        )
-        .limit(1);
-
-      if (existingRole.length > 0) {
-        // Update existing role to active
-        await logger.debug(
-          'api/settings/users/[uid]/roles/route.ts',
-          `Updating existing role ${roleIds[0]} for user ${uid}`
-        );
-        await db
-          .update(userRoles)
-          .set({
-            active: true,
-            lastEdit: new Date().toISOString(),
-          })
-          .where(eq(userRoles.uid, existingRole[0]?.uid as string));
-
-        await logger.info(
-          'api/settings/users/[uid]/roles/route.ts',
-          'Existing role updated successfully'
-        );
-      } else {
-        await logger.debug(
-          'api/settings/users/[uid]/roles/route.ts',
-          `Creating new role ${roleIds[0]} for user ${uid}`
-        );
-        // Create new user role record
-        await db.insert(userRoles).values({
-          uid: crypto.randomUUID(),
-          userid: uid,
-          roleid: roleIds[0],
-          orgid: session.user.orgId,
-          active: true,
-          dateCreated: new Date().toISOString(),
-          lastEdit: new Date().toISOString(),
-          locked: false,
-        });
-
-        await logger.info(
-          'api/settings/users/[uid]/roles/route.ts',
-          'New role created successfully'
-        );
-      }
-    } else {
-      await logger.debug(
-        'api/settings/users/[uid]/roles/route.ts',
-        `Removing roles ${roleIds.join(', ')} from user ${uid}`
-      );
-
-      // Set role to inactive
-      await db
-        .update(userRoles)
-        .set({
-          active: false,
-          lastEdit: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(userRoles.userid, uid),
-            inArray(userRoles.roleid, roleIds),
-            eq(userRoles.orgid, session.user.orgId),
-            eq(userRoles.active, true)
-          )
-        );
-
-      await logger.info(
-        'api/settings/users/[uid]/roles/route.ts',
-        'Roles removed successfully'
-      );
+    // Permission: only Admin/Organizer/SuperUser can modify roles
+    const roleName = (session.user.role?.name ?? '').toLowerCase();
+    const hasElevated =
+      roleName === 'admin' ||
+      roleName === 'organizer' ||
+      roleName === 'superuser';
+    if (!hasElevated) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch updated roles with role details
-    const updatedUserRoles = await db
-      .select({
-        uid: roles.uid,
-        role_name: roles.roleName,
-        description: roles.description,
+    // Update user role directly
+    const updated = await db
+      .update(users)
+      .set({
+        roleId: roleId,
+        lastEdit: new Date().toISOString(),
       })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleid, roles.uid))
-      .where(
-        and(
-          eq(userRoles.userid, uid),
-          eq(userRoles.orgid, session.user.orgId),
-          eq(userRoles.active, true)
-        )
-      );
+      .where(and(eq(users.uid, uid), eq(users.orgid, session.user.orgId)))
+      .returning();
 
-    // Transform the result to return just the role details
-    const rolesList = updatedUserRoles.map(ur => ({
-      uid: ur.uid || '',
-      role_name: ur.role_name || '',
-      description: ur.description || null,
-    }));
+    if (updated.length === 0) {
+      await logger.warning(
+        'api/settings/users/[uid]/roles/route.ts',
+        `User ${uid} not found or not in organization`
+      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Fetch updated role details
+    const role = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.uid, roleId))
+      .limit(1);
+
+    if (role.length === 0 || !role[0]) {
+      await logger.warning(
+        'api/settings/users/[uid]/roles/route.ts',
+        `Role ${roleId} not found`
+      );
+      return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+    }
+
+    const roleDetails = {
+      uid: role[0].uid,
+      role_name: role[0].roleName || 'Unknown',
+      description: role[0].description || null,
+    };
 
     await logger.info(
       'api/settings/users/[uid]/roles/route.ts',
-      `Role update completed. User now has ${rolesList.length} active roles`
+      `Role update completed. User ${uid} now has role ${roleDetails.role_name}`
     );
-    return NextResponse.json(rolesList);
+    return NextResponse.json(roleDetails);
   } catch (error) {
     await logger.error(
       'api/settings/users/[uid]/roles/route.ts',
-      `Failed to update user roles: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to update user role: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     return NextResponse.json(
-      { error: 'Failed to update user roles' },
+      { error: 'Failed to update user role' },
       { status: 500 }
     );
   }

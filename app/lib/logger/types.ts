@@ -1,4 +1,10 @@
-export type LogLevel = 'ERROR' | 'WARNING' | 'INFO' | 'DEBUG';
+export type LogLevel =
+  | 'ERROR'
+  | 'WARNING'
+  | 'INFO'
+  | 'DEBUG'
+  | 'SUCCESS'
+  | 'CHECKPOINT';
 
 export interface LoggerConfig {
   enabled: boolean; // master switch to enable/disable all logging

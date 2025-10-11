@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import {
@@ -49,75 +48,106 @@ export function VerificationModal({
     setSmsVerified(true);
   };
 
+  const isVerified = emailVerified || smsVerified;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Verify Your Identity</DialogTitle>
-          <Button
-            variant="ghost"
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
         <div className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Please verify your identity using either email or SMS verification.
+          </p>
+
           {/* Email Verification */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span>Use Email</span>
-              <Button onClick={handleSendEmail} disabled={emailSent}>
-                Send
+              <span className="font-medium">Email Verification</span>
+              <Button
+                onClick={handleSendEmail}
+                disabled={emailSent || smsVerified}
+                size="sm"
+              >
+                {emailSent ? 'Sent' : 'Send Code'}
               </Button>
             </div>
-            <div className="flex gap-4">
-              <Input
-                placeholder="Enter verification code"
-                value={emailCode}
-                onChange={e => setEmailCode(e.target.value)}
-                disabled={!emailSent || emailVerified}
-              />
-              <Button
-                onClick={handleVerifyEmail}
-                disabled={!emailSent || emailVerified || !emailCode}
-              >
-                Verify
-              </Button>
+            {emailSent && !emailVerified && (
+              <div className="flex gap-4">
+                <Input
+                  placeholder="Enter verification code"
+                  value={emailCode}
+                  onChange={e => setEmailCode(e.target.value)}
+                  disabled={emailVerified}
+                />
+                <Button
+                  onClick={handleVerifyEmail}
+                  disabled={emailVerified || !emailCode}
+                  size="sm"
+                >
+                  Verify
+                </Button>
+              </div>
+            )}
+            {emailVerified && (
+              <p className="text-sm text-green-600">
+                ✓ Email verified successfully
+              </p>
+            )}
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or
+              </span>
             </div>
           </div>
 
           {/* SMS Verification */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span>Use SMS</span>
-              <Button onClick={handleSendSMS} disabled={smsSent}>
-                Send
-              </Button>
-            </div>
-            <div className="flex gap-4">
-              <Input
-                placeholder="Enter verification code"
-                value={smsCode}
-                onChange={e => setSmsCode(e.target.value)}
-                disabled={!smsSent || smsVerified}
-              />
+              <span className="font-medium">SMS Verification</span>
               <Button
-                onClick={handleVerifySMS}
-                disabled={!smsSent || smsVerified || !smsCode}
+                onClick={handleSendSMS}
+                disabled={smsSent || emailVerified}
+                size="sm"
               >
-                Verify
+                {smsSent ? 'Sent' : 'Send Code'}
               </Button>
             </div>
+            {smsSent && !smsVerified && (
+              <div className="flex gap-4">
+                <Input
+                  placeholder="Enter verification code"
+                  value={smsCode}
+                  onChange={e => setSmsCode(e.target.value)}
+                  disabled={smsVerified}
+                />
+                <Button
+                  onClick={handleVerifySMS}
+                  disabled={smsVerified || !smsCode}
+                  size="sm"
+                >
+                  Verify
+                </Button>
+              </div>
+            )}
+            {smsVerified && (
+              <p className="text-sm text-green-600">
+                ✓ SMS verified successfully
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}
           <div className="flex justify-end">
-            <Button
-              onClick={onSubmit}
-              disabled={!emailVerified || !smsVerified}
-            >
-              Submit
+            <Button onClick={onSubmit} disabled={!isVerified}>
+              Complete Registration
             </Button>
           </div>
         </div>

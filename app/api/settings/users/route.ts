@@ -11,12 +11,10 @@ export async function GET() {
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const isAdmin =
-      session.user.roles.some(r => r.role.name.toLowerCase() === 'admin') ||
-      false;
-    const isOrganizer =
-      session.user.roles.some(r => r.role.name.toLowerCase() === 'organizer') ||
-      false;
+    const roleName = (session.user.role?.name ?? '').toLowerCase();
+    const isAdmin = roleName === 'admin';
+    const isOrganizer = roleName === 'organizer';
+    const isSuperUser = roleName === 'superuser';
 
     // Build where conditions
     const whereConditions = [
@@ -25,7 +23,7 @@ export async function GET() {
     ];
 
     // If user is not admin/organizer, only show their own record
-    if (!(isAdmin || isOrganizer)) {
+    if (!(isAdmin || isOrganizer || isSuperUser)) {
       whereConditions.push(eq(users.uid, session.user.id));
     }
 
@@ -38,6 +36,7 @@ export async function GET() {
         email: users.email,
         username: users.username,
         cell_no: users.cellNo,
+        role_id: users.roleId,
       })
       .from(users)
       .where(and(...whereConditions));
