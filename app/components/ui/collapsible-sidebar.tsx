@@ -8,6 +8,7 @@ import {
   Settings,
   Menu,
   Calendar as CalendarIcon,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { Button } from '@/app/components/ui/button';
@@ -31,6 +32,7 @@ const navItems = [
   { name: 'Home', icon: Home, href: '/sites' },
   { name: 'Calendar', icon: CalendarIcon, href: '/sites/calendar' },
   { name: 'File Data', icon: FileText, href: '/sites/file-data' },
+  { name: 'Patients', icon: Users, href: '/sites/patients' },
   { name: 'Settings', icon: Settings, href: '/sites/settings' },
 ];
 
