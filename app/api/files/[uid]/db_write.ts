@@ -405,10 +405,17 @@ export async function handleCreateFile(
         'Processing patient data for new file'
       );
 
-      // Validation for patient ID
-      if (!data.patient.id) {
+      // Updated validation: require either ID OR Name + DOB
+      const hasId = !!data.patient.id && data.patient.id.trim() !== '';
+      const hasNameDob =
+        !!data.patient.name &&
+        data.patient.name.trim() !== '' &&
+        !!data.patient.dob &&
+        data.patient.dob.trim() !== '';
+      if (!hasId && !hasNameDob) {
         return {
-          error: 'Patient ID number is required to create a new file.',
+          error:
+            'Provide either Patient ID (adult) or Name and Date of Birth (child).',
           status: 400,
         };
       }
@@ -437,7 +444,10 @@ export async function handleCreateFile(
         .insert(patient)
         .values({
           uid: newPatientUid,
-          id: data.patient.id || '',
+          id:
+            data.patient.id && data.patient.id.trim() !== ''
+              ? data.patient.id
+              : null,
           title: data.patient.title || '',
           name: data.patient.name || '',
           initials: data.patient.initials || '',

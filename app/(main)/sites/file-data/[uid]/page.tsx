@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
-import FileInfoCard from '@/app/components/file-data/FileInfoCard';
+
 import PatientDetails from '@/app/components/file-data/PatientDetails';
 import MedicalAidInfo from '@/app/components/file-data/MedicalAidInfo';
 import InjuryOnDutyForm from '@/app/components/file-data/InjuryOnDutyForm';
@@ -651,6 +651,22 @@ export default function FileDataPage(): React.JSX.Element {
   const handleSave = useCallback(async (): Promise<void> => {
     if (!file) return;
 
+    // Client-side validation: require ID or Name + DOB for new files
+    if (isNewRecord) {
+      const hasId = !!file.patient?.id && file.patient?.id.trim() !== '';
+      const hasNameDob =
+        !!file.patient?.name &&
+        file.patient?.name.trim() !== '' &&
+        !!file.patient?.dob &&
+        file.patient?.dob.trim() !== '';
+      if (!hasId && !hasNameDob) {
+        toast.error(
+          'Provide either Patient ID (adult) or Name and Date of Birth (child).'
+        );
+        return;
+      }
+    }
+
     const setSavingGlobal = (
       window as unknown as { setSaving?: (_v: boolean) => void }
     ).setSaving;
@@ -729,15 +745,6 @@ export default function FileDataPage(): React.JSX.Element {
                 <>
                   <TabsContent value="tab1" className="flex-1 overflow-hidden">
                     <div className="p-6 h-full overflow-auto">
-                      <FileInfoCard
-                        fileNumber={file?.file_number || ''}
-                        accountNumber={file?.account_number || ''}
-                        onChange={(field, value) =>
-                          setFile(prev =>
-                            prev ? { ...prev, [field]: value } : prev
-                          )
-                        }
-                      />
                       <PatientDetails
                         patient={file?.patient || {}}
                         dateOfBirth={dateOfBirth}

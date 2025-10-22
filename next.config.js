@@ -7,6 +7,12 @@ const nextConfig = {
         hostname: 'qisxkjvaehtwayccikyj.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'qisxkjvaehtwayccikyj.supabase.co',
+        // Allow signed URLs with any path under /storage/v1/object/sign/
+        pathname: '/storage/v1/object/sign/**',
+      },
     ],
   },
   experimental: {
