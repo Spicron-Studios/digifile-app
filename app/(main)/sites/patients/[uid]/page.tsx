@@ -91,7 +91,9 @@ export default function PatientDetailPage(): React.JSX.Element {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toISOString().split('T')[0];
+      const isoString = date.toISOString();
+      const datePart = isoString.split('T')[0];
+      return datePart || '';
     } catch {
       return '';
     }

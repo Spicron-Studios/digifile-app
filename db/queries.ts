@@ -100,7 +100,7 @@ export const patientQueries = {
       conditions.push(eq(patient.gender, filters.gender));
     }
 
-    let query = db
+    const query = db
       .select({
         uid: patient.uid,
         id: patient.id,
@@ -114,21 +114,18 @@ export const patientQueries = {
       .from(patient)
       .where(and(...conditions));
 
-    // Apply ordering
-    switch (orderBy) {
-      case 'name':
-        query = query.orderBy(asc(patient.name), asc(patient.surname));
-        break;
-      case 'dateOfBirth':
-        query = query.orderBy(asc(patient.dateOfBirth));
-        break;
-      case 'lastEdit':
-      default:
-        query = query.orderBy(desc(patient.lastEdit));
-        break;
-    }
+    // Apply ordering by computing expressions once
+    const orderExprs =
+      orderBy === 'name'
+        ? [asc(patient.name), asc(patient.surname)]
+        : orderBy === 'dateOfBirth'
+          ? [asc(patient.dateOfBirth)]
+          : [desc(patient.lastEdit)];
 
-    const results = await query.limit(limit).offset(offset);
+    const results = await query
+      .orderBy(...orderExprs)
+      .limit(limit)
+      .offset(offset);
 
     // Get total count for pagination
     const countQuery = await db

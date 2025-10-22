@@ -16,19 +16,34 @@ interface SearchParams {
 export default async function PatientsPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }): Promise<React.JSX.Element> {
-  const page = parseInt(searchParams.page || '1', 10);
-  const searchTerm = searchParams.search;
-  const orderBy = searchParams.orderBy || 'lastEdit';
+  const params = await searchParams;
+  const page = parseInt(params.page || '1', 10);
+  const searchTerm = params.search;
+  const orderBy = params.orderBy || 'lastEdit';
 
-  const filters: PatientFilters = {
-    hasId: searchParams.hasId === 'true',
-    hasDob: searchParams.hasDob === 'true',
-    dobFrom: searchParams.dobFrom,
-    dobTo: searchParams.dobTo,
-    gender: searchParams.gender,
-  };
+  const filters: PatientFilters = {};
+
+  if (params.hasId !== undefined) {
+    filters.hasId = params.hasId === 'true';
+  }
+
+  if (params.hasDob !== undefined) {
+    filters.hasDob = params.hasDob === 'true';
+  }
+
+  if (params.dobFrom) {
+    filters.dobFrom = params.dobFrom;
+  }
+
+  if (params.dobTo) {
+    filters.dobTo = params.dobTo;
+  }
+
+  if (params.gender) {
+    filters.gender = params.gender;
+  }
 
   const paginatedData = await getPatients(page, searchTerm, filters, orderBy);
 

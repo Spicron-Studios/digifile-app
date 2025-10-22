@@ -108,14 +108,23 @@ export async function getPatient(
     }
 
     // Extract patient data and files
-    const patientData = results[0].patient;
+    const firstResult = results[0];
+    if (!firstResult) {
+      await logger.warning(
+        'actions/patients.ts',
+        `No patient data found for uid=${uid}`
+      );
+      return null;
+    }
+
+    const patientData = firstResult.patient;
     const files = results
-      .filter(r => r.file.uid !== null)
+      .filter(r => r.file && r.file.uid !== null)
       .map(r => ({
-        uid: r.file.uid!,
-        file_number: r.file.fileNumber || '',
-        account_number: r.file.accountNumber || '',
-        lastEdit: r.file.lastEdit || '',
+        uid: r.file!.uid!,
+        file_number: r.file!.fileNumber || '',
+        account_number: r.file!.accountNumber || '',
+        lastEdit: r.file!.lastEdit || '',
       }));
 
     const patient: PatientWithFiles = {
@@ -185,6 +194,7 @@ export async function createPatient(
 
   try {
     const newPatient = await patientQueries.createPatient({
+      uid: crypto.randomUUID(),
       orgid: session.user.orgId,
       name: data.name,
       surname: data.surname || null,
@@ -195,6 +205,10 @@ export async function createPatient(
       cellPhone: data.cellPhone || null,
       email: data.email || null,
       address: data.address || null,
+      active: true,
+      dateCreated: new Date().toISOString(),
+      lastEdit: new Date().toISOString(),
+      locked: false,
     });
 
     if (!newPatient || newPatient.length === 0) {
@@ -202,31 +216,39 @@ export async function createPatient(
     }
 
     const created = newPatient[0];
+    if (!created) {
+      return { success: false, error: 'Failed to create patient' };
+    }
+
     await logger.info(
       'actions/patients.ts',
       `Created patient uid=${created.uid}`
     );
 
-    return {
-      success: true,
-      patient: {
-        uid: created.uid,
-        id: created.id,
-        title: created.title,
-        name: created.name,
-        initials: created.initials,
-        surname: created.surname,
-        dateOfBirth: created.dateOfBirth?.toString() || null,
-        gender: created.gender,
-        cellPhone: created.cellPhone,
-        email: created.email,
-        address: created.address,
-        additionalName: created.additionalName,
-        additionalCell: created.additionalCell,
-        lastEdit: created.lastEdit,
-        files: [],
-      },
+    const patientWithFiles: PatientWithFiles = {
+      uid: created.uid,
+      id: created.id,
+      title: created.title,
+      name: created.name,
+      initials: created.initials,
+      surname: created.surname,
+      dateOfBirth: created.dateOfBirth?.toString() || null,
+      gender: created.gender,
+      cellPhone: created.cellPhone,
+      email: created.email,
+      address: created.address,
+      additionalName: created.additionalName,
+      additionalCell: created.additionalCell,
+      lastEdit: created.lastEdit,
+      files: [],
     };
+
+    const result: any = {
+      success: true,
+      patient: patientWithFiles,
+    };
+
+    return result;
   } catch (error) {
     await logger.error(
       'actions/patients.ts',
@@ -297,10 +319,16 @@ export async function updatePatient(
 
     await logger.info('actions/patients.ts', `Updated patient uid=${uid}`);
 
-    return {
-      success: true,
-      patient: patientWithFiles || undefined,
-    };
+    if (patientWithFiles) {
+      return {
+        success: true,
+        patient: patientWithFiles,
+      };
+    } else {
+      return {
+        success: true,
+      };
+    }
   } catch (error) {
     await logger.error(
       'actions/patients.ts',
