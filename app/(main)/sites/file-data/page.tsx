@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import Link from 'next/link';
 import { Button } from '@/app/components/ui/button';
@@ -114,9 +115,11 @@ export default function FileDataListPage(): React.JSX.Element {
         const fileData = await getFiles();
         setFiles(fileData);
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error loading files:', error);
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/(main)/sites/file-data/page.tsx',
+          `Error loading files: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       } finally {
         setIsLoading(false);
       }

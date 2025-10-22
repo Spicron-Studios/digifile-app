@@ -9,7 +9,7 @@ import db, {
   tabFiles,
 } from '@/app/lib/drizzle';
 import { and, eq, desc } from 'drizzle-orm';
-import { Logger } from '@/app/lib/logger';
+import { Logger } from '@/app/lib/logger/logger.service';
 import { fetchMedicalSchemes } from './other_fn';
 import { ProcessingNoteWithFiles, ApiFileNote } from '@/app/types/file-data';
 

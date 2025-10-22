@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -20,7 +21,7 @@ export default function SigninPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    bfhNumber: '',
+    bhfNumber: '',
     username: '',
     password: '',
   });
@@ -32,7 +33,7 @@ export default function SigninPage() {
     try {
       //debugger;
       const result = await signIn('credentials', {
-        bfhNumber: formData.bfhNumber,
+        bhfNumber: formData.bhfNumber,
         username: formData.username,
         password: formData.password,
         redirect: false,
@@ -45,10 +46,11 @@ export default function SigninPage() {
         router.refresh();
       }
     } catch (error) {
-      // Log error silently for debugging in development
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Sign in exception:', error);
-      }
+      const logger = getLogger();
+      await logger.error(
+        'app/(auth)/login/signin/page.tsx',
+        `Sign in exception: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       toast.error('An error occurred during sign in');
     } finally {
       setIsLoading(false);
@@ -70,9 +72,9 @@ export default function SigninPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Input
           placeholder="BFH Number"
-          value={formData.bfhNumber}
+          value={formData.bhfNumber}
           onChange={e =>
-            setFormData(prev => ({ ...prev, bfhNumber: e.target.value }))
+            setFormData(prev => ({ ...prev, bhfNumber: e.target.value }))
           }
           disabled={isLoading}
           required

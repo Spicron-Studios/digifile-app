@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { getConsentText } from '@/app/actions/settings-uploads';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
 import { ScrollArea } from './scroll-area';
+import { getLogger } from '@/app/lib/logger';
 
 type ConsentModalProps = {
   isOpen: boolean;
@@ -33,7 +34,11 @@ export function ConsentModal({
         const text = await getConsentText(consentNumber);
         setContent(text);
       } catch (error) {
-        console.error('Error fetching consent content:', error);
+        const logger = getLogger();
+        await logger.error(
+          'app/components/ui/consent-modal.tsx',
+          `Error fetching consent content: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
         setError('Failed to load consent document');
       } finally {
         setIsLoading(false);

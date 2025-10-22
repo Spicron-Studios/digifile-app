@@ -51,6 +51,8 @@ export default function CalendarClient({
       }
   >(undefined);
 
+  // State to track all events (updated on refresh)
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>(events);
   const [visibleEvents, setVisibleEvents] = useState<CalendarEvent[]>([]);
   const [status, setStatus] = useState<{
     kind: 'info' | 'warning';
@@ -82,7 +84,7 @@ export default function CalendarClient({
           `Failed to fetch day events: ${error}`
         );
         // Fallback to filtering existing events
-        const filtered = events.filter(
+        const filtered = allEvents.filter(
           e =>
             selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
         );
@@ -105,7 +107,7 @@ export default function CalendarClient({
       if (!active) return;
 
       if (dayEvents.length === 0) {
-        const filtered = events.filter(
+        const filtered = allEvents.filter(
           e =>
             selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
         );
@@ -114,10 +116,6 @@ export default function CalendarClient({
           `Using fallback filtered events: ${filtered.length} events`
         );
         setVisibleEvents(filtered);
-        setStatus({
-          kind: 'info',
-          text: 'No events scheduled for the selected day.',
-        });
       } else {
         setVisibleEvents(dayEvents);
         setStatus(null);
@@ -127,7 +125,7 @@ export default function CalendarClient({
     return () => {
       active = false;
     };
-  }, [currentDate, selectedIds, events, logger]);
+  }, [currentDate, selectedIds, allEvents, logger]);
   const resources = useMemo(
     () =>
       accounts
@@ -144,6 +142,15 @@ export default function CalendarClient({
     );
   }
 
+  function toLocalISOString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hour}:${minute}:00`;
+  }
+
   async function onSave(values: {
     id?: string | undefined;
     userUid: string;
@@ -153,8 +160,8 @@ export default function CalendarClient({
     title: string;
     description?: string | undefined;
   }): Promise<void> {
-    const start = `${values.date}T${values.time}:00.000Z`;
-    const end = `${values.date}T${values.endTime}:00.000Z`;
+    const start = `${values.date}T${values.time}:00`;
+    const end = `${values.date}T${values.endTime}:00`;
     if (values.id) {
       await updateAppointment(values.id, {
         userUid: values.userUid,
@@ -181,37 +188,57 @@ export default function CalendarClient({
   }
 
   async function refreshDay(): Promise<void> {
-    const dayIso = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate()
-    )
-      .toISOString()
-      .slice(0, 10);
+    // Use local date string to avoid timezone conversion issues
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    const dayIso = `${year}-${month}-${day}`;
+
     await logger.debug(
       'CalendarClient.tsx',
-      `Manual refresh triggered: ${JSON.stringify({ dayIso, selectedIds })}`
+      `Manual refresh triggered: ${JSON.stringify({ dayIso, selectedIds, currentDateDebug: currentDate.toISOString() })}`
     );
     const dayEvents = await getDayEvents(dayIso, selectedIds);
     await logger.info(
       'CalendarClient.tsx',
       `Manual refresh returned ${dayEvents.length} events`
     );
+
+    // Apply correct colors to events based on account mapping
+    const accountColorMap = new Map(accounts.map(a => [a.uid, a.color]));
+    const dayEventsWithColors = dayEvents.map(e => ({
+      ...e,
+      color: accountColorMap.get(e.resourceId) ?? e.color,
+    }));
+
+    // Split allEvents into current day and other days
+    const otherDayEvents = allEvents.filter(
+      e => !sameDay(e.start, currentDate)
+    );
+
+    // Combine: other days + fresh current day events (with correct colors)
+    const finalEvents = [...otherDayEvents, ...dayEventsWithColors];
+
+    // UPDATE the allEvents state with merged data
+    setAllEvents(finalEvents);
+
+    // Filter to selected IDs and current day for display
+    const filtered = dayEventsWithColors.filter(e =>
+      selectedIds.includes(e.resourceId)
+    );
+
+    setVisibleEvents(filtered);
+
     if (dayEvents.length === 0) {
-      const filtered = events.filter(
-        e => selectedIds.includes(e.resourceId) && sameDay(e.start, currentDate)
-      );
       await logger.info(
         'CalendarClient.tsx',
-        `Manual refresh using fallback: ${filtered.length} events`
+        `Manual refresh showing: ${filtered.length} events`
       );
-      setVisibleEvents(filtered);
       setStatus({
         kind: 'info',
         text: 'No events scheduled for the selected day.',
       });
     } else {
-      setVisibleEvents(dayEvents);
       setStatus(null);
     }
   }
@@ -278,16 +305,18 @@ export default function CalendarClient({
             onNavigate={setCurrentDate}
             // Drag-n-drop updates
             onEventDrop={async ({ event, start, end, resourceId }) => {
+              const startDate = start as Date;
+              const endDate = end as Date;
               await logger.info(
                 'CalendarClient.tsx',
-                `Event dropped: id=${event.id}, start=${(start as Date).toISOString()}, end=${(end as Date).toISOString()}, resourceId=${resourceId}`
+                `Event dropped: id=${event.id}, start=${toLocalISOString(startDate)}, end=${toLocalISOString(endDate)}, resourceId=${resourceId}`
               );
               await updateAppointment(event.id, {
                 userUid: (resourceId as string) ?? event.resourceId,
                 title: event.title,
                 description: event.description ?? '',
-                start: (start as Date).toISOString(),
-                end: (end as Date).toISOString(),
+                start: toLocalISOString(startDate),
+                end: toLocalISOString(endDate),
               });
               await logger.info(
                 'CalendarClient.tsx',
@@ -296,16 +325,18 @@ export default function CalendarClient({
               await refreshDay();
             }}
             onEventResize={async ({ event, start, end }) => {
+              const startDate = start as Date;
+              const endDate = end as Date;
               await logger.info(
                 'CalendarClient.tsx',
-                `Event resized: id=${event.id}, start=${(start as Date).toISOString()}, end=${(end as Date).toISOString()}`
+                `Event resized: id=${event.id}, start=${toLocalISOString(startDate)}, end=${toLocalISOString(endDate)}`
               );
               await updateAppointment(event.id, {
                 userUid: event.resourceId,
                 title: event.title,
                 description: event.description ?? '',
-                start: (start as Date).toISOString(),
-                end: (end as Date).toISOString(),
+                start: toLocalISOString(startDate),
+                end: toLocalISOString(endDate),
               });
               await logger.info(
                 'CalendarClient.tsx',
@@ -313,16 +344,20 @@ export default function CalendarClient({
               );
               await refreshDay();
             }}
-            onSelectEvent={e =>
-              setEditing({
+            onSelectEvent={e => {
+              const editData: typeof editing = {
                 id: e.id,
                 userUid: e.resourceId,
                 date: e.start.toISOString().slice(0, 10),
                 time: `${String(e.start.getHours()).padStart(2, '0')}:${String(e.start.getMinutes()).padStart(2, '0')}`,
                 endTime: `${String(e.end.getHours()).padStart(2, '0')}:${String(e.end.getMinutes()).padStart(2, '0')}`,
                 title: e.title,
-              })
-            }
+              };
+              if (e.description) {
+                editData.description = e.description;
+              }
+              setEditing(editData);
+            }}
             onSelectSlot={slot =>
               setEditing({
                 userUid: selectedIds[0]!,

@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -35,9 +36,11 @@ export default function SitesPage() {
           .filter(Boolean);
         setUsernames(names);
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching users:', error);
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/(main)/sites/page.tsx',
+          `Error fetching users: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       } finally {
         setIsLoading(false);
       }

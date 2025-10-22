@@ -1,3 +1,5 @@
+import { Logger } from '@/app/lib/logger/logger.service';
+export const runtime = 'nodejs';
 import { NextRequest } from 'next/server';
 import { auth } from '@/app/lib/auth';
 import { getSupabaseClient } from '@/app/lib/supabase';
@@ -30,7 +32,12 @@ export async function GET(_request: NextRequest, context: unknown) {
       .download(path);
 
     if (error) {
-      console.error('Error fetching consent file:', error);
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error(
+        'api/settings/organization/[uid]/consent/[number]/route.ts',
+        `Error fetching consent file: ${error.message ?? 'Unknown error'}`
+      );
       return new Response('File not found', { status: 404 });
     }
 
@@ -39,7 +46,12 @@ export async function GET(_request: NextRequest, context: unknown) {
       headers: { 'Content-Type': 'text/plain' },
     });
   } catch (error) {
-    console.error('Error processing consent request:', error);
+    const logger = Logger.getInstance();
+    await logger.init();
+    await logger.error(
+      'api/settings/organization/[uid]/consent/[number]/route.ts',
+      `Error processing consent request: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     return new Response('Internal Server Error', { status: 500 });
   }
 }

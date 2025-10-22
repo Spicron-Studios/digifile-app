@@ -81,7 +81,7 @@ export const {
       },
       async authorize(credentials) {
         if (
-          !credentials?.bfhNumber ||
+          !credentials?.bhfNumber ||
           !credentials?.username ||
           !credentials?.password
         ) {
@@ -95,7 +95,7 @@ export const {
             .from(organizationInfo)
             .where(
               and(
-                eq(organizationInfo.bhfNumber, credentials.bfhNumber as string),
+                eq(organizationInfo.bhfNumber, credentials.bhfNumber as string),
                 eq(organizationInfo.active, true)
               )
             )
@@ -132,7 +132,13 @@ export const {
             orgid: user.orgid || '',
           };
         } catch (error) {
-          console.error('Error during authorization:', error);
+          const { Logger } = await import('@/app/lib/logger/logger.service');
+          const logger = Logger.getInstance();
+          await logger.init();
+          await logger.error(
+            'app/lib/auth.ts',
+            `Error during authorization: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
           return null;
         }
       },

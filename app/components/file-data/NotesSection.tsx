@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import React, {
   useCallback,
@@ -356,17 +357,29 @@ export function NotesSection({
   async function saveNewNote(): Promise<void> {
     if (isSavingNote) return;
     setIsSavingNote(true);
-    console.log('Attempting to save new note. Current file state:', file);
+    {
+      const logger = getLogger();
+      void logger.debug(
+        'app/components/file-data/NotesSection.tsx',
+        `Attempting to save new note. Current file state: ${JSON.stringify(file)}`
+      );
+    }
 
     const fileInfoPatientId = file?.fileinfo_patient?.[0]?.uid ?? '';
     const patientIdFromLink = file?.fileinfo_patient?.[0]?.patientid ?? '';
 
-    console.log('Derived IDs for note save:', {
-      fileUid: file?.uid,
-      fileInfoPatientId,
-      patientIdFromLink,
-      patientUidOnPatientObj: file?.patient?.uid,
-    });
+    {
+      const logger = getLogger();
+      void logger.debug(
+        'app/components/file-data/NotesSection.tsx',
+        `Derived IDs for note save: ${JSON.stringify({
+          fileUid: file?.uid,
+          fileInfoPatientId,
+          patientIdFromLink,
+          patientUidOnPatientObj: file?.patient?.uid,
+        })}`
+      );
+    }
 
     const hasLinkIds = Boolean(fileInfoPatientId && patientIdFromLink);
     if (!noteContent.trim() && uploadedFiles.length === 0) {
@@ -413,7 +426,13 @@ export function NotesSection({
         notes: noteContent,
         files: processedFiles,
       };
-      console.log('Note update payload:', payload);
+      {
+        const logger = getLogger();
+        void logger.debug(
+          'app/components/file-data/NotesSection.tsx',
+          `Note update payload: ${JSON.stringify(payload)}`
+        );
+      }
       const result = await handleResult(updateNote(payload));
       savedData = (result.data as unknown as { data?: unknown }) ?? null;
       error = (result.error as unknown as { message?: string }) ?? null;
@@ -426,7 +445,13 @@ export function NotesSection({
         tabType: activeNoteTab,
         files: processedFiles,
       };
-      console.log('Note save payload (direct):', payload);
+      {
+        const logger = getLogger();
+        void logger.debug(
+          'app/components/file-data/NotesSection.tsx',
+          `Note save payload (direct): ${JSON.stringify(payload)}`
+        );
+      }
       const result = await handleResult(createNoteWithFiles(payload));
       savedData = (result.data as unknown as { data?: unknown }) ?? null;
       error = (result.error as unknown as { message?: string }) ?? null;
@@ -448,14 +473,24 @@ export function NotesSection({
       const smartPayload = patientIdNumber
         ? { ...baseSmartPayload, patientIdNumber }
         : baseSmartPayload;
-      console.log('Note save payload (smart):', smartPayload);
+      {
+        const logger = getLogger();
+        void logger.debug(
+          'app/components/file-data/NotesSection.tsx',
+          `Note save payload (smart): ${JSON.stringify(smartPayload)}`
+        );
+      }
       const result = await handleResult(createNoteSmart(smartPayload));
       savedData = (result.data as unknown as { data?: unknown }) ?? null;
       error = (result.error as unknown as { message?: string }) ?? null;
     }
 
     if (error) {
-      console.error('Failed to save note:', error);
+      const logger = getLogger();
+      await logger.error(
+        'app/components/file-data/NotesSection.tsx',
+        `Failed to save note: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       alert(error.message || 'An unexpected error occurred while saving.');
       setIsSavingNote(false);
       return;

@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import { useState, useEffect } from 'react';
 import { getSessionData } from '@/app/actions/auth';
@@ -31,9 +32,11 @@ export const useSession = () => {
         };
         setSession(sessionData);
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error loading session:', error);
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/hooks/use-session.ts',
+          `Error loading session: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
         setSession(null);
       } finally {
         setIsLoading(false);

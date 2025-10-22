@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import db, { tabNotes, tabFiles } from '@/app/lib/drizzle';
-import { Logger } from '@/app/lib/logger';
+import { Logger } from '@/app/lib/logger/logger.service';
 import { getBucket } from '@/app/lib/storage';
 
 export const runtime = 'nodejs';
