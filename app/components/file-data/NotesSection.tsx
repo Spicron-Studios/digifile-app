@@ -479,8 +479,12 @@ export function NotesSection({
         workingFile = await ensureFileIsSaved();
       }
     } catch (e) {
+      const logger = getLogger();
+      await logger.error(
+        'app/components/file-data/NotesSection.tsx',
+        `Failed to ensure file before saving note: ${e instanceof Error ? e.message : 'Unknown error'}`
+      );
       setIsSavingNote(false);
-      console.error(e);
       return;
     }
 
