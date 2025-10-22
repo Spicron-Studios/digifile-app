@@ -18,7 +18,7 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
 
   const { accounts, events } = await getCalendarData();
   return (
-    <div className="p-3 h-[calc(100vh-4rem)]">
+    <div className="p-3 h-[calc(100vh-4rem)] flex flex-col min-h-0">
       <Suspense fallback={<CalendarSkeleton />}>
         <CalendarClient accounts={accounts} events={events} />
       </Suspense>

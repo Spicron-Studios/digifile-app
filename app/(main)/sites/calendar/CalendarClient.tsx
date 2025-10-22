@@ -244,17 +244,14 @@ export default function CalendarClient({
   }
 
   return (
-    <div className="flex flex-col gap-3 h-full">
-      <div
-        className="grid grid-cols-1 md:grid-cols-2 gap-3"
-        style={{ height: '30vh' }}
-      >
-        <Card className="h-full">
+    <div className="flex flex-col gap-3 h-full min-h-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+        <Card>
           <CardHeader className="py-2">
             <CardTitle className="text-base">Controls</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-between gap-3">
-            <div className="overflow-y-auto pr-2" style={{ maxHeight: '18vh' }}>
+            <div className="overflow-y-auto pr-2 max-h-[clamp(160px,20vh,240px)]">
               <p className="text-xs text-slate-600 mb-1">Display Doctors:</p>
               <AccountSelector
                 accounts={accounts}
@@ -273,11 +270,11 @@ export default function CalendarClient({
           </CardContent>
         </Card>
 
-        <Card className="h-full">
+        <Card>
           <CardHeader className="py-2">
             <CardTitle className="text-base">September 2025</CardTitle>
           </CardHeader>
-          <CardContent className="h-full">
+          <CardContent>
             <MiniMonth date={currentDate} onChange={setCurrentDate} />
           </CardContent>
         </Card>
@@ -296,8 +293,8 @@ export default function CalendarClient({
         </div>
       ) : null}
 
-      <Card className="flex-1" style={{ height: '70vh' }}>
-        <CardContent className="h-full p-3">
+      <Card className="flex-1 min-h-0">
+        <CardContent className="h-full min-h-0 p-3">
           <BigCalendar
             events={visibleEvents}
             resources={resources}
