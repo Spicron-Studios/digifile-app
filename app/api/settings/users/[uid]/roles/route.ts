@@ -7,15 +7,13 @@ import { eq, and } from 'drizzle-orm';
 // Get role for a specific user
 export async function GET(
   _request: NextRequest,
-  context: unknown
+  { params }: { params: Promise<{ uid: string }> }
 ): Promise<NextResponse> {
   const logger = Logger.getInstance();
   await logger.init();
 
   try {
-    const params =
-      (context as { params?: Record<string, unknown> }).params ?? {};
-    const uid = String(params.uid ?? '');
+    const { uid } = await params;
 
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -86,15 +84,13 @@ export async function GET(
 // Update role for a user
 export async function PUT(
   request: NextRequest,
-  context: unknown
+  { params }: { params: Promise<{ uid: string }> }
 ): Promise<NextResponse> {
   const logger = Logger.getInstance();
   await logger.init();
 
   try {
-    const params =
-      (context as { params?: Record<string, unknown> }).params ?? {};
-    const uid = String(params.uid ?? '');
+    const { uid } = await params;
 
     const session = await auth();
     if (!session?.user?.orgId) {

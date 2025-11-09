@@ -179,7 +179,11 @@ export function omitProperties<
   T extends Record<string, unknown>,
   K extends keyof T,
 >(obj: T, keys: K[]): Omit<T, K> {
-  return keys.reduce((acc, key) => omitProperty(acc, key), obj);
+  const result = { ...obj };
+  for (const key of keys) {
+    delete result[key];
+  }
+  return result as Omit<T, K>;
 }
 
 /**
@@ -204,7 +208,7 @@ export function setPropertyIf<
   if (condition) {
     return { ...obj, [key]: value };
   }
-  return omitProperty(obj, key);
+  return omitProperty(obj, key) as T;
 }
 
 /**

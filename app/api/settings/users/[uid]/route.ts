@@ -8,12 +8,10 @@ export const runtime = 'nodejs';
 
 export async function PUT(
   request: NextRequest,
-  context: unknown
+  { params }: { params: Promise<{ uid: string }> }
 ): Promise<NextResponse> {
   try {
-    const params =
-      (context as { params?: Record<string, unknown> }).params ?? {};
-    const uid = String(params.uid ?? '');
+    const { uid } = await params;
 
     const session = await auth();
     if (!session?.user?.orgId) {

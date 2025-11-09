@@ -10,16 +10,18 @@ logger.init().catch(() => {
   // Silently fail - logger initialization failed
 });
 
-export async function GET(_request: NextRequest, context: unknown) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ uid: string; number: string }> }
+): Promise<Response> {
   try {
-    const params =
-      (context as { params?: Record<string, unknown> }).params ?? {};
+    const { uid, number } = await params;
     const session = await auth();
     if (!session?.user?.orgId) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    if (session.user.orgId !== String(params.uid)) {
+    if (session.user.orgId !== uid) {
       return new Response('Forbidden', { status: 403 });
     }
 
@@ -28,8 +30,6 @@ export async function GET(_request: NextRequest, context: unknown) {
       return new Response('Supabase client not initialized', { status: 500 });
     }
 
-    const uid = String(params.uid);
-    const number = String(params.number);
     const path = `${uid}/consent-forms/${uid}Consent${number}.txt`;
 
     const { data, error } = await supabase.storage

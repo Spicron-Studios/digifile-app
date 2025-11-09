@@ -397,10 +397,18 @@ export default function FileDataPage(): React.JSX.Element {
       const normalized = normalizePhoneInput(value);
       const phoneValidation = validatePhoneNumber(normalized);
 
-      setValidationErrors(prev => ({
-        ...prev,
-        [field]: phoneValidation.valid ? undefined : phoneValidation.error,
-      }));
+      if (phoneValidation.valid) {
+        setValidationErrors(prev => {
+          const { [field]: _field, ...rest } = prev;
+          return rest;
+        });
+      } else if (phoneValidation.error) {
+        const errorMsg = phoneValidation.error;
+        setValidationErrors(prev => ({
+          ...prev,
+          [field]: errorMsg,
+        }));
+      }
 
       setFile(prevFile => {
         if (!prevFile) return null;

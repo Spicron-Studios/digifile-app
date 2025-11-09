@@ -5,9 +5,11 @@ import { eq, and } from 'drizzle-orm';
 import { auth } from '@/app/lib/auth';
 import { Logger } from '@/app/lib/logger/logger.service';
 
-export async function PUT(request: Request, context: unknown) {
-  const params = (context as { params?: Record<string, unknown> }).params ?? {};
-  const uid = String(params.uid);
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ uid: string }> }
+): Promise<NextResponse> {
+  const { uid } = await params;
 
   try {
     const session = await auth();

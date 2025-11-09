@@ -53,10 +53,10 @@ function rateLimit(ip: string, max: number, windowMs: number): boolean {
 
 export async function OPTIONS(
   _request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ): Promise<NextResponse> {
   await logger.init();
-  const token = params.token;
+  const { token } = await params;
   const secret = process.env.INTAKE_FORM_SECRET;
   if (!secret)
     return NextResponse.json(
@@ -71,11 +71,11 @@ export async function OPTIONS(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ): Promise<NextResponse> {
   await logger.init();
   try {
-    const token = params.token;
+    const { token } = await params;
 
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     if (!rateLimit(ip, 20, 60_000)) {
