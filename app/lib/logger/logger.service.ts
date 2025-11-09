@@ -173,6 +173,7 @@ export class Logger {
         if (console.debug) {
           console.debug(colored);
         } else {
+          // eslint-disable-next-line no-console
           console.log(colored);
         }
         break;
