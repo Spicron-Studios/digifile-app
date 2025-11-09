@@ -5,6 +5,11 @@ import { auth } from '@/app/lib/auth';
 import { getSupabaseClient } from '@/app/lib/supabase';
 import { getBucket } from '@/app/lib/storage';
 
+const logger = Logger.getInstance();
+logger.init().catch(() => {
+  // Silently fail - logger initialization failed
+});
+
 export async function GET(_request: NextRequest, context: unknown) {
   try {
     const params =
@@ -32,12 +37,14 @@ export async function GET(_request: NextRequest, context: unknown) {
       .download(path);
 
     if (error) {
-      const logger = Logger.getInstance();
-      await logger.init();
-      await logger.error(
-        'api/settings/organization/[uid]/consent/[number]/route.ts',
-        `Error fetching consent file: ${error.message ?? 'Unknown error'}`
-      );
+      try {
+        await logger.error(
+          'api/settings/organization/[uid]/consent/[number]/route.ts',
+          `Error fetching consent file: ${error.message ?? 'Unknown error'}`
+        );
+      } catch (_logError) {
+        // Silently fail - logger failed
+      }
       return new Response('File not found', { status: 404 });
     }
 
@@ -46,12 +53,14 @@ export async function GET(_request: NextRequest, context: unknown) {
       headers: { 'Content-Type': 'text/plain' },
     });
   } catch (error) {
-    const logger = Logger.getInstance();
-    await logger.init();
-    await logger.error(
-      'api/settings/organization/[uid]/consent/[number]/route.ts',
-      `Error processing consent request: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    try {
+      await logger.error(
+        'api/settings/organization/[uid]/consent/[number]/route.ts',
+        `Error processing consent request: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } catch (_logError) {
+      // Silently fail - logger failed
+    }
     return new Response('Internal Server Error', { status: 500 });
   }
 }

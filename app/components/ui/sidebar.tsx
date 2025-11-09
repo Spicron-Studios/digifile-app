@@ -17,27 +17,16 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SidebarState>('expanded');
 
   const toggle = () => {
-    if (process.env.NODE_ENV === 'development') {
-      {
+    setState(prev => {
+      const next = prev === 'expanded' ? 'collapsed' : 'expanded';
+      if (process.env.NODE_ENV === 'development') {
         const logger = getLogger();
         void logger.debug(
           'app/components/ui/sidebar.tsx',
-          `Toggle called, current state: ${JSON.stringify(state)}`
+          `Toggle called, previous: ${prev}, next: ${next}`
         );
       }
-    }
-    setState(s => {
-      const newState = s === 'expanded' ? 'collapsed' : 'expanded';
-      if (process.env.NODE_ENV === 'development') {
-        {
-          const logger = getLogger();
-          void logger.debug(
-            'app/components/ui/sidebar.tsx',
-            `Setting new state to: ${JSON.stringify(newState)}`
-          );
-        }
-      }
-      return newState;
+      return next;
     });
   };
 

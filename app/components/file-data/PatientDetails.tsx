@@ -37,6 +37,12 @@ type Props = {
   ) => void;
   onInputChange: (_field: string, _value: string) => void;
   onSelectChange: (_field: string, _value: string) => void;
+  errors?: {
+    id?: string;
+    email?: string;
+    cell_phone?: string;
+    additional_cell?: string;
+  };
 };
 
 export default function PatientDetails({
@@ -45,6 +51,7 @@ export default function PatientDetails({
   onDatePartChange,
   onInputChange,
   onSelectChange,
+  errors,
 }: Props): React.JSX.Element {
   const yearRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
@@ -59,8 +66,14 @@ export default function PatientDetails({
             id="idNo"
             placeholder="Enter ID number"
             value={patient.id || ''}
+            inputMode="numeric"
+            maxLength={13}
+            aria-invalid={Boolean(errors?.id)}
             onChange={e => onInputChange('id', e.target.value)}
           />
+          {errors?.id && (
+            <span className="text-red-500 text-xs">{errors.id}</span>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -177,8 +190,14 @@ export default function PatientDetails({
             id="cellphone"
             placeholder="Enter cellphone number"
             value={patient.cell_phone || ''}
+            type="tel"
+            inputMode="tel"
+            aria-invalid={Boolean(errors?.cell_phone)}
             onChange={e => onInputChange('cell_phone', e.target.value)}
           />
+          {errors?.cell_phone && (
+            <span className="text-red-500 text-xs">{errors.cell_phone}</span>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -197,18 +216,38 @@ export default function PatientDetails({
             id="additionalCell"
             placeholder="Enter contact number"
             value={patient.additional_cell || ''}
+            type="tel"
+            inputMode="tel"
+            aria-invalid={Boolean(errors?.additional_cell)}
             onChange={e => onInputChange('additional_cell', e.target.value)}
           />
+          {errors?.additional_cell && (
+            <span className="text-red-500 text-xs">
+              {errors.additional_cell}
+            </span>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+            type="email"
             placeholder="Enter email"
             value={patient.email || ''}
+            aria-invalid={Boolean(errors?.email)}
+            aria-describedby={errors?.email ? 'email-error' : undefined}
             onChange={e => onInputChange('email', e.target.value)}
           />
+          {errors?.email && (
+            <span
+              id="email-error"
+              role="alert"
+              className="text-red-500 text-xs"
+            >
+              {errors.email}
+            </span>
+          )}
         </div>
 
         <div className="space-y-2 col-span-2">

@@ -76,7 +76,7 @@ export function GeneralSettings() {
         setOrgInfo(data);
       } catch (error) {
         const logger = getLogger();
-        await logger.error(
+        void logger.error(
           'app/(main)/sites/settings/GeneralSettings.tsx',
           `Error fetching organization info: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
@@ -96,7 +96,7 @@ export function GeneralSettings() {
         setPracticeTypes(data);
       } catch (error) {
         const logger = getLogger();
-        await logger.error(
+        void logger.error(
           'app/(main)/sites/settings/GeneralSettings.tsx',
           `Error fetching practice types: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
@@ -152,7 +152,7 @@ export function GeneralSettings() {
       toast.success('Organization information updated successfully');
     } catch (error) {
       const logger = getLogger();
-      await logger.error(
+      void logger.error(
         'app/(main)/sites/settings/GeneralSettings.tsx',
         `Error updating organization info: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -187,7 +187,7 @@ export function GeneralSettings() {
       );
     } catch (error) {
       const logger = getLogger();
-      await logger.error(
+      void logger.error(
         'app/(main)/sites/settings/GeneralSettings.tsx',
         `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
       );

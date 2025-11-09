@@ -19,7 +19,8 @@ export default async function PatientsPage({
   searchParams: Promise<SearchParams>;
 }): Promise<React.JSX.Element> {
   const params = await searchParams;
-  const page = parseInt(params.page || '1', 10);
+  const parsedPage = parseInt(params.page || '1', 10);
+  const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
   const searchTerm = params.search;
   const orderBy = params.orderBy || 'lastEdit';
 

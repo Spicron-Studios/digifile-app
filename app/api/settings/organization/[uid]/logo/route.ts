@@ -68,12 +68,16 @@ export async function PUT(request: NextRequest, context: unknown) {
 
     return NextResponse.json({ url: urlData.publicUrl });
   } catch (error) {
-    const logger = Logger.getInstance();
-    await logger.init();
-    await logger.error(
-      'api/settings/organization/[uid]/logo/route.ts',
-      `Logo upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    try {
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error(
+        'api/settings/organization/[uid]/logo/route.ts',
+        `Logo upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } catch (_logError) {
+      // Silently fail logging to ensure error response is still sent
+    }
     return NextResponse.json(
       { error: 'Failed to process logo upload' },
       { status: 500 }

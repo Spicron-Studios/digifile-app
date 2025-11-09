@@ -34,11 +34,15 @@ export function ConsentModal({
         const text = await getConsentText(consentNumber);
         setContent(text);
       } catch (error) {
-        const logger = getLogger();
-        await logger.error(
-          'app/components/ui/consent-modal.tsx',
-          `Error fetching consent content: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
+        setError('Failed to load consent document');
+        getLogger()
+          .error(
+            'app/components/ui/consent-modal.tsx',
+            `Error fetching consent content: ${error instanceof Error ? error.message : 'Unknown error'}`
+          )
+          .catch(() => {
+            // Ignore logging failures
+          });
         setError('Failed to load consent document');
       } finally {
         setIsLoading(false);

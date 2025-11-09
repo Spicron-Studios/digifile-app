@@ -2,6 +2,7 @@
 import { getLogger } from '@/app/lib/logger';
 
 import * as React from 'react';
+import { useEffect } from 'react';
 import {
   Home,
   FileText,
@@ -40,14 +41,15 @@ function SidebarWrapper() {
   const { state, toggle } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
-  if (process.env.NODE_ENV === 'development') {
-    const logger = getLogger();
-    // Fire-and-forget; no await inside render
-    void logger.debug(
-      'app/components/ui/collapsible-sidebar.tsx',
-      `SidebarWrapper rendered, state: ${JSON.stringify(state)}`
-    );
-  }
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const logger = getLogger();
+      void logger.debug(
+        'app/components/ui/collapsible-sidebar.tsx',
+        `SidebarWrapper rendered, state: ${JSON.stringify(state)}`
+      );
+    }
+  }, [state]);
 
   return (
     <Sidebar collapsible="icon" className="border-r">

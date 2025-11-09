@@ -53,12 +53,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const logger = Logger.getInstance();
-    await logger.init();
-    await logger.error(
-      'api/register/route.ts',
-      `Registration error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    try {
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error(
+        'api/register/route.ts',
+        `Registration error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } catch (_loggingError) {
+      // Silently fail - logger failed, cannot log
+    }
     return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
   }
 }

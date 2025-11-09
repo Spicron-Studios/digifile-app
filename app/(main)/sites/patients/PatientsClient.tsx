@@ -24,8 +24,20 @@ import {
 import { Label } from '@/app/components/ui/label';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { PaginatedPatients, CreatePatientData } from '@/app/types/patient';
-import { createPatient } from '@/app/actions/patients';
+import {
+  createPatient,
+  generatePublicIntakeLink,
+  generateTabletIntakeLink,
+} from '@/app/actions/patients';
 import { toast } from 'sonner';
+import {
+  sanitizeDigits,
+  parseSouthAfricanId,
+  normalizePhoneInput,
+  validatePhoneNumber,
+  validateEmail,
+  validateDateOfBirth,
+} from '@/app/utils/helper-functions/sa-id';
 
 interface PatientsClientProps {
   initialData: PaginatedPatients;
@@ -41,6 +53,9 @@ export default function PatientsClient({
   );
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [intakeLink, setIntakeLink] = useState<string>('');
+  const [tabletLink, setTabletLink] = useState<string>('');
+  const [isGeneratingLinks, setIsGeneratingLinks] = useState(false);
 
   // Create patient form state
   const [newPatient, setNewPatient] = useState<CreatePatientData>({
@@ -55,6 +70,12 @@ export default function PatientsClient({
     email: '',
     address: '',
   });
+  const [validationErrors, setValidationErrors] = useState<{
+    id?: string;
+    dateOfBirth?: string;
+    cellPhone?: string;
+    email?: string;
+  }>({});
 
   // Debounce search input
   useEffect(() => {
@@ -97,6 +118,12 @@ export default function PatientsClient({
   );
 
   const handleCreatePatient = async (): Promise<void> => {
+    // Check for existing validation errors
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error('Please fix validation errors before submitting');
+      return;
+    }
+
     // Validate required fields
     if (!newPatient.name || !newPatient.dateOfBirth) {
       toast.error('Name and date of birth are required');
@@ -106,6 +133,45 @@ export default function PatientsClient({
     if (!newPatient.isUnder18 && !newPatient.id) {
       toast.error('ID is required for patients 18 years or older');
       return;
+    }
+
+    // Validate ID if provided
+    if (!newPatient.isUnder18 && newPatient.id) {
+      const cleaned = sanitizeDigits(newPatient.id, 13);
+      if (cleaned.length !== 13) {
+        toast.error('ID number must be exactly 13 digits');
+        return;
+      }
+      const parsed = parseSouthAfricanId(cleaned);
+      if (!parsed.valid) {
+        toast.error(parsed.reason || 'Invalid South African ID number');
+        return;
+      }
+    }
+
+    // Validate date of birth
+    const dobValidation = validateDateOfBirth(newPatient.dateOfBirth);
+    if (!dobValidation.valid) {
+      toast.error(dobValidation.error || 'Invalid date of birth');
+      return;
+    }
+
+    // Validate phone if provided
+    if (newPatient.cellPhone) {
+      const phoneValidation = validatePhoneNumber(newPatient.cellPhone);
+      if (!phoneValidation.valid) {
+        toast.error(phoneValidation.error || 'Invalid phone number');
+        return;
+      }
+    }
+
+    // Validate email if provided
+    if (newPatient.email) {
+      const emailValidation = validateEmail(newPatient.email);
+      if (!emailValidation.valid) {
+        toast.error(emailValidation.error || 'Invalid email address');
+        return;
+      }
     }
 
     setIsCreating(true);
@@ -141,6 +207,42 @@ export default function PatientsClient({
     }
   };
 
+  const handleGenerateExpiringLink = async (): Promise<void> => {
+    setIsGeneratingLinks(true);
+    setIntakeLink('');
+    try {
+      const res = await generatePublicIntakeLink(window.location.origin);
+      if ('error' in res) {
+        toast.error(res.error);
+      } else {
+        setIntakeLink(res.url);
+        toast.success('Expiring intake link generated');
+      }
+    } catch (_error) {
+      toast.error('Failed to generate link');
+    } finally {
+      setIsGeneratingLinks(false);
+    }
+  };
+
+  const handleGenerateTabletLink = async (): Promise<void> => {
+    setIsGeneratingLinks(true);
+    setTabletLink('');
+    try {
+      const res = await generateTabletIntakeLink(window.location.origin);
+      if ('error' in res) {
+        toast.error(res.error);
+      } else {
+        setTabletLink(res.url);
+        toast.success('Tablet intake link generated');
+      }
+    } catch (_error) {
+      toast.error('Failed to generate link');
+    } finally {
+      setIsGeneratingLinks(false);
+    }
+  };
+
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return '-';
     try {
@@ -155,6 +257,22 @@ export default function PatientsClient({
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Patients</h1>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGenerateExpiringLink}
+            disabled={isGeneratingLinks}
+          >
+            {isGeneratingLinks ? 'Generating…' : 'Generate Intake Link'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleGenerateTabletLink}
+            disabled={isGeneratingLinks}
+          >
+            {isGeneratingLinks ? 'Generating…' : 'Generate Tablet Link'}
+          </Button>
+        </div>
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
             <Button>Create New Patient</Button>
@@ -241,13 +359,30 @@ export default function PatientsClient({
                   id="dateOfBirth"
                   type="date"
                   value={newPatient.dateOfBirth}
-                  onChange={e =>
+                  onChange={e => {
+                    const value = e.target.value;
                     setNewPatient(prev => ({
                       ...prev,
-                      dateOfBirth: e.target.value,
-                    }))
-                  }
+                      dateOfBirth: value,
+                    }));
+                    const dobValidation = validateDateOfBirth(value);
+                    setValidationErrors(prev => {
+                      const next = { ...prev };
+                      if (dobValidation.valid) {
+                        delete next.dateOfBirth;
+                      } else if (dobValidation.error) {
+                        next.dateOfBirth = dobValidation.error;
+                      }
+                      return next;
+                    });
+                  }}
+                  aria-invalid={Boolean(validationErrors.dateOfBirth)}
                 />
+                {validationErrors.dateOfBirth && (
+                  <span className="text-red-500 text-xs mt-1 block">
+                    {validationErrors.dateOfBirth}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">
@@ -272,11 +407,50 @@ export default function PatientsClient({
                   <Input
                     id="id"
                     value={newPatient.id}
-                    onChange={e =>
-                      setNewPatient(prev => ({ ...prev, id: e.target.value }))
-                    }
+                    onChange={e => {
+                      const value = e.target.value;
+                      const cleaned = sanitizeDigits(value, 13);
+                      setNewPatient(prev => ({ ...prev, id: cleaned }));
+
+                      if (cleaned.length > 0 && cleaned.length !== 13) {
+                        setValidationErrors(prev => ({
+                          ...prev,
+                          id: 'ID must be exactly 13 digits',
+                        }));
+                      } else if (cleaned.length === 13) {
+                        const parsed = parseSouthAfricanId(cleaned);
+                        if (!parsed.valid) {
+                          setValidationErrors(prev => ({
+                            ...prev,
+                            id:
+                              parsed.reason ||
+                              'Invalid South African ID number',
+                          }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const next = { ...prev };
+                            delete next.id;
+                            return next;
+                          });
+                        }
+                      } else {
+                        setValidationErrors(prev => {
+                          const next = { ...prev };
+                          delete next.id;
+                          return next;
+                        });
+                      }
+                    }}
                     placeholder="Enter ID number"
+                    inputMode="numeric"
+                    maxLength={13}
+                    aria-invalid={Boolean(validationErrors.id)}
                   />
+                  {validationErrors.id && (
+                    <span className="text-red-500 text-xs mt-1 block">
+                      {validationErrors.id}
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -285,14 +459,34 @@ export default function PatientsClient({
                 <Input
                   id="cellPhone"
                   value={newPatient.cellPhone}
-                  onChange={e =>
+                  onChange={e => {
+                    const value = e.target.value;
+                    const normalized = normalizePhoneInput(value);
+                    const phoneValidation = validatePhoneNumber(normalized);
+                    setValidationErrors(prev => {
+                      const next = { ...prev };
+                      if (phoneValidation.valid) {
+                        delete next.cellPhone;
+                      } else if (phoneValidation.error) {
+                        next.cellPhone = phoneValidation.error;
+                      }
+                      return next;
+                    });
                     setNewPatient(prev => ({
                       ...prev,
-                      cellPhone: e.target.value,
-                    }))
-                  }
+                      cellPhone: normalized,
+                    }));
+                  }}
                   placeholder="Enter cell phone"
+                  type="tel"
+                  inputMode="tel"
+                  aria-invalid={Boolean(validationErrors.cellPhone)}
                 />
+                {validationErrors.cellPhone && (
+                  <span className="text-red-500 text-xs mt-1 block">
+                    {validationErrors.cellPhone}
+                  </span>
+                )}
               </div>
 
               <div>
@@ -301,11 +495,28 @@ export default function PatientsClient({
                   id="email"
                   type="email"
                   value={newPatient.email}
-                  onChange={e =>
-                    setNewPatient(prev => ({ ...prev, email: e.target.value }))
-                  }
+                  onChange={e => {
+                    const value = e.target.value;
+                    setNewPatient(prev => ({ ...prev, email: value }));
+                    const emailValidation = validateEmail(value);
+                    setValidationErrors(prev => {
+                      const next = { ...prev };
+                      if (emailValidation.valid) {
+                        delete next.email;
+                      } else if (emailValidation.error) {
+                        next.email = emailValidation.error;
+                      }
+                      return next;
+                    });
+                  }}
                   placeholder="Enter email"
+                  aria-invalid={Boolean(validationErrors.email)}
                 />
+                {validationErrors.email && (
+                  <span className="text-red-500 text-xs mt-1 block">
+                    {validationErrors.email}
+                  </span>
+                )}
               </div>
 
               <div>
@@ -338,6 +549,67 @@ export default function PatientsClient({
           </DialogContent>
         </Dialog>
       </div>
+
+      {(intakeLink || tabletLink) && (
+        <Card className="p-4 mb-6">
+          <div className="space-y-2">
+            {intakeLink && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Intake Link (24h):</span>
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={intakeLink}
+                    className="text-indigo-600 hover:text-indigo-900 break-all"
+                    target="_blank"
+                  >
+                    {intakeLink}
+                  </Link>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(intakeLink);
+                      toast.success('Link copied to clipboard');
+                    } catch (_error) {
+                      toast.error('Failed to copy link');
+                    }
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            )}
+            {tabletLink && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Tablet Link:</span>
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={tabletLink}
+                    className="text-indigo-600 hover:text-indigo-900 break-all"
+                    target="_blank"
+                  >
+                    {tabletLink}
+                  </Link>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(tabletLink);
+                      toast.success('Link copied to clipboard');
+                    } catch (_error) {
+                      toast.error('Failed to copy link');
+                    }
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Search and Filters */}
       <Card className="p-4 mb-6">

@@ -52,7 +52,7 @@ export interface BigCalendarProps {
 const DragAndDropCalendar = withDragAndDrop<
   CalendarEvent,
   { id: string; title: string }
->(RBCalendar as any);
+>(RBCalendar as unknown as React.ComponentType);
 
 export default function BigCalendar(
   props: BigCalendarProps
@@ -182,7 +182,14 @@ export default function BigCalendar(
         onSelectSlot={(_slotInfo: { start: Date; end: Date }) =>
           onSelectSlot?.({ start: _slotInfo.start, end: _slotInfo.end })
         }
-        onEventDrop={(_args: any) =>
+        onEventDrop={(_args: {
+          event: CalendarEvent;
+          start: Date;
+          end: Date;
+          resourceId?: string | number;
+          allDay?: boolean;
+          isAllDay?: boolean;
+        }) =>
           onEventDrop?.({
             event: _args.event,
             start: _args.start,
@@ -190,7 +197,12 @@ export default function BigCalendar(
             resourceId: _args.resourceId,
           })
         }
-        onEventResize={(_args: any) =>
+        onEventResize={(_args: {
+          event: CalendarEvent;
+          start: Date;
+          end: Date;
+          allDay?: boolean;
+        }) =>
           onEventResize?.({
             event: _args.event,
             start: _args.start,

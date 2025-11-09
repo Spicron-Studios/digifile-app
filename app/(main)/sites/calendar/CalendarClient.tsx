@@ -125,7 +125,7 @@ export default function CalendarClient({
     return () => {
       active = false;
     };
-  }, [currentDate, selectedIds, allEvents, logger]);
+  }, [currentDate, selectedIds, logger, allEvents]);
   const resources = useMemo(
     () =>
       accounts
