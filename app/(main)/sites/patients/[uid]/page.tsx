@@ -309,10 +309,16 @@ export default function PatientDetailPage(): React.JSX.Element {
                       id: parsed.reason || 'Invalid South African ID number',
                     }));
                   } else {
-                    setValidationErrors(prev => ({ ...prev, id: undefined }));
+                    setValidationErrors(prev => {
+                      const { id: _id, ...rest } = prev;
+                      return rest;
+                    });
                   }
                 } else {
-                  setValidationErrors(prev => ({ ...prev, id: undefined }));
+                  setValidationErrors(prev => {
+                    const { id: _id, ...rest } = prev;
+                    return rest;
+                  });
                 }
               }}
               inputMode="numeric"
@@ -338,12 +344,18 @@ export default function PatientDetailPage(): React.JSX.Element {
                   prev ? { ...prev, dateOfBirth: value } : null
                 );
                 const dobValidation = validateDateOfBirth(value);
-                setValidationErrors(prev => ({
-                  ...prev,
-                  dateOfBirth: dobValidation.valid
-                    ? undefined
-                    : dobValidation.error,
-                }));
+                if (dobValidation.valid) {
+                  setValidationErrors(prev => {
+                    const { dateOfBirth: _dateOfBirth, ...rest } = prev;
+                    return rest;
+                  });
+                } else if (dobValidation.error) {
+                  const errorMsg = dobValidation.error;
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    dateOfBirth: errorMsg,
+                  }));
+                }
               }}
               aria-invalid={Boolean(validationErrors.dateOfBirth)}
             />
@@ -363,12 +375,18 @@ export default function PatientDetailPage(): React.JSX.Element {
                 const value = e.target.value;
                 const normalized = normalizePhoneInput(value);
                 const phoneValidation = validatePhoneNumber(normalized);
-                setValidationErrors(prev => ({
-                  ...prev,
-                  cellPhone: phoneValidation.valid
-                    ? undefined
-                    : phoneValidation.error,
-                }));
+                if (phoneValidation.valid) {
+                  setValidationErrors(prev => {
+                    const { cellPhone: _cellPhone, ...rest } = prev;
+                    return rest;
+                  });
+                } else if (phoneValidation.error) {
+                  const errorMsg = phoneValidation.error;
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    cellPhone: errorMsg,
+                  }));
+                }
                 setPatient(prev =>
                   prev ? { ...prev, cellPhone: normalized } : null
                 );
@@ -394,12 +412,18 @@ export default function PatientDetailPage(): React.JSX.Element {
                 const value = e.target.value;
                 setPatient(prev => (prev ? { ...prev, email: value } : null));
                 const emailValidation = validateEmail(value);
-                setValidationErrors(prev => ({
-                  ...prev,
-                  email: emailValidation.valid
-                    ? undefined
-                    : emailValidation.error,
-                }));
+                if (emailValidation.valid) {
+                  setValidationErrors(prev => {
+                    const { email: _email, ...rest } = prev;
+                    return rest;
+                  });
+                } else if (emailValidation.error) {
+                  const errorMsg = emailValidation.error;
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    email: errorMsg,
+                  }));
+                }
               }}
               aria-invalid={Boolean(validationErrors.email)}
             />

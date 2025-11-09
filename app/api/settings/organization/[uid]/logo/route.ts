@@ -5,8 +5,11 @@ import { getSupabaseClient } from '@/app/lib/supabase';
 import { auth } from '@/app/lib/auth';
 import { getBucket } from '@/app/lib/storage';
 
-export async function PUT(request: NextRequest, context: unknown) {
-  const params = (context as { params?: Record<string, unknown> }).params ?? {};
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ uid: string }> }
+): Promise<NextResponse> {
+  const { uid } = await params;
   const supabase = getSupabaseClient();
   if (!supabase) {
     return NextResponse.json(
@@ -25,7 +28,7 @@ export async function PUT(request: NextRequest, context: unknown) {
     }
 
     // Verify the requested org matches the session org
-    if (session.user.orgId !== String(params.uid)) {
+    if (session.user.orgId !== uid) {
       return NextResponse.json(
         { error: 'Unauthorized - Organization mismatch' },
         { status: 403 }
@@ -41,7 +44,7 @@ export async function PUT(request: NextRequest, context: unknown) {
     // Upload to Supabase
     const { error: uploadError } = await supabase.storage
       .from(getBucket('ASSETS'))
-      .upload(`${params.uid}/logo/${params.uid}-logo.jpg`, file, {
+      .upload(`${uid}/logo/${uid}-logo.jpg`, file, {
         upsert: true,
         contentType: 'image/jpeg',
       });
@@ -60,7 +63,6 @@ export async function PUT(request: NextRequest, context: unknown) {
     }
 
     // Get the public URL
-    const uid = String(params.uid);
 
     const { data: urlData } = supabase.storage
       .from(getBucket('ASSETS'))

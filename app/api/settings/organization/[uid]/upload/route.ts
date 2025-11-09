@@ -5,8 +5,11 @@ import { getBucket } from '@/app/lib/storage';
 import { Logger } from '@/app/lib/logger/logger.service';
 export const runtime = 'nodejs';
 
-export async function POST(request: NextRequest, context: unknown) {
-  const params = (context as { params?: Record<string, unknown> }).params ?? {};
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ uid: string }> }
+): Promise<NextResponse> {
+  const { uid } = await params;
   const supabase = getSupabaseClient();
   if (!supabase) {
     return NextResponse.json(
@@ -24,7 +27,7 @@ export async function POST(request: NextRequest, context: unknown) {
       );
     }
 
-    if (session.user.orgId !== String(params.uid)) {
+    if (session.user.orgId !== uid) {
       return NextResponse.json(
         { error: 'Unauthorized - Organization mismatch' },
         { status: 403 }
@@ -45,8 +48,6 @@ export async function POST(request: NextRequest, context: unknown) {
 
     let path: string;
     let contentType: string;
-
-    const uid = String(params.uid);
 
     if (type === 'logo') {
       path = `${uid}/logo/${uid}-logo.jpg`;
