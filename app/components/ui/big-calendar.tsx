@@ -5,8 +5,11 @@ import {
   Calendar as RBCalendar,
   Views,
   dateFnsLocalizer,
+  type CalendarProps,
 } from 'react-big-calendar';
-import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import withDragAndDrop, {
+  type EventInteractionArgs,
+} from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { parse, startOfWeek, getDay, format } from 'date-fns';
 import { enZA } from 'date-fns/locale/en-ZA';
@@ -35,24 +38,25 @@ export interface BigCalendarProps {
   onNavigate?: (_date: Date) => void;
   onSelectSlot?: (_slotInfo: { start: Date; end: Date }) => void;
   onSelectEvent?: (_event: CalendarEvent) => void;
-  onEventDrop?: (_args: {
-    event: CalendarEvent;
-    start: Date;
-    end: Date;
-    resourceId?: string;
-  }) => void | Promise<void>;
-  onEventResize?: (_args: {
-    event: CalendarEvent;
-    start: Date;
-    end: Date;
-  }) => void | Promise<void>;
+  // Match library's EventInteractionArgs type
+  onEventDrop?: (
+    _args: EventInteractionArgs<CalendarEvent>
+  ) => void | Promise<void>;
+  onEventResize?: (
+    _args: EventInteractionArgs<CalendarEvent>
+  ) => void | Promise<void>;
   [key: string]: unknown;
 }
 
+// Properly type the wrapped calendar component
 const DragAndDropCalendar = withDragAndDrop<
   CalendarEvent,
   { id: string; title: string }
->(RBCalendar as unknown as React.ComponentType);
+>(
+  RBCalendar as React.ComponentType<
+    CalendarProps<CalendarEvent, { id: string; title: string }>
+  >
+);
 
 export default function BigCalendar(
   props: BigCalendarProps
@@ -157,6 +161,11 @@ export default function BigCalendar(
     return { event: Event } as const;
   }
 
+  // Helper to ensure Date objects (library sometimes provides strings)
+  const ensureDate = (value: string | Date): Date => {
+    return value instanceof Date ? value : new Date(value);
+  };
+
   return (
     <div className="rbc-theme text-sm">
       <DragAndDropCalendar
@@ -182,33 +191,29 @@ export default function BigCalendar(
         onSelectSlot={(_slotInfo: { start: Date; end: Date }) =>
           onSelectSlot?.({ start: _slotInfo.start, end: _slotInfo.end })
         }
-        onEventDrop={(_args: {
-          event: CalendarEvent;
-          start: Date;
-          end: Date;
-          resourceId?: string | number;
-          allDay?: boolean;
-          isAllDay?: boolean;
-        }) =>
-          onEventDrop?.({
-            event: _args.event,
-            start: _args.start,
-            end: _args.end,
-            resourceId: _args.resourceId,
-          })
-        }
-        onEventResize={(_args: {
-          event: CalendarEvent;
-          start: Date;
-          end: Date;
-          allDay?: boolean;
-        }) =>
-          onEventResize?.({
-            event: _args.event,
-            start: _args.start,
-            end: _args.end,
-          })
-        }
+        // Now properly typed to match EventInteractionArgs
+        onEventDrop={(args: EventInteractionArgs<CalendarEvent>) => {
+          if (onEventDrop) {
+            // Convert stringOrDate to Date if needed
+            const normalizedArgs: EventInteractionArgs<CalendarEvent> = {
+              ...args,
+              start: ensureDate(args.start),
+              end: ensureDate(args.end),
+            };
+            void onEventDrop(normalizedArgs);
+          }
+        }}
+        onEventResize={(args: EventInteractionArgs<CalendarEvent>) => {
+          if (onEventResize) {
+            // Convert stringOrDate to Date if needed
+            const normalizedArgs: EventInteractionArgs<CalendarEvent> = {
+              ...args,
+              start: ensureDate(args.start),
+              end: ensureDate(args.end),
+            };
+            void onEventResize(normalizedArgs);
+          }
+        }}
         style={{ height: '100%' }}
         eventPropGetter={eventPropGetter}
         scrollToTime={new Date(1970, 0, 1, 8, 0)}
