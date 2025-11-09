@@ -423,9 +423,7 @@ export function NotesSection({
     }
 
     // Persist the file to create the UID and linkage records
-    const result = await handleResult(
-      createFile(file as unknown as Record<string, unknown>)
-    );
+    const result = await handleResult(createFile(file));
     const created = (result.data as unknown as FileData) || null;
     const err = (result.error as unknown as { message?: string }) || null;
     if (err) {
@@ -442,7 +440,7 @@ export function NotesSection({
     }
 
     // Update local state with the created file data
-    setFile(() => created);
+    setFile(_prev => created);
     return created;
   }
 

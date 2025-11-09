@@ -25,11 +25,15 @@ export function ClientHeader({ session }: ClientHeaderProps) {
       // Force a hard navigation to signin page
       window.location.href = '/login/signin';
     } catch (error) {
-      const logger = getLogger();
-      await logger.error(
-        'app/components/ui/client-header.tsx',
-        `Error signing out: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      try {
+        const logger = getLogger();
+        await logger.error(
+          'app/components/ui/client-header.tsx',
+          `Error signing out: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      } catch (_loggingError) {
+        // Silently fail logging to ensure navigation proceeds
+      }
       // Fallback navigation if the signOut fails
       router.push('/login/signin');
     }

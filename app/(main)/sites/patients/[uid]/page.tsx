@@ -17,6 +17,14 @@ import {
 import { getPatient, updatePatient } from '@/app/actions/patients';
 import { PatientWithFiles } from '@/app/types/patient';
 import { toast } from 'sonner';
+import {
+  sanitizeDigits,
+  parseSouthAfricanId,
+  normalizePhoneInput,
+  validatePhoneNumber,
+  validateEmail,
+  validateDateOfBirth,
+} from '@/app/utils/helper-functions/sa-id';
 
 export default function PatientDetailPage(): React.JSX.Element {
   const { uid } = useParams();
@@ -24,13 +32,35 @@ export default function PatientDetailPage(): React.JSX.Element {
   const [patient, setPatient] = useState<PatientWithFiles | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    id?: string;
+    dateOfBirth?: string;
+    cellPhone?: string;
+    email?: string;
+  }>({});
+
+  // Validate and narrow uid to a single string
+  const patientUid: string | null = (() => {
+    if (!uid) return null;
+    if (Array.isArray(uid)) {
+      return uid[0] ?? null;
+    }
+    return typeof uid === 'string' ? uid : null;
+  })();
+
+  // Redirect if uid is invalid
+  useEffect(() => {
+    if (!patientUid) {
+      router.push('/sites/patients');
+    }
+  }, [patientUid, router]);
 
   useEffect(() => {
     async function loadPatient(): Promise<void> {
-      if (!uid) return;
+      if (!patientUid) return;
 
       try {
-        const data = await getPatient(String(uid));
+        const data = await getPatient(patientUid);
         setPatient(data);
       } catch {
         toast.error('Failed to load patient data');
@@ -40,15 +70,58 @@ export default function PatientDetailPage(): React.JSX.Element {
     }
 
     void loadPatient();
-  }, [uid]);
+  }, [patientUid]);
 
   const handleSave = async (): Promise<void> => {
-    if (!patient) return;
+    if (!patient || !patientUid) return;
+
+    // Validate ID if provided
+    if (patient.id) {
+      const cleaned = sanitizeDigits(patient.id, 13);
+      if (cleaned.length > 0 && cleaned.length !== 13) {
+        toast.error('ID number must be exactly 13 digits');
+        return;
+      }
+      if (cleaned.length === 13) {
+        const parsed = parseSouthAfricanId(cleaned);
+        if (!parsed.valid) {
+          toast.error(parsed.reason || 'Invalid South African ID number');
+          return;
+        }
+      }
+    }
+
+    // Validate date of birth if provided
+    if (patient.dateOfBirth) {
+      const dobValidation = validateDateOfBirth(patient.dateOfBirth);
+      if (!dobValidation.valid) {
+        toast.error(dobValidation.error || 'Invalid date of birth');
+        return;
+      }
+    }
+
+    // Validate phone if provided
+    if (patient.cellPhone) {
+      const phoneValidation = validatePhoneNumber(patient.cellPhone);
+      if (!phoneValidation.valid) {
+        toast.error(phoneValidation.error || 'Invalid phone number');
+        return;
+      }
+    }
+
+    // Validate email if provided
+    if (patient.email) {
+      const emailValidation = validateEmail(patient.email);
+      if (!emailValidation.valid) {
+        toast.error(emailValidation.error || 'Invalid email address');
+        return;
+      }
+    }
 
     setSaving(true);
 
     try {
-      const result = await updatePatient(String(uid), {
+      const result = await updatePatient(patientUid, {
         name: patient.name || '',
         surname: patient.surname || '',
         dateOfBirth: patient.dateOfBirth || '',
@@ -218,12 +291,39 @@ export default function PatientDetailPage(): React.JSX.Element {
             <Input
               id="id"
               value={patient.id || ''}
-              onChange={e =>
-                setPatient(prev =>
-                  prev ? { ...prev, id: e.target.value } : null
-                )
-              }
+              onChange={e => {
+                const value = e.target.value;
+                const cleaned = sanitizeDigits(value, 13);
+                setPatient(prev => (prev ? { ...prev, id: cleaned } : null));
+
+                if (cleaned.length > 0 && cleaned.length !== 13) {
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    id: 'ID must be exactly 13 digits',
+                  }));
+                } else if (cleaned.length === 13) {
+                  const parsed = parseSouthAfricanId(cleaned);
+                  if (!parsed.valid) {
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      id: parsed.reason || 'Invalid South African ID number',
+                    }));
+                  } else {
+                    setValidationErrors(prev => ({ ...prev, id: undefined }));
+                  }
+                } else {
+                  setValidationErrors(prev => ({ ...prev, id: undefined }));
+                }
+              }}
+              inputMode="numeric"
+              maxLength={13}
+              aria-invalid={Boolean(validationErrors.id)}
             />
+            {validationErrors.id && (
+              <span className="text-red-500 text-xs mt-1 block">
+                {validationErrors.id}
+              </span>
+            )}
           </div>
 
           <div>
@@ -232,12 +332,26 @@ export default function PatientDetailPage(): React.JSX.Element {
               id="dateOfBirth"
               type="date"
               value={formatDateForInput(patient.dateOfBirth)}
-              onChange={e =>
+              onChange={e => {
+                const value = e.target.value;
                 setPatient(prev =>
-                  prev ? { ...prev, dateOfBirth: e.target.value } : null
-                )
-              }
+                  prev ? { ...prev, dateOfBirth: value } : null
+                );
+                const dobValidation = validateDateOfBirth(value);
+                setValidationErrors(prev => ({
+                  ...prev,
+                  dateOfBirth: dobValidation.valid
+                    ? undefined
+                    : dobValidation.error,
+                }));
+              }}
+              aria-invalid={Boolean(validationErrors.dateOfBirth)}
             />
+            {validationErrors.dateOfBirth && (
+              <span className="text-red-500 text-xs mt-1 block">
+                {validationErrors.dateOfBirth}
+              </span>
+            )}
           </div>
 
           <div>
@@ -245,12 +359,29 @@ export default function PatientDetailPage(): React.JSX.Element {
             <Input
               id="cellPhone"
               value={patient.cellPhone || ''}
-              onChange={e =>
+              onChange={e => {
+                const value = e.target.value;
+                const normalized = normalizePhoneInput(value);
+                const phoneValidation = validatePhoneNumber(normalized);
+                setValidationErrors(prev => ({
+                  ...prev,
+                  cellPhone: phoneValidation.valid
+                    ? undefined
+                    : phoneValidation.error,
+                }));
                 setPatient(prev =>
-                  prev ? { ...prev, cellPhone: e.target.value } : null
-                )
-              }
+                  prev ? { ...prev, cellPhone: normalized } : null
+                );
+              }}
+              type="tel"
+              inputMode="tel"
+              aria-invalid={Boolean(validationErrors.cellPhone)}
             />
+            {validationErrors.cellPhone && (
+              <span className="text-red-500 text-xs mt-1 block">
+                {validationErrors.cellPhone}
+              </span>
+            )}
           </div>
 
           <div>
@@ -259,12 +390,24 @@ export default function PatientDetailPage(): React.JSX.Element {
               id="email"
               type="email"
               value={patient.email || ''}
-              onChange={e =>
-                setPatient(prev =>
-                  prev ? { ...prev, email: e.target.value } : null
-                )
-              }
+              onChange={e => {
+                const value = e.target.value;
+                setPatient(prev => (prev ? { ...prev, email: value } : null));
+                const emailValidation = validateEmail(value);
+                setValidationErrors(prev => ({
+                  ...prev,
+                  email: emailValidation.valid
+                    ? undefined
+                    : emailValidation.error,
+                }));
+              }}
+              aria-invalid={Boolean(validationErrors.email)}
             />
+            {validationErrors.email && (
+              <span className="text-red-500 text-xs mt-1 block">
+                {validationErrors.email}
+              </span>
+            )}
           </div>
 
           <div className="col-span-2">

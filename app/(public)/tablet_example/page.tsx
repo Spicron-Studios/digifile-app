@@ -39,6 +39,23 @@ export default function TabletExamplePage(): React.JSX.Element {
   const monthRef = useRef<HTMLInputElement>(null);
   const dayRef = useRef<HTMLInputElement>(null);
 
+  function isLeapYear(year: number): boolean {
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  }
+
+  function daysInMonth(year: number, month: number): number {
+    const daysPerMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (month === 2 && isLeapYear(year)) {
+      return 29;
+    }
+    return daysPerMonth[month - 1] ?? 31;
+  }
+
+  function isValidYear(year: number): boolean {
+    const currentYear = new Date().getFullYear();
+    return year >= 1900 && year <= currentYear;
+  }
+
   function onInput(field: keyof typeof patient, value: string): void {
     setPatient(prev => ({ ...prev, [field]: value }));
   }
@@ -53,24 +70,143 @@ export default function TabletExamplePage(): React.JSX.Element {
     maxLen: number,
     next?: React.RefObject<HTMLInputElement | null>
   ): void {
+    // Only accept digits
     if (!/^\d*$/.test(value)) return;
-    if (part === 'month' && value.length === 2 && parseInt(value) > 12)
-      value = '12';
-    if (part === 'day' && value.length === 2 && parseInt(value) > 31)
-      value = '31';
 
-    setDobParts(prev => ({ ...prev, [part]: value }));
+    let normalizedValue = value;
 
-    const newDob =
-      part === 'year'
-        ? `${value}/${dobParts.month}/${dobParts.day}`
-        : part === 'month'
-          ? `${dobParts.year}/${value}/${dobParts.day}`
-          : `${dobParts.year}/${dobParts.month}/${value}`;
+    // Handle month validation
+    if (part === 'month') {
+      if (value === '00') {
+        normalizedValue = '01';
+      } else if (value.length === 2) {
+        const month = parseInt(value, 10);
+        if (month < 1) {
+          normalizedValue = '01';
+        } else if (month > 12) {
+          normalizedValue = '12';
+        } else {
+          normalizedValue = value.padStart(2, '0');
+        }
+      }
+    }
+
+    // Handle day validation (needs month and year context)
+    if (part === 'day') {
+      if (value === '00') {
+        normalizedValue = '01';
+      } else if (value.length === 2) {
+        const day = parseInt(value, 10);
+        const currentMonth = dobParts.month
+          ? parseInt(dobParts.month, 10)
+          : null;
+        const currentYear = dobParts.year ? parseInt(dobParts.year, 10) : null;
+
+        if (day < 1) {
+          normalizedValue = '01';
+        } else if (
+          currentMonth !== null &&
+          currentYear !== null &&
+          isValidYear(currentYear) &&
+          currentMonth >= 1 &&
+          currentMonth <= 12
+        ) {
+          const maxDay = daysInMonth(currentYear, currentMonth);
+          if (day > maxDay) {
+            normalizedValue = maxDay.toString().padStart(2, '0');
+          } else {
+            normalizedValue = value.padStart(2, '0');
+          }
+        } else if (day > 31) {
+          normalizedValue = '31';
+        } else {
+          normalizedValue = value.padStart(2, '0');
+        }
+      }
+    }
+
+    // Handle year validation
+    if (part === 'year') {
+      if (value.length === 4) {
+        const year = parseInt(value, 10);
+        if (!isValidYear(year)) {
+          // Clamp to valid range
+          const currentYear = new Date().getFullYear();
+          if (year < 1900) {
+            normalizedValue = '1900';
+          } else if (year > currentYear) {
+            normalizedValue = currentYear.toString();
+          }
+        }
+      }
+    }
+
+    // Update the part
+    const updatedParts: DateParts = {
+      ...dobParts,
+      [part]: normalizedValue,
+    };
+
+    // Revalidate day if month or year changed
+    if (
+      (part === 'month' || part === 'year') &&
+      updatedParts.day.length === 2
+    ) {
+      const day = parseInt(updatedParts.day, 10);
+      const month = updatedParts.month
+        ? parseInt(updatedParts.month, 10)
+        : null;
+      const year =
+        updatedParts.year.length === 4 ? parseInt(updatedParts.year, 10) : null;
+
+      if (
+        month !== null &&
+        year !== null &&
+        isValidYear(year) &&
+        month >= 1 &&
+        month <= 12
+      ) {
+        const maxDay = daysInMonth(year, month);
+        if (day > maxDay) {
+          updatedParts.day = maxDay.toString().padStart(2, '0');
+        }
+      }
+    }
+
+    setDobParts(updatedParts);
+
+    // Only compose DOB when all parts are present and valid
+    let newDob = '';
+    if (
+      updatedParts.year.length === 4 &&
+      updatedParts.month.length === 2 &&
+      updatedParts.day.length === 2
+    ) {
+      const year = parseInt(updatedParts.year, 10);
+      const month = parseInt(updatedParts.month, 10);
+      const day = parseInt(updatedParts.day, 10);
+
+      if (
+        isValidYear(year) &&
+        month >= 1 &&
+        month <= 12 &&
+        day >= 1 &&
+        day <= daysInMonth(year, month)
+      ) {
+        newDob = `${updatedParts.year}/${updatedParts.month}/${updatedParts.day}`;
+      }
+    }
 
     setPatient(prev => ({ ...prev, dob: newDob }));
 
-    if (value.length === maxLen && next?.current) next.current.focus();
+    // Auto-focus only after accepting valid segment length
+    if (
+      normalizedValue.length === maxLen &&
+      next?.current &&
+      (part !== 'year' || normalizedValue.length === 4)
+    ) {
+      next.current.focus();
+    }
   }
 
   function onSubmit(e: React.FormEvent): void {

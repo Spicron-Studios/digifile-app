@@ -1,4 +1,4 @@
-export default async function framer({}): Promise<React.JSX.Element> {
+export default function framer() {
   return (
     <div>
       <h1
@@ -8,7 +8,7 @@ export default async function framer({}): Promise<React.JSX.Element> {
       >
         Hellooooo World
       </h1>
-      <h1>Collumn 2</h1>
+      <h2>Column 2</h2>
     </div>
   );
 }

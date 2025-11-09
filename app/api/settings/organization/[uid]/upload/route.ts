@@ -87,12 +87,16 @@ export async function POST(request: NextRequest, context: unknown) {
 
     return NextResponse.json({ url: urlData.publicUrl });
   } catch (error) {
-    const logger = Logger.getInstance();
-    await logger.init();
-    await logger.error(
-      'api/settings/organization/[uid]/upload/route.ts',
-      `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    try {
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error(
+        'api/settings/organization/[uid]/upload/route.ts',
+        `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } catch (_logError) {
+      // Silently fail - logger failed
+    }
     return NextResponse.json(
       { error: 'Failed to process upload' },
       { status: 500 }

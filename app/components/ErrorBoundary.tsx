@@ -99,7 +99,7 @@ export class ErrorBoundary extends React.Component<
     }
 
     // Log error via centralized logger
-    {
+    try {
       const logger = getLogger();
       // Fire-and-forget; avoid blocking error boundary
       void logger.error(
@@ -108,6 +108,8 @@ export class ErrorBoundary extends React.Component<
           errorInfo
         )}`
       );
+    } catch (_loggingError) {
+      // Silently fail - centralized logging failed
     }
 
     // In production, you might want to send this to an error reporting service

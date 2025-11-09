@@ -1,11 +1,14 @@
 export default async function DisplayPage({}): Promise<React.JSX.Element> {
   return (
     <div className="w-full h-full">
-      <h1 className="">This is a Iframe</h1>
+      <h1 className="">This is an iframe</h1>
       <iframe
-        src="http://localhost:3000/frame"
-        title="description"
+        src={
+          process.env.NEXT_PUBLIC_FRAME_URL || 'https://localhost:5713/frame'
+        }
+        title="Embedded frame content"
         className="w-full h-full"
+        sandbox="allow-scripts allow-same-origin"
       ></iframe>
     </div>
   );

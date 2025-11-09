@@ -10,6 +10,7 @@ import {
   updateNoteWithFiles as svcUpdateNoteWithFiles,
   deleteNote as svcDeleteNote,
   getSignedFileUrl as svcGetSignedFileUrl,
+  deleteFile as svcDeleteFile,
 } from '@/app/lib/services/file-data.service';
 
 export async function getFile(uid: string) {
@@ -141,4 +142,12 @@ export async function removeNote(payload: { noteUid: string }) {
   });
   if (res.error) throw new Error(res.error);
   return res;
+}
+
+export async function deleteFile(uid: string) {
+  const session = await auth();
+  if (!session?.user?.orgId) throw new Error('Unauthorized');
+  const res = await svcDeleteFile(uid, session.user.orgId);
+  if ('error' in res && res.error) throw new Error(res.error);
+  return res.data;
 }

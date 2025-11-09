@@ -5,8 +5,11 @@ import db, {
   patientMedicalAid,
   injuryOnDuty,
   patientmedicalaidFilePatient,
+  personResponsible,
+  tabNotes,
+  tabFiles,
 } from '@/app/lib/drizzle';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { Logger } from '@/app/lib/logger/logger.service';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -917,5 +920,183 @@ async function processInjuryOnDuty(
       `Error processing injury on duty: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     throw error;
+  }
+}
+
+// Soft delete a file and all related rows, excluding the patient master record
+export async function handleDeleteFile(
+  uid: string,
+  orgId: string
+): Promise<DbWriteResponse> {
+  const logger = Logger.getInstance();
+  await logger.init();
+
+  try {
+    await logger.checkpoint(
+      'api/files/[uid]/db_write.ts',
+      '--- Starting handleDeleteFile ---'
+    );
+    await logger.info(
+      'api/files/[uid]/db_write.ts',
+      `Soft-deleting file and related rows for UID=${uid}`
+    );
+
+    await db.transaction(async tx => {
+      // Ensure the file exists and belongs to org
+      const fileRows = await tx
+        .select()
+        .from(fileInfo)
+        .where(and(eq(fileInfo.uid, uid), eq(fileInfo.orgid, orgId)))
+        .limit(1);
+      if (!fileRows[0]) {
+        await logger.warning(
+          'api/files/[uid]/db_write.ts',
+          `File ${uid} not found for org ${orgId}`
+        );
+        throw new Error('File not found');
+      }
+
+      const now = new Date().toISOString();
+
+      // Collect fileinfo_patient ids linked to this file
+      const fipRows = await tx
+        .select({ id: fileinfoPatient.uid })
+        .from(fileinfoPatient)
+        .where(
+          and(
+            eq(fileinfoPatient.fileid, uid),
+            eq(fileinfoPatient.orgid, orgId),
+            eq(fileinfoPatient.active, true)
+          )
+        );
+      const fipIds = fipRows.map(r => r.id);
+
+      // Collect tab_notes ids linked to those fileinfo_patient ids
+      let noteIds: string[] = [];
+      if (fipIds.length > 0) {
+        const noteRows = await tx
+          .select({ id: tabNotes.uid })
+          .from(tabNotes)
+          .where(
+            and(
+              inArray(tabNotes.fileinfoPatientId, fipIds),
+              eq(tabNotes.orgid, orgId),
+              eq(tabNotes.active, true)
+            )
+          );
+        noteIds = noteRows.map(r => r.id);
+      }
+
+      // Deactivate tab_files for those notes
+      if (noteIds.length > 0) {
+        await tx
+          .update(tabFiles)
+          .set({ active: false, lastEdit: now })
+          .where(
+            and(
+              inArray(tabFiles.tabNotesId, noteIds),
+              eq(tabFiles.orgid, orgId)
+            )
+          );
+      }
+
+      // Deactivate tab_notes
+      if (fipIds.length > 0) {
+        await tx
+          .update(tabNotes)
+          .set({ active: false, lastEdit: now })
+          .where(
+            and(
+              inArray(tabNotes.fileinfoPatientId, fipIds),
+              eq(tabNotes.orgid, orgId)
+            )
+          );
+      }
+
+      // Deactivate fileinfo_patient
+      await tx
+        .update(fileinfoPatient)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(fileinfoPatient.fileid, uid),
+            eq(fileinfoPatient.orgid, orgId),
+            eq(fileinfoPatient.active, true)
+          )
+        );
+
+      // Deactivate patient_medical_aid
+      await tx
+        .update(patientMedicalAid)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(patientMedicalAid.fileid, uid),
+            eq(patientMedicalAid.orgid, orgId),
+            eq(patientMedicalAid.active, true)
+          )
+        );
+
+      // Deactivate patientmedicalaid_file_patient
+      await tx
+        .update(patientmedicalaidFilePatient)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(patientmedicalaidFilePatient.fileid, uid),
+            eq(patientmedicalaidFilePatient.orgid, orgId),
+            eq(patientmedicalaidFilePatient.active, true)
+          )
+        );
+
+      // Deactivate injury_on_duty
+      await tx
+        .update(injuryOnDuty)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(injuryOnDuty.fileid, uid),
+            eq(injuryOnDuty.orgid, orgId),
+            eq(injuryOnDuty.active, true)
+          )
+        );
+
+      // Deactivate person_responsible
+      await tx
+        .update(personResponsible)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(personResponsible.fileid, uid),
+            eq(personResponsible.orgid, orgId),
+            eq(personResponsible.active, true)
+          )
+        );
+
+      // Finally, deactivate file_info
+      await tx
+        .update(fileInfo)
+        .set({ active: false, lastEdit: now })
+        .where(and(eq(fileInfo.uid, uid), eq(fileInfo.orgid, orgId)));
+    });
+
+    await logger.info(
+      'api/files/[uid]/db_write.ts',
+      `Soft delete complete for file ${uid}`
+    );
+    return { data: { uid }, status: 200 };
+  } catch (error) {
+    if (error instanceof Error && error.message === 'File not found') {
+      await logger.warning(
+        'api/files/[uid]/db_write.ts',
+        `File ${uid} not found for org ${orgId}`
+      );
+      return { error: 'File not found', status: 404 };
+    }
+    await logger.error(
+      'api/files/[uid]/db_write.ts',
+      `Error soft-deleting file: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return { error: 'Failed to delete file', status: 500 };
   }
 }

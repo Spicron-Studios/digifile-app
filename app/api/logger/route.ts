@@ -42,9 +42,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const m = error instanceof Error ? error.message : 'Unknown error';
-    const logger = Logger.getInstance();
-    await logger.init();
-    await logger.error('api/logger/route.ts', `[api/logger] failed: ${m}`);
+    try {
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error('api/logger/route.ts', `[api/logger] failed: ${m}`);
+    } catch (_loggerError) {
+      // Silently fail - logger itself failed, cannot log
+    }
     return NextResponse.json({ ok: false }, { status: 500 });
   }
 }

@@ -10,8 +10,60 @@ import {
   PatientWithFiles,
   CreatePatientData,
 } from '@/app/types/patient';
+import {
+  generateExpiringLink,
+  generateTabletLink,
+} from '@/app/lib/intake-tokens';
 
 const logger = Logger.getInstance();
+
+/**
+ * Calculates age from a date of birth
+ * @param dateOfBirth - Date string (YYYY-MM-DD) or Date object
+ * @returns Age in years, or null if dateOfBirth is invalid
+ */
+function calculateAge(
+  dateOfBirth: string | Date | null | undefined
+): number | null {
+  if (!dateOfBirth) {
+    return null;
+  }
+
+  let dobDate: Date;
+  if (typeof dateOfBirth === 'string') {
+    // Handle YYYY-MM-DD format
+    const dateParts = dateOfBirth.split(/[-\/]/);
+    if (dateParts.length !== 3) {
+      return null;
+    }
+    const year = parseInt(dateParts[0] || '', 10);
+    const month = parseInt(dateParts[1] || '', 10) - 1; // Month is 0-indexed
+    const day = parseInt(dateParts[2] || '', 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      return null;
+    }
+    dobDate = new Date(year, month, day);
+  } else {
+    dobDate = new Date(dateOfBirth);
+  }
+
+  if (isNaN(dobDate.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - dobDate.getFullYear();
+  const monthDiff = today.getMonth() - dobDate.getMonth();
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < dobDate.getDate())
+  ) {
+    age--;
+  }
+
+  return age;
+}
 
 export async function getPatients(
   page: number = 1,
@@ -121,10 +173,10 @@ export async function getPatient(
     const files = results
       .filter(r => r.file && r.file.uid !== null)
       .map(r => ({
-        uid: r.file!.uid!,
-        file_number: r.file!.fileNumber || '',
-        account_number: r.file!.accountNumber || '',
-        lastEdit: r.file!.lastEdit || '',
+        uid: r.file?.uid ?? '',
+        file_number: r.file?.fileNumber ?? '',
+        account_number: r.file?.accountNumber ?? '',
+        lastEdit: r.file?.lastEdit ?? '',
       }));
 
     const patient: PatientWithFiles = {
@@ -243,7 +295,11 @@ export async function createPatient(
       files: [],
     };
 
-    const result: any = {
+    const result: {
+      success: boolean;
+      patient?: PatientWithFiles;
+      error?: string;
+    } = {
       success: true,
       patient: patientWithFiles,
     };
@@ -297,18 +353,102 @@ export async function updatePatient(
       };
     }
 
+    const existingPatient = existing[0]?.patient;
+    if (!existingPatient) {
+      await logger.warning(
+        'actions/patients.ts',
+        `No patient data found for uid=${uid}`
+      );
+      return {
+        success: false,
+        error: 'Patient not found',
+      };
+    }
+
+    // Determine effective dateOfBirth (use update data if provided, else existing)
+    const effectiveDateOfBirth =
+      data.dateOfBirth ?? existingPatient.dateOfBirth;
+
+    // Calculate age from effective dateOfBirth
+    const age = calculateAge(effectiveDateOfBirth);
+
+    if (age === null) {
+      await logger.warning(
+        'actions/patients.ts',
+        `Invalid dateOfBirth for patient uid=${uid}`
+      );
+      return {
+        success: false,
+        error: 'Invalid date of birth',
+      };
+    }
+
+    // Determine effective ID (use update data if provided, else existing)
+    // If data.id is explicitly undefined, we keep existing; if it's a string (even empty), we use it
+    const effectiveId = data.id !== undefined ? data.id : existingPatient.id;
+
+    // Validate age-based ID rules
+    if (age >= 18) {
+      // Patients 18+ must have an ID
+      if (!effectiveId || effectiveId.trim() === '') {
+        await logger.warning(
+          'actions/patients.ts',
+          `Patient uid=${uid} is 18+ but missing ID`
+        );
+        return {
+          success: false,
+          error: 'ID is required for patients 18 years or older',
+        };
+      }
+    } else {
+      // Patients under 18 must NOT have an ID
+      // If an ID is present (either in update or existing), return failure
+      if (effectiveId && effectiveId.trim() !== '') {
+        await logger.warning(
+          'actions/patients.ts',
+          `Patient uid=${uid} is under 18 but has ID`
+        );
+        return {
+          success: false,
+          error: 'ID cannot be set for patients under 18 years old',
+        };
+      }
+    }
+
+    // Prepare update data - ensure ID is null for under-18 patients
+    // Only include fields that are being updated
+    const updateData: Partial<typeof existingPatient> = {};
+
+    if (data.name !== undefined) {
+      updateData.name = data.name;
+    }
+    if (data.surname !== undefined) {
+      updateData.surname = data.surname;
+    }
+    if (data.dateOfBirth !== undefined) {
+      updateData.dateOfBirth = data.dateOfBirth;
+    }
+    // Always update ID based on age validation
+    updateData.id = age >= 18 ? effectiveId || null : null;
+
+    if (data.title !== undefined) {
+      updateData.title = data.title;
+    }
+    if (data.gender !== undefined) {
+      updateData.gender = data.gender;
+    }
+    if (data.cellPhone !== undefined) {
+      updateData.cellPhone = data.cellPhone;
+    }
+    if (data.email !== undefined) {
+      updateData.email = data.email;
+    }
+    if (data.address !== undefined) {
+      updateData.address = data.address;
+    }
+
     // Update patient
-    const updated = await patientQueries.updatePatient(uid, {
-      name: data.name || undefined,
-      surname: data.surname || undefined,
-      dateOfBirth: data.dateOfBirth || undefined,
-      id: data.id || undefined,
-      title: data.title || undefined,
-      gender: data.gender || undefined,
-      cellPhone: data.cellPhone || undefined,
-      email: data.email || undefined,
-      address: data.address || undefined,
-    });
+    const updated = await patientQueries.updatePatient(uid, updateData);
 
     if (!updated || updated.length === 0) {
       return { success: false, error: 'Failed to update patient' };
@@ -340,4 +480,60 @@ export async function updatePatient(
         error instanceof Error ? error.message : 'Failed to update patient',
     };
   }
+}
+
+export async function generatePublicIntakeLink(
+  baseUrl?: string
+): Promise<{ url: string } | { error: string }> {
+  await logger.init();
+  const session = await auth();
+  if (!session?.user?.orgId) {
+    await logger.warning(
+      'actions/patients.ts',
+      'Unauthorized: missing orgId for link generation'
+    );
+    return { error: 'Unauthorized' };
+  }
+  const secret = process.env.INTAKE_FORM_SECRET;
+  if (!secret) {
+    await logger.error('actions/patients.ts', 'Missing INTAKE_FORM_SECRET');
+    return { error: 'Server misconfiguration' };
+  }
+  const baseFromParam = (baseUrl || '').replace(/\/$/, '');
+  const baseEnv = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+  const base = baseFromParam || baseEnv || '';
+  const url = generateExpiringLink(session.user.orgId, secret, base);
+  await logger.info(
+    'actions/patients.ts',
+    `Generated expiring intake link for org=${session.user.orgId}`
+  );
+  return { url };
+}
+
+export async function generateTabletIntakeLink(
+  baseUrl?: string
+): Promise<{ url: string } | { error: string }> {
+  await logger.init();
+  const session = await auth();
+  if (!session?.user?.orgId) {
+    await logger.warning(
+      'actions/patients.ts',
+      'Unauthorized: missing orgId for tablet link generation'
+    );
+    return { error: 'Unauthorized' };
+  }
+  const secret = process.env.INTAKE_FORM_SECRET;
+  if (!secret) {
+    await logger.error('actions/patients.ts', 'Missing INTAKE_FORM_SECRET');
+    return { error: 'Server misconfiguration' };
+  }
+  const baseFromParam = (baseUrl || '').replace(/\/$/, '');
+  const baseEnv = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+  const base = baseFromParam || baseEnv || '';
+  const url = generateTabletLink(session.user.orgId, secret, base);
+  await logger.info(
+    'actions/patients.ts',
+    `Generated tablet intake link for org=${session.user.orgId}`
+  );
+  return { url };
 }
