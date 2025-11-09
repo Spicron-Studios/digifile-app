@@ -2,6 +2,7 @@ import { handleGetFileData } from '@/app/api/files/[uid]/db_read';
 import {
   handleCreateFile,
   handleUpdateFile,
+  handleDeleteFile,
 } from '@/app/api/files/[uid]/db_write';
 import {
   fetchMedicalSchemes as _fetchMedicalSchemes,
@@ -44,6 +45,13 @@ export async function updateFile(
     data as unknown as import('@/app/types/db-types').FileUpdateData,
     orgId
   );
+}
+
+export async function deleteFile(
+  uid: string,
+  orgId: string
+): Promise<DbWriteResponse> {
+  return handleDeleteFile(uid, orgId);
 }
 
 export async function saveNoteWithFiles(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth';
-import { Logger } from '@/app/lib/logger';
+import { Logger } from '@/app/lib/logger/logger.service';
 
 export interface AuthenticatedRequest extends NextRequest {
   auth: {

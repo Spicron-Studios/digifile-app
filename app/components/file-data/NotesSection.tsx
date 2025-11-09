@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import React, {
   useCallback,
@@ -42,6 +43,7 @@ import {
   updateNote,
   removeNote,
   getSignedAttachmentUrl,
+  createFile,
 } from '@/app/actions/file-data';
 import { handleResult } from '@/app/utils/helper-functions/handle-results';
 import {
@@ -104,6 +106,23 @@ export function NotesSection({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<BlobPart[]>([]);
   const [recordingError, setRecordingError] = useState<string | null>(null);
+
+  // Draft state for documents when patient validation fails
+  const [draftFiles, setDraftFiles] = useState<UploadedFile[]>([]);
+  const [showValidationError, setShowValidationError] =
+    useState<boolean>(false);
+
+  // Helper function to validate patient data
+  const validatePatientData = useCallback((): boolean => {
+    const hasId = !!(file?.patient?.id && file.patient.id.trim() !== '');
+    const hasNameDob = !!(
+      file?.patient?.name &&
+      file.patient.name.trim() !== '' &&
+      file?.patient?.dob &&
+      file.patient.dob.trim() !== ''
+    );
+    return hasId || hasNameDob;
+  }, [file?.patient]);
 
   const fileNotes = useMemo(
     () => (file.notes?.file_notes ?? []) as unknown as NoteRecord[],
@@ -251,6 +270,7 @@ export function NotesSection({
     setExistingFiles([]);
     setEditingNoteUid(null);
     setRecordingError(null);
+    setShowValidationError(false);
     setIsNoteModalOpen(true);
   }
 
@@ -262,20 +282,57 @@ export function NotesSection({
     setUploadedFiles([]);
     setExistingFiles(note.files ?? []);
     setRecordingError(null);
+    setShowValidationError(false);
     setIsNoteModalOpen(true);
   }
 
   function handleFileUpload(e: ChangeEvent<HTMLInputElement>): void {
     const files = Array.from(e.target.files ?? []);
+
+    // Check if patient data is valid for uploading documents
+    if (!validatePatientData()) {
+      // Store files in draft state and show validation error
+      setDraftFiles(prev => [...prev, ...(files as unknown as UploadedFile[])]);
+      setShowValidationError(true);
+      return;
+    }
+
+    // If validation passes, add files to uploaded files
     setUploadedFiles(prev => [
       ...prev,
       ...(files as unknown as UploadedFile[]),
     ]);
+    setShowValidationError(false);
   }
 
   function removeFile(index: number): void {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   }
+
+  function removeDraftFile(index: number): void {
+    setDraftFiles(prev => prev.filter((_, i) => i !== index));
+  }
+
+  // Function to move draft files to uploaded files when validation passes
+  const moveDraftFilesToUploaded = useCallback((): void => {
+    if (validatePatientData() && draftFiles.length > 0) {
+      setUploadedFiles(prev => [...prev, ...draftFiles]);
+      setDraftFiles([]);
+      setShowValidationError(false);
+    }
+  }, [validatePatientData, draftFiles]);
+
+  // Effect to automatically move draft files when patient data becomes valid
+  React.useEffect(() => {
+    if (validatePatientData() && draftFiles.length > 0) {
+      moveDraftFilesToUploaded();
+    }
+  }, [
+    file?.patient,
+    moveDraftFilesToUploaded,
+    validatePatientData,
+    draftFiles.length,
+  ]);
 
   function getSupportedAudioMimeType(): string | null {
     const candidates = [
@@ -353,26 +410,98 @@ export function NotesSection({
     setIsRecording(false);
   }
 
+  async function ensureFileIsSaved(): Promise<FileData> {
+    // If the file already has a UID, return as-is
+    if (file?.uid) return file;
+
+    // Validate patient data before creating the file
+    if (!validatePatientData()) {
+      alert(
+        'Please provide Patient ID (adult) or Name and Date of Birth (child) before uploading documents.'
+      );
+      throw new Error('Missing required patient data');
+    }
+
+    // Persist the file to create the UID and linkage records
+    const result = await handleResult(createFile(file));
+    const created = (result.data as unknown as FileData) || null;
+    const err = (result.error as unknown as { message?: string }) || null;
+    if (err) {
+      const logger = getLogger();
+      await logger.error(
+        'app/components/file-data/NotesSection.tsx',
+        `Failed to create file before note upload: ${err.message || 'Unknown error'}`
+      );
+      alert(err.message || 'Failed to create file before uploading documents.');
+      throw new Error(err.message || 'Failed to create file');
+    }
+    if (!created?.uid) {
+      throw new Error('File creation did not return a UID');
+    }
+
+    // Update local state with the created file data
+    setFile(_prev => created);
+    return created;
+  }
+
   async function saveNewNote(): Promise<void> {
     if (isSavingNote) return;
     setIsSavingNote(true);
-    console.log('Attempting to save new note. Current file state:', file);
+    {
+      const logger = getLogger();
+      void logger.debug(
+        'app/components/file-data/NotesSection.tsx',
+        `Attempting to save new note. Current file state: ${JSON.stringify(file)}`
+      );
+    }
 
-    const fileInfoPatientId = file?.fileinfo_patient?.[0]?.uid ?? '';
-    const patientIdFromLink = file?.fileinfo_patient?.[0]?.patientid ?? '';
-
-    console.log('Derived IDs for note save:', {
-      fileUid: file?.uid,
-      fileInfoPatientId,
-      patientIdFromLink,
-      patientUidOnPatientObj: file?.patient?.uid,
-    });
-
-    const hasLinkIds = Boolean(fileInfoPatientId && patientIdFromLink);
     if (!noteContent.trim() && uploadedFiles.length === 0) {
       alert('Please enter a description or attach at least one document');
       setIsSavingNote(false);
       return;
+    }
+
+    // Validate patient data if there are files to upload
+    if (uploadedFiles.length > 0 && !validatePatientData()) {
+      alert(
+        'Cannot save note with documents. Please provide either Patient ID (adult) or Name and Date of Birth (child) before uploading documents.'
+      );
+      setIsSavingNote(false);
+      return;
+    }
+
+    // Ensure the file is saved (UID exists) before uploading any attachments
+    let workingFile: FileData = file;
+    try {
+      if (!workingFile?.uid) {
+        workingFile = await ensureFileIsSaved();
+      }
+    } catch (e) {
+      const logger = getLogger();
+      await logger.error(
+        'app/components/file-data/NotesSection.tsx',
+        `Failed to ensure file before saving note: ${e instanceof Error ? e.message : 'Unknown error'}`
+      );
+      setIsSavingNote(false);
+      return;
+    }
+
+    // Recompute derived IDs from the (possibly) newly saved file
+    const fileInfoPatientId = workingFile?.fileinfo_patient?.[0]?.uid ?? '';
+    const patientIdFromLink =
+      workingFile?.fileinfo_patient?.[0]?.patientid ?? '';
+
+    {
+      const logger = getLogger();
+      void logger.debug(
+        'app/components/file-data/NotesSection.tsx',
+        `Derived IDs for note save: ${JSON.stringify({
+          fileUid: workingFile?.uid,
+          fileInfoPatientId,
+          patientIdFromLink,
+          patientUidOnPatientObj: workingFile?.patient?.uid,
+        })}`
+      );
     }
 
     const processedFiles: Array<{
@@ -413,11 +542,17 @@ export function NotesSection({
         notes: noteContent,
         files: processedFiles,
       };
-      console.log('Note update payload:', payload);
+      {
+        const logger = getLogger();
+        void logger.debug(
+          'app/components/file-data/NotesSection.tsx',
+          `Note update payload: ${JSON.stringify(payload)}`
+        );
+      }
       const result = await handleResult(updateNote(payload));
       savedData = (result.data as unknown as { data?: unknown }) ?? null;
       error = (result.error as unknown as { message?: string }) ?? null;
-    } else if (hasLinkIds) {
+    } else if (fileInfoPatientId && patientIdFromLink) {
       const payload = {
         fileInfoPatientId,
         patientId: patientIdFromLink,
@@ -426,18 +561,20 @@ export function NotesSection({
         tabType: activeNoteTab,
         files: processedFiles,
       };
-      console.log('Note save payload (direct):', payload);
+      {
+        const logger = getLogger();
+        void logger.debug(
+          'app/components/file-data/NotesSection.tsx',
+          `Note save payload (direct): ${JSON.stringify(payload)}`
+        );
+      }
       const result = await handleResult(createNoteWithFiles(payload));
       savedData = (result.data as unknown as { data?: unknown }) ?? null;
       error = (result.error as unknown as { message?: string }) ?? null;
     } else {
       // Fallback: smart note save with minimal data
-      const fileUid = file?.uid ?? '';
-      const patientIdNumber = file?.patient?.id || undefined;
-      if (!fileUid) {
-        alert('File UID is missing. Please save the file first.');
-        return;
-      }
+      const fileUid = workingFile?.uid ?? '';
+      const patientIdNumber = workingFile?.patient?.id || undefined;
       const baseSmartPayload = {
         fileUid,
         timeStamp: timeStampIso,
@@ -448,14 +585,24 @@ export function NotesSection({
       const smartPayload = patientIdNumber
         ? { ...baseSmartPayload, patientIdNumber }
         : baseSmartPayload;
-      console.log('Note save payload (smart):', smartPayload);
+      {
+        const logger = getLogger();
+        void logger.debug(
+          'app/components/file-data/NotesSection.tsx',
+          `Note save payload (smart): ${JSON.stringify(smartPayload)}`
+        );
+      }
       const result = await handleResult(createNoteSmart(smartPayload));
       savedData = (result.data as unknown as { data?: unknown }) ?? null;
       error = (result.error as unknown as { message?: string }) ?? null;
     }
 
     if (error) {
-      console.error('Failed to save note:', error);
+      const logger = getLogger();
+      await logger.error(
+        'app/components/file-data/NotesSection.tsx',
+        `Failed to save note: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       alert(error.message || 'An unexpected error occurred while saving.');
       setIsSavingNote(false);
       return;
@@ -1027,6 +1174,59 @@ export function NotesSection({
                     </span>
                   )}
                 </div>
+
+                {/* Validation error message */}
+                {showValidationError && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <div className="text-sm text-yellow-800">
+                      <strong>Documents in draft state:</strong> Please provide
+                      either Patient ID (adult) or Name and Date of Birth
+                      (child) to upload documents.
+                    </div>
+                  </div>
+                )}
+
+                {/* Draft files display */}
+                {draftFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-yellow-700">
+                      Draft documents (waiting for patient data)
+                    </div>
+                    {draftFiles.map((uf, index) => {
+                      const f = uf as unknown as File;
+                      const isAudio = (f?.type ?? '').startsWith('audio/');
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-yellow-50 border border-yellow-200 rounded gap-3"
+                        >
+                          <span
+                            className="text-sm truncate flex-1"
+                            title={f?.name ?? ''}
+                          >
+                            {f?.name ?? ''}
+                          </span>
+                          {isAudio && (
+                            <audio
+                              src={URL.createObjectURL(f)}
+                              controls
+                              preload="metadata"
+                              className="max-w-[240px]"
+                            />
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeDraftFile(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* New recording will appear below in the uploads list with preview */}
 

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import db, { fileInfo, fileinfoPatient, patient } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
-import { Logger } from '@/app/lib/logger';
+import { Logger } from '@/app/lib/logger/logger.service';
 import { eq, and } from 'drizzle-orm';
 
 export async function GET(): Promise<NextResponse> {

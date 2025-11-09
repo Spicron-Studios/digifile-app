@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useSession } from 'next-auth/react';
@@ -67,23 +68,14 @@ export function UserSettings() {
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [userRole, setUserRole] = useState<Role | null>(null);
 
-  const isAdmin = session?.user?.roles?.some(
-    r => r.role.name.toLowerCase() === 'admin'
-  );
-  const isOrganizer = session?.user?.roles?.some(
-    r => r.role.name.toLowerCase() === 'organizer'
-  );
-  const isSuperUser = session?.user?.roles?.some(
-    r => r.role.name.toLowerCase() === 'superuser'
-  );
+  const roleName = session?.user?.role?.name?.toLowerCase();
+  const isAdmin = roleName === 'admin';
+  const isOrganizer = roleName === 'organizer';
+  const isSuperUser = roleName === 'superuser';
 
-  const hasRoleManagementAccess = (
-    roles: { role: { uid: string; name: string } }[]
-  ) => {
-    return roles?.some(r => {
-      const name = r.role.name.toLowerCase();
-      return name === 'admin' || name === 'organizer' || name === 'superuser';
-    });
+  const hasRoleManagementAccess = (): boolean => {
+    const name = roleName;
+    return name === 'admin' || name === 'organizer' || name === 'superuser';
   };
 
   // Fetch users effect
@@ -95,9 +87,11 @@ export function UserSettings() {
         const data = await getUsers();
         setUsers(data);
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Failed to fetch users:', error);
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/(main)/sites/settings/UserSettings.tsx',
+          `Failed to fetch users: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
         toast.error('Failed to load users');
       } finally {
         setIsLoading(false);
@@ -118,12 +112,11 @@ export function UserSettings() {
       ]);
 
       if (rolesResult.error || userRoleResult.error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error(
-            'Failed to fetch role data:',
-            rolesResult.error || userRoleResult.error
-          );
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/(main)/sites/settings/UserSettings.tsx',
+          `Failed to fetch role data: ${String(rolesResult.error || userRoleResult.error)}`
+        );
         toast.error('Failed to load role information');
         setUserRole(null);
         return;
@@ -166,15 +159,21 @@ export function UserSettings() {
     );
 
     if (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error while updating user:', error);
-      }
+      const logger = getLogger();
+      await logger.error(
+        'app/(main)/sites/settings/UserSettings.tsx',
+        `Error while updating user: ${String(error)}`
+      );
       toast.error('Failed to update user');
       return;
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('User updated successfully:', updated);
+    {
+      const logger = getLogger();
+      await logger.success(
+        'app/(main)/sites/settings/UserSettings.tsx',
+        `User updated successfully: ${JSON.stringify(updated)}`
+      );
     }
 
     setUsers(prev =>
@@ -196,11 +195,13 @@ export function UserSettings() {
     setSelectedUser(null);
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async (): Promise<void> => {
     // TODO: Implement reset password functionality
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Reset Password button clicked!');
-    }
+    const logger = getLogger();
+    await logger.info(
+      'app/(main)/sites/settings/UserSettings.tsx',
+      'Reset Password button clicked!'
+    );
   };
 
   const handleRoleChange = async (roleId: string) => {
@@ -216,9 +217,11 @@ export function UserSettings() {
         toast.success('Role updated successfully');
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to update user role:', error);
-      }
+      const logger = getLogger();
+      await logger.error(
+        'app/(main)/sites/settings/UserSettings.tsx',
+        `Failed to update user role: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       toast.error('Failed to update user role');
     }
   };
@@ -376,49 +379,48 @@ export function UserSettings() {
               </form>
             </Card>
 
-            {selectedUser &&
-              hasRoleManagementAccess(session?.user?.roles ?? []) && (
-                <Card className="p-6">
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-semibold">User Role</h3>
+            {selectedUser && hasRoleManagementAccess() && (
+              <Card className="p-6">
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold">User Role</h3>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Select Role
-                      </label>
-                      <Select
-                        value={userRole?.uid || ''}
-                        onValueChange={handleRoleChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableRoles.map(role => (
-                            <SelectItem key={role.uid} value={role.uid}>
-                              {role.role_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {userRole && (
-                        <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
-                          <div>
-                            <span className="font-medium">
-                              Current Role: {userRole.role_name}
-                            </span>
-                            {userRole.description && (
-                              <p className="text-sm text-gray-500 mt-1">
-                                {userRole.description}
-                              </p>
-                            )}
-                          </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Select Role
+                    </label>
+                    <Select
+                      value={userRole?.uid || ''}
+                      onValueChange={handleRoleChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableRoles.map(role => (
+                          <SelectItem key={role.uid} value={role.uid}>
+                            {role.role_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {userRole && (
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
+                        <div>
+                          <span className="font-medium">
+                            Current Role: {userRole.role_name}
+                          </span>
+                          {userRole.description && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              {userRole.description}
+                            </p>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                </Card>
-              )}
+                </div>
+              </Card>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">

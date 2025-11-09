@@ -1,4 +1,5 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import * as React from 'react';
 import { createContext, useContext, useState } from 'react';
@@ -16,15 +17,16 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SidebarState>('expanded');
 
   const toggle = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Toggle called, current state:', state);
-    }
-    setState(s => {
-      const newState = s === 'expanded' ? 'collapsed' : 'expanded';
+    setState(prev => {
+      const next = prev === 'expanded' ? 'collapsed' : 'expanded';
       if (process.env.NODE_ENV === 'development') {
-        console.log('Setting new state to:', newState);
+        const logger = getLogger();
+        void logger.debug(
+          'app/components/ui/sidebar.tsx',
+          `Toggle called, previous: ${prev}, next: ${next}`
+        );
       }
-      return newState;
+      return next;
     });
   };
 

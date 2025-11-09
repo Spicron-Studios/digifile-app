@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth';
 import { getSupabaseClient } from '@/app/lib/supabase';
 import { getBucket } from '@/app/lib/storage';
+import { Logger } from '@/app/lib/logger/logger.service';
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest, context: unknown) {
   const params = (context as { params?: Record<string, unknown> }).params ?? {};
@@ -67,7 +69,12 @@ export async function POST(request: NextRequest, context: unknown) {
       });
 
     if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error(
+        'api/settings/organization/[uid]/upload/route.ts',
+        `Supabase upload error: ${uploadError.message ?? 'Unknown error'}`
+      );
       return NextResponse.json(
         { error: 'Failed to upload file' },
         { status: 500 }
@@ -80,7 +87,16 @@ export async function POST(request: NextRequest, context: unknown) {
 
     return NextResponse.json({ url: urlData.publicUrl });
   } catch (error) {
-    console.error('Upload error:', error);
+    try {
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error(
+        'api/settings/organization/[uid]/upload/route.ts',
+        `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } catch (_logError) {
+      // Silently fail - logger failed
+    }
     return NextResponse.json(
       { error: 'Failed to process upload' },
       { status: 500 }

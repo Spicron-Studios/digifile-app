@@ -98,19 +98,16 @@ export function ListSkeleton({ items = 3 }: { items?: number }) {
 // Calendar skeleton for the calendar page
 export function CalendarSkeleton() {
   return (
-    <div className="flex flex-col gap-3 h-full">
+    <div className="flex flex-col gap-3 h-full min-h-0">
       {/* Top controls section */}
-      <div
-        className="grid grid-cols-1 md:grid-cols-2 gap-3"
-        style={{ height: '30vh' }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
         <CardSkeleton />
         <CardSkeleton />
       </div>
 
       {/* Calendar grid section */}
-      <Card className="flex-1" style={{ height: '70vh' }}>
-        <CardContent className="h-full p-3">
+      <Card className="flex-1 min-h-0">
+        <CardContent className="h-full min-h-0 p-3">
           <div className="space-y-3">
             {/* Calendar header */}
             <div className="flex justify-between items-center">

@@ -1,10 +1,12 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import Link from 'next/link';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Card } from '@/app/components/ui/card';
 import { getFiles, type FileListItem } from '@/app/actions/files';
+import { deleteFile as deleteFileAction } from '@/app/actions/file-data';
 import { useState, useEffect } from 'react';
 
 function FileDataClient({
@@ -89,6 +91,38 @@ function FileDataClient({
                     >
                       View
                     </Link>
+                    <Button
+                      variant="ghost"
+                      className="text-red-600 hover:text-red-800 ml-3"
+                      onClick={async () => {
+                        const ok = window.confirm(
+                          'Delete this file? This hides it from lists but retains data for auditing.'
+                        );
+                        if (!ok) return;
+                        try {
+                          await deleteFileAction(file.uid);
+                          const updated = await getFiles();
+                          // Dispatch custom event so parent updates its state
+                          const event = new CustomEvent('file-list-updated', {
+                            detail: updated,
+                          });
+                          window.dispatchEvent(event);
+                        } catch (err) {
+                          try {
+                            const logger = getLogger();
+                            await logger.error(
+                              'app/(main)/sites/file-data/page.tsx',
+                              `Error deleting file ${file.uid}: ${err instanceof Error ? err.message : 'Unknown error'}`
+                            );
+                          } catch (_logError) {
+                            // Silently fail logging to ensure error handling proceeds
+                          }
+                          alert('Failed to delete file.');
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -114,15 +148,31 @@ export default function FileDataListPage(): React.JSX.Element {
         const fileData = await getFiles();
         setFiles(fileData);
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error loading files:', error);
-        }
+        const logger = getLogger();
+        await logger.error(
+          'app/(main)/sites/file-data/page.tsx',
+          `Error loading files: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       } finally {
         setIsLoading(false);
       }
     };
 
     loadFiles();
+  }, []);
+
+  // Listen for child-triggered refresh after deletion
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<FileListItem[]>).detail;
+      if (Array.isArray(detail)) {
+        setFiles(detail);
+      }
+    };
+    window.addEventListener('file-list-updated', handler as EventListener);
+    return () => {
+      window.removeEventListener('file-list-updated', handler as EventListener);
+    };
   }, []);
 
   if (isLoading) {
