@@ -1,4 +1,5 @@
 'use server';
+import { Logger } from '@/app/lib/logger/logger.service';
 
 import db, { users, userCalendarEntries } from '@/app/lib/drizzle';
 import { auth } from '@/app/lib/auth';
@@ -82,7 +83,12 @@ export async function getDayEvents(
 ): Promise<CalendarEvent[]> {
   const session = await auth();
   if (!session?.user?.orgId) {
-    console.log('[getDayEvents] unauthorized or missing org');
+    const logger = Logger.getInstance();
+    await logger.init();
+    await logger.warning(
+      'app/actions/calendar.ts',
+      '[getDayEvents] unauthorized or missing org'
+    );
     return [];
   }
 
@@ -109,14 +115,14 @@ export async function getDayEvents(
         inArray(userCalendarEntries.userUid, userIds)
       )
     );
-  console.log(
-    '[getDayEvents] db rows',
-    rows.length,
-    'for',
-    dateISO,
-    'users',
-    userIds
-  );
+  {
+    const logger = Logger.getInstance();
+    await logger.init();
+    await logger.debug(
+      'app/actions/calendar.ts',
+      `[getDayEvents] db rows ${rows.length} for ${dateISO} users ${JSON.stringify(userIds)}`
+    );
+  }
 
   // Filter to day bounds in JS to avoid extra operators
   const dayRows = rows.filter(r => {
@@ -125,7 +131,14 @@ export async function getDayEvents(
     // Include events that intersect the day: start < endOfDay && end > startOfDay
     return s <= end && e >= start;
   });
-  console.log('[getDayEvents] filtered to day', dayRows.length);
+  {
+    const logger = Logger.getInstance();
+    await logger.init();
+    await logger.debug(
+      'app/actions/calendar.ts',
+      `[getDayEvents] filtered to day ${dayRows.length}`
+    );
+  }
 
   // Color mapping by user index is unknown here, default blue
   return dayRows.map(r => ({

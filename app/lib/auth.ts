@@ -3,6 +3,15 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import db, { organizationInfo, users, roles } from '@/app/lib/drizzle';
 import { eq, and } from 'drizzle-orm';
+import { Logger } from '@/app/lib/logger/logger.service';
+
+// Initialize logger instance at module level (singleton pattern)
+const logger = Logger.getInstance();
+// Initialize logger asynchronously at module startup (non-blocking)
+// This ensures logger is ready when needed, but doesn't block module loading
+logger.init().catch(() => {
+  // Silently handle init failure - logger will be initialized on first use
+});
 
 // Only keep ExtendedUser interface
 interface ExtendedUser {
@@ -81,7 +90,7 @@ export const {
       },
       async authorize(credentials) {
         if (
-          !credentials?.bfhNumber ||
+          !credentials?.bhfNumber ||
           !credentials?.username ||
           !credentials?.password
         ) {
@@ -95,7 +104,7 @@ export const {
             .from(organizationInfo)
             .where(
               and(
-                eq(organizationInfo.bhfNumber, credentials.bfhNumber as string),
+                eq(organizationInfo.bhfNumber, credentials.bhfNumber as string),
                 eq(organizationInfo.active, true)
               )
             )
@@ -132,7 +141,33 @@ export const {
             orgid: user.orgid || '',
           };
         } catch (error) {
-          console.error('Error during authorization:', error);
+          // Log error with fallback to console.error to ensure original error is never lost
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          const errorStack =
+            error instanceof Error ? error.stack : 'No stack trace available';
+
+          try {
+            // Ensure logger is initialized (idempotent operation)
+            await logger.init();
+            await logger.error(
+              'app/lib/auth.ts',
+              `Error during authorization: ${errorMessage}`
+            );
+          } catch (loggerError) {
+            // Fallback to console.error if logger fails - original error must never be lost
+            // eslint-disable-next-line no-console
+            console.error(
+              '[AUTH ERROR] Authorization failed:',
+              errorMessage,
+              '\nStack:',
+              errorStack,
+              '\nLogger initialization/usage also failed:',
+              loggerError instanceof Error
+                ? loggerError.message
+                : 'Unknown logger error'
+            );
+          }
           return null;
         }
       },

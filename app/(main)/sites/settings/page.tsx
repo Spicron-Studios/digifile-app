@@ -15,10 +15,11 @@ export default function SettingsPage() {
   const { data: session } = useSession();
 
   // Helper function to check if user has org-admin level access
-  const hasAdminAccess = session?.user?.roles?.some(r => {
-    const name = r.role.name.toLowerCase();
+  const hasAdminAccess = (() => {
+    const role = session?.user?.role;
+    const name = role?.name?.toLowerCase();
     return name === 'admin' || name === 'organizer' || name === 'superuser';
-  });
+  })();
 
   // If user doesn't have admin access, they can only see user settings
   const defaultTab = hasAdminAccess ? 'general' : 'users';

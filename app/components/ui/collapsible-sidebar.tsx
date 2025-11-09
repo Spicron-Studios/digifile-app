@@ -1,12 +1,15 @@
 'use client';
+import { getLogger } from '@/app/lib/logger';
 
 import * as React from 'react';
+import { useEffect } from 'react';
 import {
   Home,
   FileText,
   Settings,
   Menu,
   Calendar as CalendarIcon,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { Button } from '@/app/components/ui/button';
@@ -30,6 +33,7 @@ const navItems = [
   { name: 'Home', icon: Home, href: '/sites' },
   { name: 'Calendar', icon: CalendarIcon, href: '/sites/calendar' },
   { name: 'File Data', icon: FileText, href: '/sites/file-data' },
+  { name: 'Patients', icon: Users, href: '/sites/patients' },
   { name: 'Settings', icon: Settings, href: '/sites/settings' },
 ];
 
@@ -37,9 +41,15 @@ function SidebarWrapper() {
   const { state, toggle } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log('SidebarWrapper rendered, state:', state);
-  }
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const logger = getLogger();
+      void logger.debug(
+        'app/components/ui/collapsible-sidebar.tsx',
+        `SidebarWrapper rendered, state: ${JSON.stringify(state)}`
+      );
+    }
+  }, [state]);
 
   return (
     <Sidebar collapsible="icon" className="border-r">

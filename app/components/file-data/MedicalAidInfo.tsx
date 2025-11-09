@@ -56,6 +56,10 @@ type Props = {
     _field: 'membership_number' | 'dependent_code',
     _value: string
   ) => void;
+  errors?: {
+    member_id?: string;
+    member_cell?: string;
+  };
 };
 
 export default function MedicalAidInfo({
@@ -71,6 +75,7 @@ export default function MedicalAidInfo({
   onMemberDatePartChange,
   memberRefs,
   onMedicalAidFieldChange,
+  errors,
 }: Props): React.JSX.Element {
   return (
     <div className="space-y-6">
@@ -139,8 +144,14 @@ export default function MedicalAidInfo({
                 id="member-id"
                 placeholder="Enter ID number"
                 value={member?.id || ''}
+                inputMode="numeric"
+                maxLength={13}
+                aria-invalid={Boolean(errors?.member_id)}
                 onChange={e => onMemberInputChange('id', e.target.value)}
               />
+              {errors?.member_id && (
+                <span className="text-red-500 text-xs">{errors.member_id}</span>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -268,8 +279,16 @@ export default function MedicalAidInfo({
                 id="member-cell"
                 placeholder="Enter cell number"
                 value={member?.cell || ''}
+                type="tel"
+                inputMode="tel"
+                aria-invalid={Boolean(errors?.member_cell)}
                 onChange={e => onMemberInputChange('cell', e.target.value)}
               />
+              {errors?.member_cell && (
+                <span className="text-red-500 text-xs">
+                  {errors.member_cell}
+                </span>
+              )}
             </div>
           </div>
         )}

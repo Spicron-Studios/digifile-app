@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import db, { organizationInfo } from '@/app/lib/drizzle';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/app/lib/auth';
+import { Logger } from '@/app/lib/logger/logger.service';
 
 export async function PUT(request: Request, context: unknown) {
   const params = (context as { params?: Record<string, unknown> }).params ?? {};
@@ -38,9 +39,12 @@ export async function PUT(request: Request, context: unknown) {
 
     return NextResponse.json(updatedOrg[0]);
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Failed to update organization:', error);
-    }
+    const logger = Logger.getInstance();
+    await logger.init();
+    await logger.error(
+      'api/settings/organization/[uid]/route.ts',
+      `Failed to update organization: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     return NextResponse.json(
       { error: 'Failed to update organization' },
       { status: 500 }

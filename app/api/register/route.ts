@@ -1,3 +1,4 @@
+import { Logger } from '@/app/lib/logger/logger.service';
 import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { hash } from 'bcryptjs';
@@ -52,8 +53,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Registration error:', error);
+    try {
+      const logger = Logger.getInstance();
+      await logger.init();
+      await logger.error(
+        'api/register/route.ts',
+        `Registration error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } catch (_loggingError) {
+      // Silently fail - logger failed, cannot log
     }
     return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
   }

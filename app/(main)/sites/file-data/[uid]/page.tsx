@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
-import FileInfoCard from '@/app/components/file-data/FileInfoCard';
+
 import PatientDetails from '@/app/components/file-data/PatientDetails';
 import MedicalAidInfo from '@/app/components/file-data/MedicalAidInfo';
 import InjuryOnDutyForm from '@/app/components/file-data/InjuryOnDutyForm';
@@ -29,8 +29,25 @@ import {
 import { handleResult } from '@/app/utils/helper-functions/handle-results';
 import { toast } from 'sonner';
 import { FileDataSkeleton } from '@/app/components/ui/skeletons';
+import {
+  sanitizeDigits,
+  parseSouthAfricanId,
+  normalizePhoneInput,
+  validatePhoneNumber,
+  validateEmail,
+} from '@/app/utils/helper-functions/sa-id';
 
 export default function FileDataPage(): React.JSX.Element {
+  const [validationErrors, setValidationErrors] = useState<{
+    id?: string;
+    email?: string;
+    cell_phone?: string;
+    additional_cell?: string;
+    member_id?: string;
+    member_cell?: string;
+    injury_contact_number?: string;
+    injury_contact_email?: string;
+  }>({});
   const { uid } = useParams();
   const router = useRouter();
   const [file, setFile] = useState<FileData | null>(null);
@@ -248,41 +265,68 @@ export default function FileDataPage(): React.JSX.Element {
     field: string,
     value: string
   ): void => {
-    // Special handling for ID number - extract and populate date of birth
-    if (field === 'id' && value.length >= 6) {
-      const idNumber = value;
-      const yearPart = idNumber.substring(0, 2);
-      const monthPart = idNumber.substring(2, 4);
-      const dayPart = idNumber.substring(4, 6);
+    // Special handling for ID number: sanitize, validate, derive DOB & gender
+    if (field === 'id') {
+      const cleaned = sanitizeDigits(value, 13);
 
-      // Determine the century
-      const currentYear = new Date().getFullYear();
-      const currentCentury = Math.floor(currentYear / 100);
-      const currentYearLastTwo = currentYear % 100;
-
-      // If the year part is greater than the current year's last two digits,
-      // it's likely from the previous century
-      const fullYear =
-        parseInt(yearPart) > currentYearLastTwo
-          ? `${currentCentury - 1}${yearPart}`
-          : `${currentCentury}${yearPart}`;
-
-      // Update date of birth fields
-      setDateOfBirth({
-        year: fullYear,
-        month: monthPart,
-        day: dayPart,
-      });
-
-      // Update the file state with the extracted DOB
+      // Update ID immediately with sanitized digits
       setFile(prevFile => {
         if (!prevFile) return null;
         return {
           ...prevFile,
           patient: {
             ...prevFile.patient,
-            [field]: value,
-            dob: `${fullYear}/${monthPart}/${dayPart}`,
+            id: cleaned,
+          },
+        };
+      });
+
+      // Optional blank allowed
+      if (cleaned.length === 0) {
+        setValidationErrors(prev => {
+          const { id: _id, ...rest } = prev;
+          return rest;
+        });
+        return;
+      }
+
+      // Must be exactly 13 digits
+      if (cleaned.length !== 13) {
+        setValidationErrors(prev => ({
+          ...prev,
+          id: 'ID must be exactly 13 digits',
+        }));
+        return;
+      }
+
+      const parsed = parseSouthAfricanId(cleaned);
+      if (!parsed.valid || !parsed.dob || !parsed.gender) {
+        setValidationErrors(prev => ({
+          ...prev,
+          id: parsed.reason || 'Invalid South African ID number',
+        }));
+        return;
+      }
+
+      // Clear errors and set derived DOB and gender
+      setValidationErrors(prev => {
+        const { id: _id, ...rest } = prev;
+        return rest;
+      });
+      // TypeScript knows parsed.dob and parsed.gender are defined after the check above
+      const dob = parsed.dob;
+      const gender = parsed.gender;
+      if (!dob || !gender) return; // Additional type guard
+      setDateOfBirth({ ...dob });
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          patient: {
+            ...prevFile.patient,
+            id: cleaned,
+            dob: `${dob.year}/${dob.month}/${dob.day}`,
+            ...(gender && { gender }),
           },
         };
       });
@@ -319,6 +363,52 @@ export default function FileDataPage(): React.JSX.Element {
             ...prevFile.patient,
             [field]: value,
             initials: initials.trim(),
+          },
+        };
+      });
+      return;
+    }
+
+    // Email validation
+    if (field === 'email') {
+      const emailValidation = validateEmail(value);
+      setValidationErrors(prev => {
+        const { email: _email, ...rest } = prev;
+        return {
+          ...rest,
+          ...(emailValidation.valid ? {} : { email: emailValidation.error }),
+        };
+      });
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          patient: {
+            ...prevFile.patient,
+            email: value,
+          },
+        };
+      });
+      return;
+    }
+
+    // Phone validation and normalization for patient phone fields
+    if (field === 'cell_phone' || field === 'additional_cell') {
+      const normalized = normalizePhoneInput(value);
+      const phoneValidation = validatePhoneNumber(normalized);
+
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: phoneValidation.valid ? undefined : phoneValidation.error,
+      }));
+
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          patient: {
+            ...prevFile.patient,
+            [field]: normalized,
           },
         };
       });
@@ -379,33 +469,9 @@ export default function FileDataPage(): React.JSX.Element {
 
   // Handle member input changes - similar to handlePatientInputChange
   const handleMemberInputChange = (field: string, value: string): void => {
-    // Special handling for ID number - extract and populate date of birth
-    if (field === 'id' && value.length >= 6) {
-      const idNumber = value;
-      const yearPart = idNumber.substring(0, 2);
-      const monthPart = idNumber.substring(2, 4);
-      const dayPart = idNumber.substring(4, 6);
-
-      // Determine the century
-      const currentYear = new Date().getFullYear();
-      const currentCentury = Math.floor(currentYear / 100);
-      const currentYearLastTwo = currentYear % 100;
-
-      // If the year part is greater than the current year's last two digits,
-      // it's likely from the previous century
-      const fullYear =
-        parseInt(yearPart) > currentYearLastTwo
-          ? `${currentCentury - 1}${yearPart}`
-          : `${currentCentury}${yearPart}`;
-
-      // Update date of birth fields
-      setMemberDateOfBirth({
-        year: fullYear,
-        month: monthPart,
-        day: dayPart,
-      });
-
-      // Update the file state with the extracted DOB
+    // ID: sanitize and derive DOB/gender
+    if (field === 'id') {
+      const cleaned = sanitizeDigits(value, 13);
       setFile(prevFile => {
         if (!prevFile) return null;
         return {
@@ -414,8 +480,61 @@ export default function FileDataPage(): React.JSX.Element {
             ...prevFile.medical_cover,
             member: {
               ...prevFile.medical_cover?.member,
-              [field]: value,
-              dob: `${fullYear}/${monthPart}/${dayPart}`,
+              id: cleaned,
+            },
+          },
+        };
+      });
+
+      // Optional blank allowed
+      if (cleaned.length === 0) {
+        setValidationErrors(prev => {
+          const { member_id: _member_id, ...rest } = prev;
+          return rest;
+        });
+        return;
+      }
+
+      // Must be exactly 13 digits
+      if (cleaned.length !== 13) {
+        setValidationErrors(prev => ({
+          ...prev,
+          member_id: 'ID must be exactly 13 digits',
+        }));
+        return;
+      }
+
+      const parsed = parseSouthAfricanId(cleaned);
+      if (!parsed.valid || !parsed.dob || !parsed.gender) {
+        setValidationErrors(prev => ({
+          ...prev,
+          member_id: parsed.reason || 'Invalid South African ID number',
+        }));
+        return;
+      }
+
+      // Clear errors and set derived DOB and gender
+      setValidationErrors(prev => {
+        const { member_id: _member_id, ...rest } = prev;
+        return rest;
+      });
+      // TypeScript knows parsed.dob and parsed.gender are defined after the check above
+      const dob = parsed.dob;
+      const gender = parsed.gender;
+      if (!dob || !gender) return; // Additional type guard
+      setMemberDateOfBirth({ ...dob });
+      setMemberGender(gender);
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          medical_cover: {
+            ...prevFile.medical_cover,
+            member: {
+              ...prevFile.medical_cover?.member,
+              id: cleaned,
+              dob: `${dob.year}/${dob.month}/${dob.day}`,
+              ...(gender && { gender }),
             },
           },
         };
@@ -458,6 +577,37 @@ export default function FileDataPage(): React.JSX.Element {
               ...prevFile.medical_cover?.member,
               [field]: value,
               initials: initials.trim(),
+            },
+          },
+        };
+      });
+      return;
+    }
+
+    // Phone validation and normalization for member cell
+    if (field === 'cell') {
+      const normalized = normalizePhoneInput(value);
+      const phoneValidation = validatePhoneNumber(normalized);
+
+      setValidationErrors(prev => {
+        const { member_cell: _member_cell, ...rest } = prev;
+        return {
+          ...rest,
+          ...(phoneValidation.valid
+            ? {}
+            : { member_cell: phoneValidation.error }),
+        };
+      });
+
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          medical_cover: {
+            ...prevFile.medical_cover,
+            member: {
+              ...prevFile.medical_cover?.member,
+              cell: normalized,
             },
           },
         };
@@ -549,6 +699,67 @@ export default function FileDataPage(): React.JSX.Element {
 
   // Function to handle injury on duty input changes
   const handleInjuryInputChange = (field: string, value: string): void => {
+    // Phone validation for contact number
+    if (field === 'contact_number') {
+      const normalized = normalizePhoneInput(value);
+      const phoneValidation = validatePhoneNumber(normalized);
+
+      setValidationErrors(prev => {
+        const { injury_contact_number: _injury_contact_number, ...rest } = prev;
+        return {
+          ...rest,
+          ...(phoneValidation.valid
+            ? {}
+            : { injury_contact_number: phoneValidation.error }),
+        };
+      });
+
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          medical_cover: {
+            ...prevFile.medical_cover,
+            injury_on_duty: {
+              ...prevFile.medical_cover?.injury_on_duty,
+              contact_number: normalized,
+            },
+          },
+        };
+      });
+      return;
+    }
+
+    // Email validation for contact email
+    if (field === 'contact_email') {
+      const emailValidation = validateEmail(value);
+      setValidationErrors(prev => {
+        const { injury_contact_email: _injury_contact_email, ...rest } = prev;
+        return {
+          ...rest,
+          ...(emailValidation.valid
+            ? {}
+            : { injury_contact_email: emailValidation.error }),
+        };
+      });
+
+      setFile(prevFile => {
+        if (!prevFile) return null;
+        return {
+          ...prevFile,
+          medical_cover: {
+            ...prevFile.medical_cover,
+            injury_on_duty: {
+              ...prevFile.medical_cover?.injury_on_duty,
+              contact_email: value,
+            },
+          },
+        };
+      });
+      return;
+    }
+
+    // Standard handling for other fields
     setFile(prevFile => {
       if (!prevFile) return null;
       return {
@@ -651,6 +862,22 @@ export default function FileDataPage(): React.JSX.Element {
   const handleSave = useCallback(async (): Promise<void> => {
     if (!file) return;
 
+    // Client-side validation: require ID or Name + DOB for new files
+    if (isNewRecord) {
+      const hasId = !!file.patient?.id && file.patient?.id.trim() !== '';
+      const hasNameDob =
+        !!file.patient?.name &&
+        file.patient?.name.trim() !== '' &&
+        !!file.patient?.dob &&
+        file.patient?.dob.trim() !== '';
+      if (!hasId && !hasNameDob) {
+        toast.error(
+          'Provide either Patient ID (adult) or Name and Date of Birth (child).'
+        );
+        return;
+      }
+    }
+
     const setSavingGlobal = (
       window as unknown as { setSaving?: (_v: boolean) => void }
     ).setSaving;
@@ -718,7 +945,7 @@ export default function FileDataPage(): React.JSX.Element {
             >
               <TabsList className="grid w-full grid-cols-3 shrink-0">
                 <TabsTrigger value="tab1">Patient Details</TabsTrigger>
-                <TabsTrigger value="tab2">Medical History</TabsTrigger>
+                <TabsTrigger value="tab2">Medical Data</TabsTrigger>
                 <TabsTrigger value="tab3">Documents</TabsTrigger>
               </TabsList>
               {fileNotFound ? (
@@ -729,21 +956,13 @@ export default function FileDataPage(): React.JSX.Element {
                 <>
                   <TabsContent value="tab1" className="flex-1 overflow-hidden">
                     <div className="p-6 h-full overflow-auto">
-                      <FileInfoCard
-                        fileNumber={file?.file_number || ''}
-                        accountNumber={file?.account_number || ''}
-                        onChange={(field, value) =>
-                          setFile(prev =>
-                            prev ? { ...prev, [field]: value } : prev
-                          )
-                        }
-                      />
                       <PatientDetails
                         patient={file?.patient || {}}
                         dateOfBirth={dateOfBirth}
                         onDatePartChange={handleDatePartChange}
                         onInputChange={handlePatientInputChange}
                         onSelectChange={handlePatientSelectChange}
+                        errors={validationErrors}
                       />
                     </div>
                   </TabsContent>
@@ -816,6 +1035,14 @@ export default function FileDataPage(): React.JSX.Element {
                                   : prev
                               )
                             }
+                            errors={{
+                              ...(validationErrors.member_id && {
+                                member_id: validationErrors.member_id,
+                              }),
+                              ...(validationErrors.member_cell && {
+                                member_cell: validationErrors.member_cell,
+                              }),
+                            }}
                           />
                         )}
 
@@ -832,6 +1059,16 @@ export default function FileDataPage(): React.JSX.Element {
                           <InjuryOnDutyForm
                             injury={file?.medical_cover?.injury_on_duty}
                             onChange={handleInjuryInputChange}
+                            errors={{
+                              ...(validationErrors.injury_contact_number && {
+                                contact_number:
+                                  validationErrors.injury_contact_number,
+                              }),
+                              ...(validationErrors.injury_contact_email && {
+                                contact_email:
+                                  validationErrors.injury_contact_email,
+                              }),
+                            }}
                           />
                         )}
                       </div>

@@ -5,9 +5,12 @@ import db, {
   patientMedicalAid,
   injuryOnDuty,
   patientmedicalaidFilePatient,
+  personResponsible,
+  tabNotes,
+  tabFiles,
 } from '@/app/lib/drizzle';
-import { and, eq } from 'drizzle-orm';
-import { Logger } from '@/app/lib/logger';
+import { and, eq, inArray } from 'drizzle-orm';
+import { Logger } from '@/app/lib/logger/logger.service';
 import { v4 as uuidv4 } from 'uuid';
 import {
   FileUpdateData,
@@ -28,9 +31,18 @@ export async function handleUpdateFile(
   await logger.init();
 
   try {
-    console.log('--- Starting handleUpdateFile ---');
-    console.log(`Updating file with UID: ${uid}`);
-    console.log('Received data:', JSON.stringify(data, null, 2));
+    await logger.checkpoint(
+      'api/files/[uid]/db_write.ts',
+      '--- Starting handleUpdateFile ---'
+    );
+    await logger.info(
+      'api/files/[uid]/db_write.ts',
+      `Updating file with UID: ${uid}`
+    );
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Received data: ${JSON.stringify(data, null, 2)}`
+    );
 
     await logger.info(
       'api/files/[uid]/db_write.ts',
@@ -71,7 +83,6 @@ export async function handleUpdateFile(
       'api/files/[uid]/db_write.ts',
       `Existing file_info found: ${!!existingRecord}`
     );
-    console.log(`Existing file_info found: ${!!existingRecord}`);
     if (existingRecord) {
       await logger.debug(
         'api/files/[uid]/db_write.ts',
@@ -125,7 +136,6 @@ export async function handleUpdateFile(
 
     // Process patient information if provided
     if (data.patient) {
-      console.log('Processing patient data...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing patient data'
@@ -156,16 +166,20 @@ export async function handleUpdateFile(
 
       // Decide whether to update existing patient or create new one
       if (existingPatient) {
-        console.log(
-          `Updating existing patient with UID: ${existingPatient.uid}`
+        await logger.debug(
+          'api/files/[uid]/db_write.ts',
+          `Patient data being updated: ${JSON.stringify(
+            {
+              id: data.patient.id,
+              title: data.patient.title,
+              name: data.patient.name,
+              surname: data.patient.surname,
+              dateOfBirth: dobDate,
+            },
+            null,
+            2
+          )}`
         );
-        console.log('Patient data being updated:', {
-          id: data.patient.id,
-          title: data.patient.title,
-          name: data.patient.name,
-          surname: data.patient.surname,
-          dateOfBirth: dobDate,
-        });
 
         // Update existing patient
         await logger.debug(
@@ -193,14 +207,20 @@ export async function handleUpdateFile(
           .where(eq(patient.uid, existingPatient.uid))
           .returning();
 
-        console.log('Patient update result:', updateResult);
+        await logger.debug(
+          'api/files/[uid]/db_write.ts',
+          `Patient update result: ${JSON.stringify(updateResult)}`
+        );
 
         await logger.info(
           'api/files/[uid]/db_write.ts',
           'Existing patient updated'
         );
       } else if (data.patient.name || data.patient.surname || data.patient.id) {
-        console.log('Creating new patient and relationship...');
+        await logger.info(
+          'api/files/[uid]/db_write.ts',
+          'Creating new patient and relationship...'
+        );
         // Create new patient and relationship
         const newPatientUid = uuidv4();
         await logger.info(
@@ -255,7 +275,6 @@ export async function handleUpdateFile(
 
     // Process medical cover information
     if (data.medical_cover) {
-      console.log('Processing medical cover data...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing medical cover data'
@@ -284,11 +303,14 @@ export async function handleUpdateFile(
       'File update completed successfully'
     );
     // Fetch the updated file data to return
-    console.log(`Refetching data for file UID: ${fileUid}`);
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Refetching data for file UID: ${fileUid}`
+    );
     const result = await handleGetFileData(fileUid, orgId);
-    console.log(
-      'Data fetched after update:',
-      JSON.stringify(result.data, null, 2)
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Data fetched after update: ${JSON.stringify(result.data, null, 2)}`
     );
 
     if (result.error) {
@@ -298,11 +320,13 @@ export async function handleUpdateFile(
       );
       return { error: 'File not found after update', status: 404 };
     }
-    console.log('--- Finished handleUpdateFile ---');
+    await logger.checkpoint(
+      'api/files/[uid]/db_write.ts',
+      '--- Finished handleUpdateFile ---'
+    );
 
     return { data: result.data, status: 200 };
   } catch (error) {
-    console.error('Error in handleUpdateFile:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error updating file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -320,8 +344,14 @@ export async function handleCreateFile(
   await logger.init();
 
   try {
-    console.log('--- Starting handleCreateFile ---');
-    console.log('Received data for new file:', JSON.stringify(data, null, 2));
+    await logger.checkpoint(
+      'api/files/[uid]/db_write.ts',
+      '--- Starting handleCreateFile ---'
+    );
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Received data for new file: ${JSON.stringify(data, null, 2)}`
+    );
     await logger.info('api/files/[uid]/db_write.ts', 'Creating new file');
 
     // Log the full received data object for debugging
@@ -373,16 +403,22 @@ export async function handleCreateFile(
       data.patient &&
       (data.patient.id || data.patient.name || data.patient.surname)
     ) {
-      console.log('Processing patient data for new file...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing patient data for new file'
       );
 
-      // Validation for patient ID
-      if (!data.patient.id) {
+      // Updated validation: require either ID OR Name + DOB
+      const hasId = !!data.patient.id && data.patient.id.trim() !== '';
+      const hasNameDob =
+        !!data.patient.name &&
+        data.patient.name.trim() !== '' &&
+        !!data.patient.dob &&
+        data.patient.dob.trim() !== '';
+      if (!hasId && !hasNameDob) {
         return {
-          error: 'Patient ID number is required to create a new file.',
+          error:
+            'Provide either Patient ID (adult) or Name and Date of Birth (child).',
           status: 400,
         };
       }
@@ -411,7 +447,10 @@ export async function handleCreateFile(
         .insert(patient)
         .values({
           uid: newPatientUid,
-          id: data.patient.id || '',
+          id:
+            data.patient.id && data.patient.id.trim() !== ''
+              ? data.patient.id
+              : null,
           title: data.patient.title || '',
           name: data.patient.name || '',
           initials: data.patient.initials || '',
@@ -474,7 +513,6 @@ export async function handleCreateFile(
 
     // Process medical cover information
     if (data.medical_cover) {
-      console.log('Processing medical cover data for new file...');
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         'Processing medical cover data for new file'
@@ -503,11 +541,14 @@ export async function handleCreateFile(
       'New file created successfully'
     );
     // Fetch the created file data to return
-    console.log(`Refetching data for new file UID: ${newFileUid}`);
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Refetching data for new file UID: ${newFileUid}`
+    );
     const result = await handleGetFileData(newFileUid, orgId);
-    console.log(
-      'Data fetched after create:',
-      JSON.stringify(result.data, null, 2)
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Data fetched after create: ${JSON.stringify(result.data, null, 2)}`
     );
     if (result.error) {
       await logger.error(
@@ -533,10 +574,12 @@ export async function handleCreateFile(
       ];
     }
 
-    console.log('--- Finished handleCreateFile ---');
+    await logger.checkpoint(
+      'api/files/[uid]/db_write.ts',
+      '--- Finished handleCreateFile ---'
+    );
     return { data: result.data, status: 200 };
   } catch (error) {
-    console.error('Error in handleCreateFile:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error creating new file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -555,9 +598,9 @@ async function processMedicalAid(
   await logger.init();
 
   try {
-    console.log(
-      'Processing medical aid data:',
-      JSON.stringify(medicalCover, null, 2)
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Processing medical aid data: ${JSON.stringify(medicalCover, null, 2)}`
     );
     await logger.debug(
       'api/files/[uid]/db_write.ts',
@@ -584,7 +627,6 @@ async function processMedicalAid(
 
     // If scheme ID is not provided, we can't proceed with creating/updating medical aid
     if (!schemeId) {
-      console.log('No scheme ID provided, skipping medical aid save.');
       await logger.warning(
         'api/files/[uid]/db_write.ts',
         'No scheme ID provided, skipping medical aid save'
@@ -601,7 +643,6 @@ async function processMedicalAid(
         throw new Error('Existing medical aid record is undefined');
       }
 
-      console.log(`Updating existing medical aid with UID: ${existing.uid}`);
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         `Updating existing medical aid with UID: ${existing.uid}`
@@ -621,7 +662,6 @@ async function processMedicalAid(
     } else {
       // Create new record
       _medicalAidUid = uuidv4();
-      console.log(`Creating new medical aid with UID: ${_medicalAidUid}`);
       await logger.info(
         'api/files/[uid]/db_write.ts',
         `Creating new medical aid with UID: ${_medicalAidUid}`
@@ -655,7 +695,6 @@ async function processMedicalAid(
       );
     }
   } catch (error) {
-    console.error('Error processing medical aid:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error processing medical aid: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -675,9 +714,9 @@ async function processMedicalAidMember(
   await logger.init();
 
   try {
-    console.log(
-      'Processing medical aid member data:',
-      JSON.stringify(memberData, null, 2)
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Processing medical aid member data: ${JSON.stringify(memberData, null, 2)}`
     );
     await logger.debug(
       'api/files/[uid]/db_write.ts',
@@ -721,7 +760,6 @@ async function processMedicalAidMember(
     if (existingRecord && existingRecord.patient) {
       // Update existing member patient
       const memberPatientUid = existingRecord.patient.uid;
-      console.log(`Updating existing member with UID: ${memberPatientUid}`);
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         `Updating existing member with UID: ${memberPatientUid}`
@@ -746,7 +784,6 @@ async function processMedicalAidMember(
     } else if (memberData.name || memberData.surname) {
       // Create new member patient
       const memberPatientUid = uuidv4();
-      console.log(`Creating new member patient with UID: ${memberPatientUid}`);
       await logger.info(
         'api/files/[uid]/db_write.ts',
         `Creating new member patient with UID: ${memberPatientUid}`
@@ -794,7 +831,6 @@ async function processMedicalAidMember(
       'Medical aid member processing completed'
     );
   } catch (error) {
-    console.error('Error processing medical aid member:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error processing medical aid member: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -813,9 +849,9 @@ async function processInjuryOnDuty(
   await logger.init();
 
   try {
-    console.log(
-      'Processing injury on duty data:',
-      JSON.stringify(data, null, 2)
+    await logger.debug(
+      'api/files/[uid]/db_write.ts',
+      `Processing injury on duty data: ${JSON.stringify(data, null, 2)}`
     );
     await logger.debug(
       'api/files/[uid]/db_write.ts',
@@ -837,8 +873,6 @@ async function processInjuryOnDuty(
       if (!existing) {
         throw new Error('Existing injury record is undefined');
       }
-
-      console.log(`Updating existing injury record with UID: ${existing.uid}`);
       await logger.debug(
         'api/files/[uid]/db_write.ts',
         `Updating existing injury record with UID: ${existing.uid}`
@@ -857,7 +891,6 @@ async function processInjuryOnDuty(
     } else {
       // Create new record
       const injuryUid = uuidv4();
-      console.log(`Creating new injury record with UID: ${injuryUid}`);
       await logger.info(
         'api/files/[uid]/db_write.ts',
         `Creating new injury record with UID: ${injuryUid}`
@@ -882,11 +915,188 @@ async function processInjuryOnDuty(
       'Injury on duty processing completed'
     );
   } catch (error) {
-    console.error('Error processing injury on duty:', error);
     await logger.error(
       'api/files/[uid]/db_write.ts',
       `Error processing injury on duty: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     throw error;
+  }
+}
+
+// Soft delete a file and all related rows, excluding the patient master record
+export async function handleDeleteFile(
+  uid: string,
+  orgId: string
+): Promise<DbWriteResponse> {
+  const logger = Logger.getInstance();
+  await logger.init();
+
+  try {
+    await logger.checkpoint(
+      'api/files/[uid]/db_write.ts',
+      '--- Starting handleDeleteFile ---'
+    );
+    await logger.info(
+      'api/files/[uid]/db_write.ts',
+      `Soft-deleting file and related rows for UID=${uid}`
+    );
+
+    await db.transaction(async tx => {
+      // Ensure the file exists and belongs to org
+      const fileRows = await tx
+        .select()
+        .from(fileInfo)
+        .where(and(eq(fileInfo.uid, uid), eq(fileInfo.orgid, orgId)))
+        .limit(1);
+      if (!fileRows[0]) {
+        await logger.warning(
+          'api/files/[uid]/db_write.ts',
+          `File ${uid} not found for org ${orgId}`
+        );
+        throw new Error('File not found');
+      }
+
+      const now = new Date().toISOString();
+
+      // Collect fileinfo_patient ids linked to this file
+      const fipRows = await tx
+        .select({ id: fileinfoPatient.uid })
+        .from(fileinfoPatient)
+        .where(
+          and(
+            eq(fileinfoPatient.fileid, uid),
+            eq(fileinfoPatient.orgid, orgId),
+            eq(fileinfoPatient.active, true)
+          )
+        );
+      const fipIds = fipRows.map(r => r.id);
+
+      // Collect tab_notes ids linked to those fileinfo_patient ids
+      let noteIds: string[] = [];
+      if (fipIds.length > 0) {
+        const noteRows = await tx
+          .select({ id: tabNotes.uid })
+          .from(tabNotes)
+          .where(
+            and(
+              inArray(tabNotes.fileinfoPatientId, fipIds),
+              eq(tabNotes.orgid, orgId),
+              eq(tabNotes.active, true)
+            )
+          );
+        noteIds = noteRows.map(r => r.id);
+      }
+
+      // Deactivate tab_files for those notes
+      if (noteIds.length > 0) {
+        await tx
+          .update(tabFiles)
+          .set({ active: false, lastEdit: now })
+          .where(
+            and(
+              inArray(tabFiles.tabNotesId, noteIds),
+              eq(tabFiles.orgid, orgId)
+            )
+          );
+      }
+
+      // Deactivate tab_notes
+      if (fipIds.length > 0) {
+        await tx
+          .update(tabNotes)
+          .set({ active: false, lastEdit: now })
+          .where(
+            and(
+              inArray(tabNotes.fileinfoPatientId, fipIds),
+              eq(tabNotes.orgid, orgId)
+            )
+          );
+      }
+
+      // Deactivate fileinfo_patient
+      await tx
+        .update(fileinfoPatient)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(fileinfoPatient.fileid, uid),
+            eq(fileinfoPatient.orgid, orgId),
+            eq(fileinfoPatient.active, true)
+          )
+        );
+
+      // Deactivate patient_medical_aid
+      await tx
+        .update(patientMedicalAid)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(patientMedicalAid.fileid, uid),
+            eq(patientMedicalAid.orgid, orgId),
+            eq(patientMedicalAid.active, true)
+          )
+        );
+
+      // Deactivate patientmedicalaid_file_patient
+      await tx
+        .update(patientmedicalaidFilePatient)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(patientmedicalaidFilePatient.fileid, uid),
+            eq(patientmedicalaidFilePatient.orgid, orgId),
+            eq(patientmedicalaidFilePatient.active, true)
+          )
+        );
+
+      // Deactivate injury_on_duty
+      await tx
+        .update(injuryOnDuty)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(injuryOnDuty.fileid, uid),
+            eq(injuryOnDuty.orgid, orgId),
+            eq(injuryOnDuty.active, true)
+          )
+        );
+
+      // Deactivate person_responsible
+      await tx
+        .update(personResponsible)
+        .set({ active: false, lastEdit: now })
+        .where(
+          and(
+            eq(personResponsible.fileid, uid),
+            eq(personResponsible.orgid, orgId),
+            eq(personResponsible.active, true)
+          )
+        );
+
+      // Finally, deactivate file_info
+      await tx
+        .update(fileInfo)
+        .set({ active: false, lastEdit: now })
+        .where(and(eq(fileInfo.uid, uid), eq(fileInfo.orgid, orgId)));
+    });
+
+    await logger.info(
+      'api/files/[uid]/db_write.ts',
+      `Soft delete complete for file ${uid}`
+    );
+    return { data: { uid }, status: 200 };
+  } catch (error) {
+    if (error instanceof Error && error.message === 'File not found') {
+      await logger.warning(
+        'api/files/[uid]/db_write.ts',
+        `File ${uid} not found for org ${orgId}`
+      );
+      return { error: 'File not found', status: 404 };
+    }
+    await logger.error(
+      'api/files/[uid]/db_write.ts',
+      `Error soft-deleting file: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return { error: 'Failed to delete file', status: 500 };
   }
 }
