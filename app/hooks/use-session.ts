@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import { getSessionData } from "@/app/actions/auth";
 import { config } from "@/app/lib/config";
@@ -32,8 +32,7 @@ export const useSession = () => {
 				};
 				setSession(sessionData);
 			} catch (error) {
-				const logger = getLogger();
-				await logger.error(
+				logger.error(
 					"app/hooks/use-session.ts",
 					`Error loading session: ${error instanceof Error ? error.message : "Unknown error"}`,
 				);

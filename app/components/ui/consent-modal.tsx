@@ -1,7 +1,7 @@
 "use client";
 
 import { getConsentText } from "@/app/actions/settings-uploads";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
 import { ScrollArea } from "./scroll-area";
@@ -35,14 +35,10 @@ export function ConsentModal({
 				setContent(text);
 			} catch (error) {
 				setError("Failed to load consent document");
-				getLogger()
-					.error(
+				logger.error(
 						"app/components/ui/consent-modal.tsx",
 						`Error fetching consent content: ${error instanceof Error ? error.message : "Unknown error"}`,
-					)
-					.catch(() => {
-						// Ignore logging failures
-					});
+				);
 				setError("Failed to load consent document");
 			} finally {
 				setIsLoading(false);

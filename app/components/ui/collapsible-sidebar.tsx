@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import { Button } from "@/app/components/ui/button";
 import {
@@ -43,8 +43,7 @@ function SidebarWrapper() {
 
 	useEffect(() => {
 		if (process.env.NODE_ENV === "development") {
-			const logger = getLogger();
-			void logger.debug(
+			logger.debug(
 				"app/components/ui/collapsible-sidebar.tsx",
 				`SidebarWrapper rendered, state: ${JSON.stringify(state)}`,
 			);

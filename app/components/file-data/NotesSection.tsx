@@ -1,6 +1,4 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
-
 import {
 	createFile,
 	createNoteSmart,
@@ -37,6 +35,7 @@ import {
 	TooltipTrigger,
 } from "@/app/components/ui/tooltip";
 import type { FileData, FileNotes, UploadedFile } from "@/app/types/file-data";
+import { logger } from "@/app/lib/foundation";
 import { handleResult } from "@/app/utils/helper-functions/handle-results";
 import { format } from "date-fns";
 import {
@@ -432,8 +431,7 @@ export function NotesSection({
 		const created = (result.data as unknown as FileData) || null;
 		const err = (result.error as unknown as { message?: string }) || null;
 		if (err) {
-			const logger = getLogger();
-			await logger.error(
+			logger.error(
 				"app/components/file-data/NotesSection.tsx",
 				`Failed to create file before note upload: ${err.message || "Unknown error"}`,
 			);
@@ -452,13 +450,10 @@ export function NotesSection({
 	async function saveNewNote(): Promise<void> {
 		if (isSavingNote) return;
 		setIsSavingNote(true);
-		{
-			const logger = getLogger();
-			void logger.debug(
+		logger.debug(
 				"app/components/file-data/NotesSection.tsx",
 				`Attempting to save new note. Current file state: ${JSON.stringify(file)}`,
 			);
-		}
 
 		if (!noteContent.trim() && uploadedFiles.length === 0) {
 			alert("Please enter a description or attach at least one document");
@@ -482,8 +477,7 @@ export function NotesSection({
 				workingFile = await ensureFileIsSaved();
 			}
 		} catch (e) {
-			const logger = getLogger();
-			await logger.error(
+			logger.error(
 				"app/components/file-data/NotesSection.tsx",
 				`Failed to ensure file before saving note: ${e instanceof Error ? e.message : "Unknown error"}`,
 			);
@@ -496,9 +490,7 @@ export function NotesSection({
 		const patientIdFromLink =
 			workingFile?.fileinfo_patient?.[0]?.patientid ?? "";
 
-		{
-			const logger = getLogger();
-			void logger.debug(
+		logger.debug(
 				"app/components/file-data/NotesSection.tsx",
 				`Derived IDs for note save: ${JSON.stringify({
 					fileUid: workingFile?.uid,
@@ -507,7 +499,6 @@ export function NotesSection({
 					patientUidOnPatientObj: workingFile?.patient?.uid,
 				})}`,
 			);
-		}
 
 		const processedFiles: Array<{
 			name: string;
@@ -547,13 +538,10 @@ export function NotesSection({
 				notes: noteContent,
 				files: processedFiles,
 			};
-			{
-				const logger = getLogger();
-				void logger.debug(
+			logger.debug(
 					"app/components/file-data/NotesSection.tsx",
 					`Note update payload: ${JSON.stringify(payload)}`,
 				);
-			}
 			const result = await handleResult(updateNote(payload));
 			savedData = (result.data as unknown as { data?: unknown }) ?? null;
 			error = (result.error as unknown as { message?: string }) ?? null;
@@ -566,13 +554,10 @@ export function NotesSection({
 				tabType: activeNoteTab,
 				files: processedFiles,
 			};
-			{
-				const logger = getLogger();
-				void logger.debug(
+			logger.debug(
 					"app/components/file-data/NotesSection.tsx",
 					`Note save payload (direct): ${JSON.stringify(payload)}`,
 				);
-			}
 			const result = await handleResult(createNoteWithFiles(payload));
 			savedData = (result.data as unknown as { data?: unknown }) ?? null;
 			error = (result.error as unknown as { message?: string }) ?? null;
@@ -590,21 +575,17 @@ export function NotesSection({
 			const smartPayload = patientIdNumber
 				? { ...baseSmartPayload, patientIdNumber }
 				: baseSmartPayload;
-			{
-				const logger = getLogger();
-				void logger.debug(
+			logger.debug(
 					"app/components/file-data/NotesSection.tsx",
 					`Note save payload (smart): ${JSON.stringify(smartPayload)}`,
 				);
-			}
 			const result = await handleResult(createNoteSmart(smartPayload));
 			savedData = (result.data as unknown as { data?: unknown }) ?? null;
 			error = (result.error as unknown as { message?: string }) ?? null;
 		}
 
 		if (error) {
-			const logger = getLogger();
-			await logger.error(
+			logger.error(
 				"app/components/file-data/NotesSection.tsx",
 				`Failed to save note: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);

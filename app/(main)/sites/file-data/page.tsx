@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import { deleteFile as deleteFileAction } from "@/app/actions/file-data";
 import { type FileListItem, getFiles } from "@/app/actions/files";
@@ -108,15 +108,10 @@ function FileDataClient({
 													});
 													window.dispatchEvent(event);
 												} catch (err) {
-													try {
-														const logger = getLogger();
-														await logger.error(
+													logger.error(
 															"app/(main)/sites/file-data/page.tsx",
 															`Error deleting file ${file.uid}: ${err instanceof Error ? err.message : "Unknown error"}`,
 														);
-													} catch (_logError) {
-														// Silently fail logging to ensure error handling proceeds
-													}
 													alert("Failed to delete file.");
 												}
 											}}
@@ -148,8 +143,7 @@ export default function FileDataListPage(): React.JSX.Element {
 				const fileData = await getFiles();
 				setFiles(fileData);
 			} catch (error) {
-				const logger = getLogger();
-				await logger.error(
+				logger.error(
 					"app/(main)/sites/file-data/page.tsx",
 					`Error loading files: ${error instanceof Error ? error.message : "Unknown error"}`,
 				);

@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import { Button } from "@/app/components/ui/button";
 import {
@@ -46,8 +46,7 @@ export default function SigninPage() {
 				router.refresh();
 			}
 		} catch (error) {
-			const logger = getLogger();
-			await logger.error(
+			logger.error(
 				"app/(auth)/login/signin/page.tsx",
 				`Sign in exception: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);

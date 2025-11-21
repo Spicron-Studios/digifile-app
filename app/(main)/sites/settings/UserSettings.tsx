@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import {
 	getAvailableRoles,
@@ -87,8 +87,7 @@ export function UserSettings() {
 				const data = await getUsers();
 				setUsers(data);
 			} catch (error) {
-				const logger = getLogger();
-				await logger.error(
+				logger.error(
 					"app/(main)/sites/settings/UserSettings.tsx",
 					`Failed to fetch users: ${error instanceof Error ? error.message : "Unknown error"}`,
 				);
@@ -112,8 +111,7 @@ export function UserSettings() {
 			]);
 
 			if (rolesResult.error || userRoleResult.error) {
-				const logger = getLogger();
-				await logger.error(
+				logger.error(
 					"app/(main)/sites/settings/UserSettings.tsx",
 					`Failed to fetch role data: ${String(rolesResult.error || userRoleResult.error)}`,
 				);
@@ -159,8 +157,7 @@ export function UserSettings() {
 		);
 
 		if (error) {
-			const logger = getLogger();
-			await logger.error(
+			logger.error(
 				"app/(main)/sites/settings/UserSettings.tsx",
 				`Error while updating user: ${String(error)}`,
 			);
@@ -168,13 +165,10 @@ export function UserSettings() {
 			return;
 		}
 
-		{
-			const logger = getLogger();
-			await logger.success(
+		logger.info(
 				"app/(main)/sites/settings/UserSettings.tsx",
 				`User updated successfully: ${JSON.stringify(updated)}`,
 			);
-		}
 
 		setUsers((prev) =>
 			prev.map((user) =>
@@ -197,8 +191,7 @@ export function UserSettings() {
 
 	const handleResetPassword = async (): Promise<void> => {
 		// TODO: Implement reset password functionality
-		const logger = getLogger();
-		await logger.info(
+		logger.info(
 			"app/(main)/sites/settings/UserSettings.tsx",
 			"Reset Password button clicked!",
 		);
@@ -217,8 +210,7 @@ export function UserSettings() {
 				toast.success("Role updated successfully");
 			}
 		} catch (error) {
-			const logger = getLogger();
-			await logger.error(
+			logger.error(
 				"app/(main)/sites/settings/UserSettings.tsx",
 				`Failed to update user role: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);

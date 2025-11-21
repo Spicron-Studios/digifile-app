@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -98,19 +98,13 @@ export class ErrorBoundary extends React.Component<
 			this.props.onError(error, errorInfo);
 		}
 
-		// Log error via centralized logger
-		try {
-			const logger = getLogger();
-			// Fire-and-forget; avoid blocking error boundary
-			void logger.error(
+		// Log error via centralized logger (fire-and-forget)
+		logger.error(
 				"app/components/ErrorBoundary.tsx",
 				`ErrorBoundary caught an error: ${error.message} | info: ${JSON.stringify(
 					errorInfo,
 				)}`,
 			);
-		} catch (_loggingError) {
-			// Silently fail - centralized logging failed
-		}
 
 		// In production, you might want to send this to an error reporting service
 		if (process.env.NODE_ENV === "production") {

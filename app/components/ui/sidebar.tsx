@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import * as React from "react";
 import { createContext, useContext, useState } from "react";
@@ -20,8 +20,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		setState((prev) => {
 			const next = prev === "expanded" ? "collapsed" : "expanded";
 			if (process.env.NODE_ENV === "development") {
-				const logger = getLogger();
-				void logger.debug(
+				logger.debug(
 					"app/components/ui/sidebar.tsx",
 					`Toggle called, previous: ${prev}, next: ${next}`,
 				);

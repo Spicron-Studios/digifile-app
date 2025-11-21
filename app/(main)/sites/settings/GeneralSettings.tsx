@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -75,8 +75,7 @@ export function GeneralSettings() {
 				const data = await getOrganization();
 				setOrgInfo(data);
 			} catch (error) {
-				const logger = getLogger();
-				void logger.error(
+				logger.error(
 					"app/(main)/sites/settings/GeneralSettings.tsx",
 					`Error fetching organization info: ${error instanceof Error ? error.message : "Unknown error"}`,
 				);
@@ -95,8 +94,7 @@ export function GeneralSettings() {
 				const data = await getPracticeTypes();
 				setPracticeTypes(data);
 			} catch (error) {
-				const logger = getLogger();
-				void logger.error(
+				logger.error(
 					"app/(main)/sites/settings/GeneralSettings.tsx",
 					`Error fetching practice types: ${error instanceof Error ? error.message : "Unknown error"}`,
 				);
@@ -151,8 +149,7 @@ export function GeneralSettings() {
 			setOrgInfo(updated);
 			toast.success("Organization information updated successfully");
 		} catch (error) {
-			const logger = getLogger();
-			void logger.error(
+			logger.error(
 				"app/(main)/sites/settings/GeneralSettings.tsx",
 				`Error updating organization info: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
@@ -186,8 +183,7 @@ export function GeneralSettings() {
 				`${type === "logo" ? "Logo" : "Consent document"} uploaded successfully`,
 			);
 		} catch (error) {
-			const logger = getLogger();
-			void logger.error(
+			logger.error(
 				"app/(main)/sites/settings/GeneralSettings.tsx",
 				`Upload error: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);

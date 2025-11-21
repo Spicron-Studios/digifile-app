@@ -1,5 +1,5 @@
 "use client";
-import { getLogger } from "@/app/lib/logger";
+import { logger } from "@/app/lib/foundation";
 
 import { generatePublicIntakeLink } from "@/app/actions/patients";
 import { Button } from "@/app/components/ui/button";
@@ -42,8 +42,7 @@ export default function SitesPage() {
 					.filter(Boolean);
 				setUsernames(names);
 			} catch (error) {
-				const logger = getLogger();
-				await logger.error(
+				logger.error(
 					"app/(main)/sites/page.tsx",
 					`Error fetching users: ${error instanceof Error ? error.message : "Unknown error"}`,
 				);
