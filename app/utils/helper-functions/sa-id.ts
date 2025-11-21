@@ -53,7 +53,7 @@ export function parseSouthAfricanId(id: string): {
 	const yy = Number.parseInt(cleaned.slice(0, 2), 10);
 	const mm = Number.parseInt(cleaned.slice(2, 4), 10);
 	const dd = Number.parseInt(cleaned.slice(4, 6), 10);
-	if (isNaN(yy) || isNaN(mm) || isNaN(dd)) {
+	if (Number.isNaN(yy) || Number.isNaN(mm) || Number.isNaN(dd)) {
 		return { valid: false, reason: "Invalid date parts in ID" };
 	}
 	if (mm < 1 || mm > 12 || dd < 1 || dd > 31) {
@@ -207,7 +207,7 @@ export function validateDateOfBirth(dateString: string): {
 	const month = Number.parseInt(dateParts[1] || "", 10);
 	const day = Number.parseInt(dateParts[2] || "", 10);
 
-	if (isNaN(year) || isNaN(month) || isNaN(day)) {
+	if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
 		return { valid: false, error: "Date must contain valid numbers" };
 	}
 

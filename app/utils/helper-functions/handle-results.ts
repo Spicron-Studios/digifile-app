@@ -116,9 +116,9 @@
  */
 
 import {
-	type Success,
 	type Failure,
 	type Result,
+	type Success,
 	handleResult as coreHandleResult,
 } from "@/app/lib/foundation";
 
@@ -147,10 +147,10 @@ export const handleResult = async <T, E = Error>(
 ): Promise<Result<T, E>> => {
 	const result = await coreHandleResult<T, E>(
 		promise,
-		async data => {
+		async (data) => {
 			await options?.onSuccess?.(data);
 		},
-		async error => {
+		async (error) => {
 			await options?.onError?.(error);
 		},
 	);
@@ -159,4 +159,3 @@ export const handleResult = async <T, E = Error>(
 
 	return result;
 };
-

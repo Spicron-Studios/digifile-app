@@ -52,4 +52,3 @@ export const browserLogger: BrowserLogger = {
 	error: createLog("error"),
 	debug: createLog("debug"),
 };
-

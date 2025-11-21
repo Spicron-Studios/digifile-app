@@ -63,7 +63,9 @@ export default function LandingPage() {
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
 							className="bg-sky-500 text-white px-6 py-2 rounded-full hover:bg-sky-600 transition-colors"
-							onClick={() => (window.location.href = "/login/signin")}
+							onClick={() => {
+								window.location.href = "/login/signin";
+							}}
 						>
 							Get Started
 						</motion.button>
@@ -193,7 +195,9 @@ export default function LandingPage() {
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
 							className="bg-white text-sky-500 px-8 py-3 rounded-full text-lg hover:bg-sky-50 transition-colors"
-							onClick={() => (window.location.href = "/login/signin")}
+							onClick={() => {
+								window.location.href = "/login/signin";
+							}}
 						>
 							Get Started Now
 						</motion.button>

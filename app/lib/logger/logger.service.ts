@@ -65,7 +65,7 @@ export class Logger {
 				? this.config.serverConsoleEnabled
 				: this.config.clientConsoleEnabled;
 			if (sideAllowed) {
-				// eslint-disable-next-line no-console
+				// biome-ignore lint/suspicious/noConsole: Logger initialization message
 				console.info(`[Logger][${isServer ? "SERVER" : "CLIENT"}] initialized`);
 			}
 		}
@@ -132,25 +132,25 @@ export class Logger {
 		const colored = this.colorize(level, message);
 		switch (level) {
 			case "ERROR":
-				// eslint-disable-next-line no-console
+				// biome-ignore lint/suspicious/noConsole: Logger console output
 				console.error(colored);
 				break;
 			case "WARNING":
-				// eslint-disable-next-line no-console
+				// biome-ignore lint/suspicious/noConsole: Logger console output
 				console.warn(colored);
 				break;
 			case "INFO":
 			case "SUCCESS":
 			case "CHECKPOINT":
-				// eslint-disable-next-line no-console
+				// biome-ignore lint/suspicious/noConsole: Logger console output
 				console.info(colored);
 				break;
 			case "DEBUG":
-				// eslint-disable-next-line no-console
 				if (console.debug) {
+					// biome-ignore lint/suspicious/noConsole: Logger console output
 					console.debug(colored);
 				} else {
-					// eslint-disable-next-line no-console
+					// biome-ignore lint/suspicious/noConsole: Logger console output
 					console.log(colored);
 				}
 				break;
@@ -169,7 +169,6 @@ export class Logger {
 				return chalk.greenBright(message); // Light green
 			case "CHECKPOINT":
 				return chalk.whiteBright(message); // White
-			case "DEBUG":
 			default:
 				return message;
 		}

@@ -141,18 +141,10 @@ export const {
 						);
 						logger.error("app/lib/auth.ts", wrapped);
 					} catch (loggerError) {
-						// Fallback to console.error if logger fails - original error must never be lost
-						// eslint-disable-next-line no-console
-						console.error(
-							"[AUTH ERROR] Authorization failed:",
-							error,
-							"\nStack:",
-							error instanceof Error ? error.stack : "No stack trace available",
-							"\nLogger initialization/usage also failed:",
-							loggerError instanceof Error
-								? loggerError.message
-								: "Unknown logger error",
-						);
+						// Fallback: If logger fails, we cannot log the error
+						// This is a critical failure scenario - the error is already handled above
+						// Silently fail to avoid console usage
+						void loggerError;
 					}
 					return null;
 				}

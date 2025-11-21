@@ -81,4 +81,3 @@ export const serverLogger: ServerLogger = {
 	error: createLog("error", crayon.red),
 	debug: createLog("debug", crayon.gray),
 };
-

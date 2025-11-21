@@ -133,10 +133,7 @@ export async function handleUpdateFile(
 
 		// Process patient information if provided
 		if (data.patient) {
-			logger.debug(
-				"api/files/[uid]/db_write.ts",
-				"Processing patient data",
-			);
+			logger.debug("api/files/[uid]/db_write.ts", "Processing patient data");
 
 			// Parse date of birth if provided (avoid timezone conversion)
 			let dobDate: string | null = null;
@@ -155,7 +152,7 @@ export async function handleUpdateFile(
 			const existingPatient = existingRecord?.patient || null;
 
 			if (existingRelation && existingPatient) {
-			logger.debug(
+				logger.debug(
 					"api/files/[uid]/db_write.ts",
 					`Found existing patient relationship with UID: ${existingPatient.uid}`,
 				);
@@ -209,10 +206,7 @@ export async function handleUpdateFile(
 					`Patient update result: ${JSON.stringify(updateResult)}`,
 				);
 
-				logger.info(
-					"api/files/[uid]/db_write.ts",
-					"Existing patient updated",
-				);
+				logger.info("api/files/[uid]/db_write.ts", "Existing patient updated");
 			} else if (data.patient.name || data.patient.surname || data.patient.id) {
 				logger.info(
 					"api/files/[uid]/db_write.ts",
@@ -317,7 +311,10 @@ export async function handleUpdateFile(
 			);
 			return { error: "File not found after update", status: 404 };
 		}
-		logger.info("api/files/[uid]/db_write.ts", "--- Finished handleUpdateFile ---");
+		logger.info(
+			"api/files/[uid]/db_write.ts",
+			"--- Finished handleUpdateFile ---",
+		);
 
 		return { data: result.data, status: 200 };
 	} catch (error) {
@@ -527,10 +524,7 @@ export async function handleCreateFile(
 			// For 'private' type, no additional records needed
 		}
 
-		logger.info(
-			"api/files/[uid]/db_write.ts",
-			"New file created successfully",
-		);
+		logger.info("api/files/[uid]/db_write.ts", "New file created successfully");
 		// Fetch the created file data to return
 		logger.debug(
 			"api/files/[uid]/db_write.ts",
@@ -565,7 +559,10 @@ export async function handleCreateFile(
 			];
 		}
 
-		logger.info("api/files/[uid]/db_write.ts", "--- Finished handleCreateFile ---");
+		logger.info(
+			"api/files/[uid]/db_write.ts",
+			"--- Finished handleCreateFile ---",
+		);
 		return { data: result.data, status: 200 };
 	} catch (error) {
 		logger.error(
@@ -587,10 +584,7 @@ async function processMedicalAid(
 			"api/files/[uid]/db_write.ts",
 			`Processing medical aid data: ${JSON.stringify(medicalCover, null, 2)}`,
 		);
-		logger.debug(
-			"api/files/[uid]/db_write.ts",
-			"Processing medical aid data",
-		);
+		logger.debug("api/files/[uid]/db_write.ts", "Processing medical aid data");
 
 		// Find existing medical aid record for this file if any
 		const existingMedicalAid = await db

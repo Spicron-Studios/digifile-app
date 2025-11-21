@@ -34,8 +34,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/app/components/ui/tooltip";
-import type { FileData, FileNotes, UploadedFile } from "@/app/types/file-data";
 import { logger } from "@/app/lib/foundation";
+import type { FileData, FileNotes, UploadedFile } from "@/app/types/file-data";
 import { handleResult } from "@/app/utils/helper-functions/handle-results";
 import { format } from "date-fns";
 import {
@@ -243,7 +243,7 @@ export function NotesSection({
 		if (isExpanded || raw.length <= 1000) {
 			return { display: raw, truncated: false };
 		}
-		return { display: raw.slice(0, 1000) + "…", truncated: true };
+		return { display: `${raw.slice(0, 1000)}…`, truncated: true };
 	}
 
 	function toggleExpanded(
@@ -329,12 +329,7 @@ export function NotesSection({
 		if (validatePatientData() && draftFiles.length > 0) {
 			moveDraftFilesToUploaded();
 		}
-	}, [
-		file?.patient,
-		moveDraftFilesToUploaded,
-		validatePatientData,
-		draftFiles.length,
-	]);
+	}, [moveDraftFilesToUploaded, validatePatientData, draftFiles.length]);
 
 	function getSupportedAudioMimeType(): string | null {
 		const candidates = [
@@ -345,9 +340,9 @@ export function NotesSection({
 			"audio/webm",
 		];
 		for (const type of candidates) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const MR: any = (globalThis as unknown as { MediaRecorder?: unknown })
-				.MediaRecorder;
+			const MR = (
+				globalThis as unknown as { MediaRecorder?: typeof MediaRecorder }
+			).MediaRecorder;
 			if (
 				MR &&
 				typeof MR.isTypeSupported === "function" &&
@@ -392,7 +387,9 @@ export function NotesSection({
 				// Attach to uploads so it gets saved with the note
 				setUploadedFiles((prev) => [...prev, file as unknown as UploadedFile]);
 				// Cleanup stream tracks
-				mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+				for (const track of mediaStreamRef.current?.getTracks() ?? []) {
+					track.stop();
+				}
 				mediaStreamRef.current = null;
 			};
 			recorder.start();
@@ -401,7 +398,9 @@ export function NotesSection({
 			setRecordingError("Microphone permission denied or not available");
 			setIsRecording(false);
 			try {
-				mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+				for (const track of mediaStreamRef.current?.getTracks() ?? []) {
+					track.stop();
+				}
 			} catch {}
 		}
 	}
@@ -451,9 +450,9 @@ export function NotesSection({
 		if (isSavingNote) return;
 		setIsSavingNote(true);
 		logger.debug(
-				"app/components/file-data/NotesSection.tsx",
-				`Attempting to save new note. Current file state: ${JSON.stringify(file)}`,
-			);
+			"app/components/file-data/NotesSection.tsx",
+			`Attempting to save new note. Current file state: ${JSON.stringify(file)}`,
+		);
 
 		if (!noteContent.trim() && uploadedFiles.length === 0) {
 			alert("Please enter a description or attach at least one document");
@@ -491,14 +490,14 @@ export function NotesSection({
 			workingFile?.fileinfo_patient?.[0]?.patientid ?? "";
 
 		logger.debug(
-				"app/components/file-data/NotesSection.tsx",
-				`Derived IDs for note save: ${JSON.stringify({
-					fileUid: workingFile?.uid,
-					fileInfoPatientId,
-					patientIdFromLink,
-					patientUidOnPatientObj: workingFile?.patient?.uid,
-				})}`,
-			);
+			"app/components/file-data/NotesSection.tsx",
+			`Derived IDs for note save: ${JSON.stringify({
+				fileUid: workingFile?.uid,
+				fileInfoPatientId,
+				patientIdFromLink,
+				patientUidOnPatientObj: workingFile?.patient?.uid,
+			})}`,
+		);
 
 		const processedFiles: Array<{
 			name: string;
@@ -539,9 +538,9 @@ export function NotesSection({
 				files: processedFiles,
 			};
 			logger.debug(
-					"app/components/file-data/NotesSection.tsx",
-					`Note update payload: ${JSON.stringify(payload)}`,
-				);
+				"app/components/file-data/NotesSection.tsx",
+				`Note update payload: ${JSON.stringify(payload)}`,
+			);
 			const result = await handleResult(updateNote(payload));
 			savedData = (result.data as unknown as { data?: unknown }) ?? null;
 			error = (result.error as unknown as { message?: string }) ?? null;
@@ -555,9 +554,9 @@ export function NotesSection({
 				files: processedFiles,
 			};
 			logger.debug(
-					"app/components/file-data/NotesSection.tsx",
-					`Note save payload (direct): ${JSON.stringify(payload)}`,
-				);
+				"app/components/file-data/NotesSection.tsx",
+				`Note save payload (direct): ${JSON.stringify(payload)}`,
+			);
 			const result = await handleResult(createNoteWithFiles(payload));
 			savedData = (result.data as unknown as { data?: unknown }) ?? null;
 			error = (result.error as unknown as { message?: string }) ?? null;
@@ -576,9 +575,9 @@ export function NotesSection({
 				? { ...baseSmartPayload, patientIdNumber }
 				: baseSmartPayload;
 			logger.debug(
-					"app/components/file-data/NotesSection.tsx",
-					`Note save payload (smart): ${JSON.stringify(smartPayload)}`,
-				);
+				"app/components/file-data/NotesSection.tsx",
+				`Note save payload (smart): ${JSON.stringify(smartPayload)}`,
+			);
 			const result = await handleResult(createNoteSmart(smartPayload));
 			savedData = (result.data as unknown as { data?: unknown }) ?? null;
 			error = (result.error as unknown as { message?: string }) ?? null;
@@ -747,6 +746,15 @@ export function NotesSection({
 										key={n.uid}
 										className="border rounded-md p-4 bg-white shadow-sm cursor-pointer"
 										onClick={() => openEditModal(n, "file")}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												openEditModal(n, "file");
+											}
+										}}
+										// biome-ignore lint/a11y/useSemanticElements: Using div for styling flexibility while maintaining accessibility
+										role="button"
+										tabIndex={0}
 									>
 										<div className="flex justify-between items-start mb-2">
 											<h3 className="text-lg font-bold text-primary">
@@ -935,6 +943,15 @@ export function NotesSection({
 										key={n.uid}
 										className="border rounded-md p-4 bg-white shadow-sm cursor-pointer"
 										onClick={() => openEditModal(n, "clinical")}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												openEditModal(n, "clinical");
+											}
+										}}
+										// biome-ignore lint/a11y/useSemanticElements: Using div for styling flexibility while maintaining accessibility
+										role="button"
+										tabIndex={0}
 									>
 										<div className="flex justify-between items-start mb-2">
 											<h3 className="text-lg font-bold text-primary">
@@ -1183,7 +1200,7 @@ export function NotesSection({
 											const isAudio = (f?.type ?? "").startsWith("audio/");
 											return (
 												<div
-													key={index}
+													key={`draft-${f?.name ?? ""}-${index}`}
 													className="flex items-center justify-between p-2 bg-yellow-50 border border-yellow-200 rounded gap-3"
 												>
 													<span
@@ -1198,7 +1215,13 @@ export function NotesSection({
 															controls
 															preload="metadata"
 															className="max-w-[240px]"
-														/>
+														>
+															<track
+																kind="captions"
+																srcLang="en"
+																label="English"
+															/>
+														</audio>
 													)}
 													<Button
 														type="button"
@@ -1267,7 +1290,7 @@ export function NotesSection({
 											const isAudio = (f?.type ?? "").startsWith("audio/");
 											return (
 												<div
-													key={index}
+													key={`uploaded-${f?.name ?? ""}-${index}`}
 													className="flex items-center justify-between p-2 bg-gray-50 rounded gap-3"
 												>
 													<span
@@ -1282,7 +1305,13 @@ export function NotesSection({
 															controls
 															preload="metadata"
 															className="max-w-[240px]"
-														/>
+														>
+															<track
+																kind="captions"
+																srcLang="en"
+																label="English"
+															/>
+														</audio>
 													)}
 													<Button
 														type="button"

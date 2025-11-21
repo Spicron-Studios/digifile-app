@@ -2,6 +2,11 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "./card";
 import { Skeleton } from "./skeleton";
 
+// Helper function to generate stable keys for skeleton components
+// Biome lint: These are static skeleton components that don't change, so stable keys are acceptable
+const skeletonKey = (prefix: string, index: number): string =>
+	`${prefix}-${index}`;
+
 // Generic loading skeleton for various content types - optimized
 export function ContentSkeleton({ className }: { className?: string }) {
 	return (
@@ -31,7 +36,7 @@ export function CardSkeleton({ className }: { className?: string }) {
 // Form skeleton for loading forms - optimized
 export function FormSkeleton({ fields = 3 }: { fields?: number }) {
 	const fieldElements = Array.from({ length: fields }, (_, i) => (
-		<div key={`form-field-${i}`} className="space-y-2">
+		<div key={skeletonKey("form-field", i)} className="space-y-2">
 			<Skeleton className="h-4 w-1/4" />
 			<Skeleton className="h-10 w-full" />
 		</div>
@@ -61,14 +66,23 @@ export function TableSkeleton({
 			{/* Table header */}
 			<div className="flex space-x-4">
 				{Array.from({ length: columns }).map((_, i) => (
-					<Skeleton key={`table-header-${i}`} className="h-4 flex-1" />
+					<Skeleton
+						key={skeletonKey("table-header", i)}
+						className="h-4 flex-1"
+					/>
 				))}
 			</div>
 			{/* Table rows */}
 			{Array.from({ length: rows }).map((_, rowIndex) => (
-				<div key={`table-row-${rowIndex}`} className="flex space-x-4">
+				<div
+					key={skeletonKey("table-row", rowIndex)}
+					className="flex space-x-4"
+				>
 					{Array.from({ length: columns }).map((_, colIndex) => (
-						<Skeleton key={`table-cell-${rowIndex}-${colIndex}`} className="h-4 flex-1" />
+						<Skeleton
+							key={skeletonKey(`table-cell-${rowIndex}`, colIndex)}
+							className="h-4 flex-1"
+						/>
 					))}
 				</div>
 			))}
@@ -81,7 +95,7 @@ export function ListSkeleton({ items = 3 }: { items?: number }) {
 	return (
 		<div className="space-y-4">
 			{Array.from({ length: items }).map((_, i) => (
-				<Card key={`list-item-${i}`} className="p-4">
+				<Card key={skeletonKey("list-item", i)} className="p-4">
 					<div className="flex justify-between items-center">
 						<div className="space-y-2">
 							<Skeleton className="h-5 w-32" />
@@ -121,14 +135,20 @@ export function CalendarSkeleton() {
 						{/* Days of week */}
 						<div className="grid grid-cols-7 gap-1">
 							{Array.from({ length: 7 }).map((_, i) => (
-								<Skeleton key={`calendar-day-header-${i}`} className="h-6 w-full" />
+								<Skeleton
+									key={skeletonKey("calendar-day-header", i)}
+									className="h-6 w-full"
+								/>
 							))}
 						</div>
 
 						{/* Calendar days */}
 						<div className="grid grid-cols-7 gap-1">
 							{Array.from({ length: 35 }).map((_, i) => (
-								<Skeleton key={`calendar-day-${i}`} className="h-12 w-full" />
+								<Skeleton
+									key={skeletonKey("calendar-day", i)}
+									className="h-12 w-full"
+								/>
 							))}
 						</div>
 					</div>
@@ -146,7 +166,10 @@ export function SettingsSkeleton() {
 				{/* Sidebar */}
 				<div className="w-64 border-r bg-gray-50 p-2 space-y-1">
 					{Array.from({ length: 3 }).map((_, i) => (
-						<Skeleton key={`sidebar-item-${i}`} className="h-10 w-full" />
+						<Skeleton
+							key={skeletonKey("sidebar-item", i)}
+							className="h-10 w-full"
+						/>
 					))}
 				</div>
 
@@ -252,7 +275,10 @@ export function GeneralSettingsSkeleton() {
 						<div className="space-y-4">
 							<Skeleton className="h-6 w-40" />
 							{Array.from({ length: 3 }).map((_, i) => (
-								<div key={`consent-item-${i}`} className="flex items-center justify-between">
+								<div
+									key={skeletonKey("consent-item", i)}
+									className="flex items-center justify-between"
+								>
 									<Skeleton className="h-4 w-20" />
 									<div className="flex gap-2">
 										<Skeleton className="h-9 w-16" />
@@ -317,7 +343,7 @@ export function FileDataSkeleton() {
 						{/* Patient details section */}
 						<div className="grid grid-cols-2 gap-4">
 							{Array.from({ length: 8 }).map((_, i) => (
-								<div key={`patient-detail-${i}`}>
+								<div key={skeletonKey("patient-detail", i)}>
 									<Skeleton className="h-4 w-20 mb-2" />
 									<Skeleton className="h-10 w-full" />
 								</div>
@@ -363,7 +389,10 @@ export function AuthSkeleton() {
 			{/* Form */}
 			<div className="space-y-4">
 				{Array.from({ length: 3 }).map((_, i) => (
-					<Skeleton key={`auth-field-${i}`} className="h-10 w-full" />
+					<Skeleton
+						key={skeletonKey("auth-field", i)}
+						className="h-10 w-full"
+					/>
 				))}
 				<Skeleton className="h-10 w-full" />
 			</div>

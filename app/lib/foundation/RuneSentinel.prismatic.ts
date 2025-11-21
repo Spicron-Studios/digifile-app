@@ -190,11 +190,11 @@ export const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
 		}, ms);
 
 		promise
-			.then(value => {
+			.then((value) => {
 				clearTimeout(timer);
 				resolve(value);
 			})
-			.catch(reason => {
+			.catch((reason) => {
 				clearTimeout(timer);
 				reject(reason);
 			});
@@ -228,15 +228,21 @@ export const withRetry = async <T>(
 	operation: () => Promise<T>,
 	options: RetryOptions = {},
 ): Promise<T> => {
-	const { retries = 3, delay = 0, backoff = false, shouldRetry, onRetry } =
-		options;
+	const {
+		retries = 3,
+		delay = 0,
+		backoff = false,
+		shouldRetry,
+		onRetry,
+	} = options;
 
 	try {
 		return await operation();
 	} catch (error) {
 		if (retries > 0 && (!shouldRetry || shouldRetry(error))) {
 			const waitTime = delay;
-			const attempt = options.retries !== undefined ? options.retries - retries + 1 : 1;
+			const attempt =
+				options.retries !== undefined ? options.retries - retries + 1 : 1;
 
 			onRetry?.({
 				error,
@@ -246,7 +252,7 @@ export const withRetry = async <T>(
 			});
 
 			if (waitTime > 0) {
-				await new Promise<void>(resolve => {
+				await new Promise<void>((resolve) => {
 					setTimeout(resolve, waitTime);
 				});
 			}
@@ -290,5 +296,3 @@ export const wrapError = (
 
 	return newError;
 };
-
-
