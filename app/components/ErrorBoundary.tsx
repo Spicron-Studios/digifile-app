@@ -100,11 +100,11 @@ export class ErrorBoundary extends React.Component<
 
 		// Log error via centralized logger (fire-and-forget)
 		logger.error(
-				"app/components/ErrorBoundary.tsx",
-				`ErrorBoundary caught an error: ${error.message} | info: ${JSON.stringify(
-					errorInfo,
-				)}`,
-			);
+			"app/components/ErrorBoundary.tsx",
+			`ErrorBoundary caught an error: ${error.message} | info: ${JSON.stringify(
+				errorInfo,
+			)}`,
+		);
 
 		// In production, you might want to send this to an error reporting service
 		if (process.env.NODE_ENV === "production") {

@@ -3,7 +3,10 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 // Create the postgres connection
-const connectionString = process.env.DATABASE_URL!;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+	throw new Error("DATABASE_URL environment variable is not set");
+}
 
 // Create the postgres client
 const client = postgres(connectionString, {

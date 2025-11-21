@@ -70,8 +70,9 @@ export const patientQueries = {
 		const conditions = [eq(patient.orgid, orgid), eq(patient.active, true)];
 
 		// Search across multiple fields with fuzzy matching
-		if (searchTerm && searchTerm.trim()) {
-			const searchPattern = `%${searchTerm.trim()}%`;
+		if (searchTerm?.trim()) {
+			const trimmedSearch = searchTerm.trim();
+			const searchPattern = `%${trimmedSearch}%`;
 			conditions.push(
 				or(
 					like(patient.name, searchPattern),
@@ -79,7 +80,7 @@ export const patientQueries = {
 					like(patient.email, searchPattern),
 					like(patient.id, searchPattern),
 					sql`CAST(${patient.dateOfBirth} AS TEXT) LIKE ${searchPattern}`,
-				)!,
+				),
 			);
 		}
 

@@ -1,12 +1,12 @@
 "use client";
 
-import Error from "next/error";
+import NextError from "next/error";
 
 export default function GlobalError() {
 	return (
-		<html>
+		<html lang="en">
 			<body>
-				<Error statusCode={500} />
+				<NextError statusCode={500} />
 			</body>
 		</html>
 	);

@@ -88,7 +88,7 @@ export async function handleUpdateFile(
 		}
 
 		// Upsert the file_info record
-		let _upsertedFileInfo;
+		let _upsertedFileInfo: unknown;
 		if (existingRecord?.fileInfo) {
 			// Update existing
 			const updated = await db
@@ -429,7 +429,6 @@ export async function handleCreateFile(
 			// Generate a new UUID for the patient
 			const newPatientUid = uuidv4();
 			logger.info(
-			logger.info(
 				"api/files/[uid]/db_write.ts",
 				`Creating new patient with UID: ${newPatientUid}`,
 			);
@@ -621,7 +620,7 @@ async function processMedicalAid(
 		}
 
 		// Upsert medical aid record
-		let _medicalAidUid;
+		let _medicalAidUid: string | undefined;
 		if (existingMedicalAid.length > 0) {
 			// Update existing record
 			const existing = existingMedicalAid[0];
@@ -740,7 +739,7 @@ async function processMedicalAidMember(
 			}
 		}
 
-		if (existingRecord && existingRecord.patient) {
+		if (existingRecord?.patient) {
 			// Update existing member patient
 			const memberPatientUid = existingRecord.patient.uid;
 			logger.debug(
@@ -767,7 +766,6 @@ async function processMedicalAidMember(
 		} else if (memberData.name || memberData.surname) {
 			// Create new member patient
 			const memberPatientUid = uuidv4();
-			logger.info(
 			logger.info(
 				"api/files/[uid]/db_write.ts",
 				`Creating new member patient with UID: ${memberPatientUid}`,

@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
 	type CalendarProps,
 	Calendar as RBCalendar,
@@ -73,7 +73,7 @@ export default function BigCalendar(
 		onEventResize,
 	} = props;
 
-	function hexToRgba(hex: string, alpha: number): string {
+	const hexToRgba = useCallback((hex: string, alpha: number): string => {
 		const normalized: string = hex.replace("#", "");
 		if (!normalized || normalized.length < 3) return "rgba(0, 0, 0, 0)";
 
@@ -97,7 +97,7 @@ export default function BigCalendar(
 		const g: number = Number.parseInt(gHex, 16);
 		const b: number = Number.parseInt(bHex, 16);
 		return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-	}
+	}, []);
 
 	const eventPropGetter = useMemo(() => {
 		return (
@@ -121,7 +121,7 @@ export default function BigCalendar(
 				},
 			};
 		};
-	}, []);
+	}, [hexToRgba]);
 
 	function components() {
 		const Event = ({ event }: { event: CalendarEvent }) => {

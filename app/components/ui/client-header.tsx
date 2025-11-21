@@ -26,9 +26,9 @@ export function ClientHeader({ session }: ClientHeaderProps) {
 			window.location.href = "/login/signin";
 		} catch (error) {
 			logger.error(
-					"app/components/ui/client-header.tsx",
-					`Error signing out: ${error instanceof Error ? error.message : "Unknown error"}`,
-				);
+				"app/components/ui/client-header.tsx",
+				`Error signing out: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 			// Fallback navigation if the signOut fails
 			router.push("/login/signin");
 		}

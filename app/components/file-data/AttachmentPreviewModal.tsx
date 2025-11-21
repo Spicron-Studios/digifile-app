@@ -17,7 +17,7 @@ export type AttachmentPreview = {
 };
 
 function isImage(type: string | null): boolean {
-	return Boolean(type && type.startsWith("image/"));
+	return Boolean(type?.startsWith("image/"));
 }
 
 function isPdf(type: string | null): boolean {
@@ -25,7 +25,7 @@ function isPdf(type: string | null): boolean {
 }
 
 function isAudio(type: string | null): boolean {
-	return Boolean(type && type.startsWith("audio/"));
+	return Boolean(type?.startsWith("audio/"));
 }
 
 export function AttachmentPreviewModal({
@@ -77,7 +77,9 @@ export function AttachmentPreviewModal({
 								controls
 								preload="metadata"
 								className="w-full"
-							/>
+							>
+								<track kind="captions" />
+							</audio>
 							<p className="text-xs text-gray-500 mt-2">
 								If playback fails, download the file and play it locally. Some
 								browsers cannot play certain audio formats (e.g., WebM/Opus on

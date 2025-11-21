@@ -228,7 +228,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
 		// Group notes and files
 		const notesMap = new Map<string, ProcessingNoteWithFiles>();
 
-		notesAndFiles.forEach((nf) => {
+		for (const nf of notesAndFiles) {
 			if (!notesMap.has(nf.note.uid)) {
 				notesMap.set(nf.note.uid, {
 					uid: nf.note.uid,
@@ -246,7 +246,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
 					fileLocation: nf.file.fileLocation,
 				});
 			}
-		});
+		}
 
 		// Add notes to the first file patient
 		if (
@@ -309,7 +309,7 @@ export async function handleGetFileData(uid: string, orgId: string) {
 		const clinicalNotes: ApiFileNote[] = [];
 
 		// If filePatient exists, we can collect its tab_notes
-		if (filePatient && filePatient.tab_notes) {
+		if (filePatient?.tab_notes) {
 			for (const note of filePatient.tab_notes) {
 				const noteObj: ApiFileNote = {
 					uid: note.uid,

@@ -12,7 +12,7 @@ type BrowserLogger = {
 
 const serializeArgs = (args: unknown[]): string =>
 	args
-		.map(arg => {
+		.map((arg) => {
 			if (typeof arg === "string") return arg;
 			try {
 				return JSON.stringify(arg);
@@ -52,5 +52,4 @@ export const browserLogger: BrowserLogger = {
 	error: createLog("error"),
 	debug: createLog("debug"),
 };
-
 

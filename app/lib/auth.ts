@@ -44,7 +44,7 @@ export const {
 
 				if (userWithRole.length > 0) {
 					const userData = userWithRole[0];
-					if (userData && userData.roleId) {
+					if (userData?.roleId) {
 						token.role = {
 							uid: userData.roleId,
 							name: userData.roleName || "Unknown",

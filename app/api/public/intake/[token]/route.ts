@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import db, { patient } from "@/app/lib/drizzle";
 import { verifyIntakeToken } from "@/app/lib/intake-tokens";
 import { Logger } from "@/app/lib/logger/logger.service";

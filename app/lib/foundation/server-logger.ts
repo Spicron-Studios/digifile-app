@@ -1,4 +1,4 @@
-import { crayon, type LogSeverity } from "./RuneSentinel.prismatic";
+import { type LogSeverity, crayon } from "./RuneSentinel.prismatic";
 
 type LogFormat = "human" | "json";
 
@@ -20,7 +20,7 @@ const getLogFormat = (): LogFormat => {
 
 const serializeArgs = (args: unknown[]): string =>
 	args
-		.map(arg => {
+		.map((arg) => {
 			if (typeof arg === "string") return arg;
 			try {
 				return JSON.stringify(arg);
@@ -40,7 +40,7 @@ const createTraceId = (): string => {
 	if (typeof window === "undefined") {
 		if (!nodeCrypto) {
 			// eslint-disable-next-line @typescript-eslint/no-var-requires
-			nodeCrypto = require("crypto") as typeof import("crypto");
+			nodeCrypto = require("node:crypto") as typeof import("crypto");
 		}
 		return nodeCrypto.randomUUID();
 	}
@@ -81,5 +81,4 @@ export const serverLogger: ServerLogger = {
 	error: createLog("error", crayon.red),
 	debug: createLog("debug", crayon.gray),
 };
-
 

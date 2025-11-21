@@ -31,12 +31,11 @@ export default function AccountSelector({
 						key={acc.uid}
 						type="button"
 						onClick={() => toggle(acc.uid)}
-						className={
-							`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm transition-colors ` +
-							(checked
+						className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm transition-colors ${
+							checked
 								? "bg-indigo-50 text-indigo-700 border-indigo-200"
-								: "bg-white text-slate-700 hover:bg-slate-50")
-						}
+								: "bg-white text-slate-700 hover:bg-slate-50"
+						}`}
 						aria-pressed={checked}
 					>
 						<span

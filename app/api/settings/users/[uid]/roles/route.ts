@@ -49,7 +49,7 @@ export async function GET(
 
 		if (userWithRole.length > 0) {
 			const user = userWithRole[0];
-			if (user && user.roleId) {
+			if (user?.roleId) {
 				const roleDetails = {
 					uid: user.roleId,
 					role_name: user.roleName || "Unknown",

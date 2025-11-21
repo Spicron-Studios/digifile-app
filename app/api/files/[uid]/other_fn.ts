@@ -18,8 +18,15 @@ import { and, asc, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+	throw new Error(
+		"Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+	);
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper function to fetch medical schemes
@@ -276,11 +283,14 @@ export async function saveNoteSmart(
 			}
 
 			// Create the file-patient link
+			if (!patientUid) {
+				throw new Error("Failed to create or find patient UID");
+			}
 			const newLinkUid = uuidv4();
 			await db.insert(fileinfoPatient).values({
 				uid: newLinkUid,
 				fileid: data.fileUid,
-				patientid: patientUid!,
+				patientid: patientUid,
 				orgid: data.orgId,
 				active: true,
 				dateCreated: new Date().toISOString(),

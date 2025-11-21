@@ -17,5 +17,3 @@ const isServer = typeof window === "undefined";
 export const logger: Logger = isServer ? serverLogger : browserLogger;
 
 export type { LogSeverity };
-
-

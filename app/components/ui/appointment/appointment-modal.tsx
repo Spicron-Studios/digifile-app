@@ -117,11 +117,17 @@ export default function AppointmentModal(
 				>
 					<div className="grid grid-cols-2 gap-3">
 						<div>
-							<label className="text-xs font-medium">Date</label>
-							<Input type="date" {...form.register("date")} />
+							<label htmlFor="appointment-date" className="text-xs font-medium">
+								Date
+							</label>
+							<Input
+								id="appointment-date"
+								type="date"
+								{...form.register("date")}
+							/>
 						</div>
 						<div>
-							<label className="text-xs font-medium">Doctor</label>
+							<div className="text-xs font-medium mb-1">Doctor</div>
 							<Select
 								value={form.watch("userUid")}
 								onValueChange={(v) => form.setValue("userUid", v)}
@@ -139,7 +145,7 @@ export default function AppointmentModal(
 							</Select>
 						</div>
 						<div>
-							<label className="text-xs font-medium">Start</label>
+							<div className="text-xs font-medium mb-1">Start</div>
 							<Select
 								value={form.watch("time")}
 								onValueChange={(v) => form.setValue("time", v)}
@@ -157,7 +163,7 @@ export default function AppointmentModal(
 							</Select>
 						</div>
 						<div>
-							<label className="text-xs font-medium">End</label>
+							<div className="text-xs font-medium mb-1">End</div>
 							<Select
 								value={form.watch("endTime")}
 								onValueChange={(v) => form.setValue("endTime", v)}
@@ -176,12 +182,23 @@ export default function AppointmentModal(
 						</div>
 					</div>
 					<div>
-						<label className="text-xs font-medium">Title</label>
-						<Input {...form.register("title")} />
+						<label htmlFor="appointment-title" className="text-xs font-medium">
+							Title
+						</label>
+						<Input id="appointment-title" {...form.register("title")} />
 					</div>
 					<div>
-						<label className="text-xs font-medium">Description</label>
-						<Textarea rows={3} {...form.register("description")} />
+						<label
+							htmlFor="appointment-description"
+							className="text-xs font-medium"
+						>
+							Description
+						</label>
+						<Textarea
+							id="appointment-description"
+							rows={3}
+							{...form.register("description")}
+						/>
 					</div>
 					<div className="flex justify-between pt-2">
 						{form.getValues("id") ? (

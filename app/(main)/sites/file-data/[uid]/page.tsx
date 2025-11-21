@@ -920,7 +920,7 @@ export default function FileDataPage(): React.JSX.Element {
 		}
 
 		if (typeof setSavingGlobal === "function") setSavingGlobal(false);
-	}, [file, isNewRecord, uid, setFile, router]);
+	}, [file, isNewRecord, uid, router]);
 
 	// Listen for save trigger from layout
 	useEffect(() => {

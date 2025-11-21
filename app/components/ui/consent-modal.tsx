@@ -36,17 +36,16 @@ export function ConsentModal({
 			} catch (error) {
 				setError("Failed to load consent document");
 				logger.error(
-						"app/components/ui/consent-modal.tsx",
-						`Error fetching consent content: ${error instanceof Error ? error.message : "Unknown error"}`,
+					"app/components/ui/consent-modal.tsx",
+					`Error fetching consent content: ${error instanceof Error ? error.message : "Unknown error"}`,
 				);
-				setError("Failed to load consent document");
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
 		fetchConsentContent();
-	}, [isOpen, consentNumber, orgId]);
+	}, [isOpen, consentNumber]);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
