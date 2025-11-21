@@ -124,8 +124,8 @@ export default function SitesPage() {
 
 			{usernames.length > 0 ? (
 				<ul className="space-y-2">
-					{usernames.map((username, index) => (
-						<li key={index} className="p-3 bg-white rounded shadow">
+					{usernames.map((username) => (
+						<li key={username} className="p-3 bg-white rounded shadow">
 							{username}
 						</li>
 					))}

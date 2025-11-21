@@ -356,14 +356,15 @@ export default function CalendarClient({
 							}
 							setEditing(editData);
 						}}
-						onSelectSlot={(slot) =>
+						onSelectSlot={(slot) => {
+							if (selectedIds.length === 0) return;
 							setEditing({
-								userUid: selectedIds[0]!,
+								userUid: selectedIds[0],
 								date: slot.start.toISOString().slice(0, 10),
 								time: `${String(slot.start.getHours()).padStart(2, "0")}:00`,
 								endTime: `${String(slot.end.getHours()).padStart(2, "0")}:00`,
-							})
-						}
+							});
+						}}
 					/>
 				</CardContent>
 			</Card>
@@ -458,9 +459,10 @@ function MiniMonth({
 				<div>S</div>
 			</div>
 			<div className="grid grid-cols-7 gap-1">
-				{days.map((d, idx) => (
+				{days.map((d) => (
 					<button
-						key={idx}
+						key={d.d.getTime()}
+						type="button"
 						className={cn(
 							"p-2 text-center text-xs rounded-md h-8",
 							d.isSelected
@@ -470,7 +472,7 @@ function MiniMonth({
 									: "hover:bg-gray-100",
 						)}
 						onClick={() => {
-							if (!isNaN(d.d.getTime())) onChange(d.d);
+							if (!Number.isNaN(d.d.getTime())) onChange(d.d);
 						}}
 					>
 						{d.label}

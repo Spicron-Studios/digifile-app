@@ -20,7 +20,7 @@ export default async function PatientsPage({
 }): Promise<React.JSX.Element> {
 	const params = await searchParams;
 	const parsedPage = Number.parseInt(params.page || "1", 10);
-	const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+	const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
 	const searchTerm = params.search;
 	const orderBy = params.orderBy || "lastEdit";
 

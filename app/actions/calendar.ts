@@ -33,16 +33,18 @@ export async function getCalendarData(
 		.from(users)
 		.where(and(eq(users.orgid, session.user.orgId), eq(users.active, true)));
 
-	const accounts: Account[] = userList.map((u, idx) => ({
-		uid: u.uid!,
-		name: `${u.firstName ?? ""} ${u.surname ?? ""}`.trim() || "Unknown",
-		color: colorForIndex(idx),
-	}));
+	const accounts: Account[] = userList
+		.filter((u) => u.uid !== null)
+		.map((u, idx) => ({
+			uid: u.uid as string,
+			name: `${u.firstName ?? ""} ${u.surname ?? ""}`.trim() || "Unknown",
+			color: colorForIndex(idx),
+		}));
 
 	const visibleIds =
 		selectedUserIds && selectedUserIds.length > 0
 			? selectedUserIds
-			: accounts.map(a => a.uid);
+			: accounts.map((a) => a.uid);
 
 	const rows = await db
 		.select({
@@ -62,17 +64,19 @@ export async function getCalendarData(
 			),
 		);
 
-	const colorByUserId = new Map(accounts.map(a => [a.uid, a.color] as const));
+	const colorByUserId = new Map(accounts.map((a) => [a.uid, a.color] as const));
 
-	const events: CalendarEvent[] = rows.map(r => ({
-		id: r.uid!,
-		title: r.title ?? "",
-		start: new Date(r.startdate as string),
-		end: new Date(r.enddate as string),
-		resourceId: r.userUid!,
-		color: colorByUserId.get(r.userUid!) ?? colorForIndex(0),
-		description: r.description ?? null,
-	}));
+	const events: CalendarEvent[] = rows
+		.filter((r) => r.uid !== null && r.userUid !== null)
+		.map((r) => ({
+			id: r.uid as string,
+			title: r.title ?? "",
+			start: new Date(r.startdate as string),
+			end: new Date(r.enddate as string),
+			resourceId: r.userUid as string,
+			color: colorByUserId.get(r.userUid as string) ?? colorForIndex(0),
+			description: r.description ?? null,
+		}));
 
 	return { accounts, events };
 }
@@ -122,7 +126,7 @@ export async function getDayEvents(
 	);
 
 	// Filter to day bounds in JS to avoid extra operators
-	const dayRows = rows.filter(r => {
+	const dayRows = rows.filter((r) => {
 		const s = new Date(r.startdate as string);
 		const e = new Date(r.enddate as string);
 		// Include events that intersect the day: start < endOfDay && end > startOfDay
@@ -135,14 +139,15 @@ export async function getDayEvents(
 	);
 
 	// Color mapping by user index is unknown here, default blue
-	return dayRows.map(r => ({
-		id: r.uid!,
-		title: r.title ?? "",
-		start: new Date(r.startdate as string),
-		end: new Date(r.enddate as string),
-		resourceId: r.userUid!,
-		color: "#3b82f6",
-		description: r.description ?? null,
-	}));
+	return dayRows
+		.filter((r) => r.uid !== null && r.userUid !== null)
+		.map((r) => ({
+			id: r.uid as string,
+			title: r.title ?? "",
+			start: new Date(r.startdate as string),
+			end: new Date(r.enddate as string),
+			resourceId: r.userUid as string,
+			color: "#3b82f6",
+			description: r.description ?? null,
+		}));
 }
-

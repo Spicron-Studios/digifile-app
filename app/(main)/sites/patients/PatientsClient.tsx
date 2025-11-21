@@ -372,7 +372,7 @@ export default function PatientsClient({
 										setValidationErrors((prev) => {
 											const next = { ...prev };
 											if (dobValidation.valid) {
-												delete next.dateOfBirth;
+												next.dateOfBirth = undefined;
 											} else if (dobValidation.error) {
 												next.dateOfBirth = dobValidation.error;
 											}
@@ -432,14 +432,14 @@ export default function PatientsClient({
 												} else {
 													setValidationErrors((prev) => {
 														const next = { ...prev };
-														delete next.id;
+														next.id = undefined;
 														return next;
 													});
 												}
 											} else {
 												setValidationErrors((prev) => {
 													const next = { ...prev };
-													delete next.id;
+													next.id = undefined;
 													return next;
 												});
 											}
@@ -469,7 +469,7 @@ export default function PatientsClient({
 										setValidationErrors((prev) => {
 											const next = { ...prev };
 											if (phoneValidation.valid) {
-												delete next.cellPhone;
+												next.cellPhone = undefined;
 											} else if (phoneValidation.error) {
 												next.cellPhone = phoneValidation.error;
 											}
@@ -505,7 +505,7 @@ export default function PatientsClient({
 										setValidationErrors((prev) => {
 											const next = { ...prev };
 											if (emailValidation.valid) {
-												delete next.email;
+												next.email = undefined;
 											} else if (emailValidation.error) {
 												next.email = emailValidation.error;
 											}

@@ -140,24 +140,25 @@ export default function FileDataPage(): React.JSX.Element {
 		if (!/^\d*$/.test(value)) return;
 
 		// Apply appropriate validations
+		let normalizedValue = value;
 		if (part === "month" && value.length === 2 && Number.parseInt(value) > 12) {
-			value = "12";
+			normalizedValue = "12";
 		}
 
 		if (part === "day" && value.length === 2 && Number.parseInt(value) > 31) {
-			value = "31";
+			normalizedValue = "31";
 		}
 
 		// Update the date part
-		setDateOfBirth((prev) => ({ ...prev, [part]: value }));
+		setDateOfBirth((prev) => ({ ...prev, [part]: normalizedValue }));
 
 		// Update the patient DOB in the file state
 		const newDob =
 			part === "year"
-				? `${value}/${dateOfBirth.month}/${dateOfBirth.day}`
+				? `${normalizedValue}/${dateOfBirth.month}/${dateOfBirth.day}`
 				: part === "month"
-					? `${dateOfBirth.year}/${value}/${dateOfBirth.day}`
-					: `${dateOfBirth.year}/${dateOfBirth.month}/${value}`;
+					? `${dateOfBirth.year}/${normalizedValue}/${dateOfBirth.day}`
+					: `${dateOfBirth.year}/${dateOfBirth.month}/${normalizedValue}`;
 
 		setFile((prevFile) => {
 			if (!prevFile) return null;
@@ -171,7 +172,7 @@ export default function FileDataPage(): React.JSX.Element {
 		});
 
 		// Auto-focus to next field when max length is reached
-		if (value.length === maxLength && nextRef?.current) {
+		if (normalizedValue.length === maxLength && nextRef?.current) {
 			nextRef.current.focus();
 		}
 	};
@@ -187,24 +188,25 @@ export default function FileDataPage(): React.JSX.Element {
 		if (!/^\d*$/.test(value)) return;
 
 		// Apply appropriate validations
+		let normalizedValue = value;
 		if (part === "month" && value.length === 2 && Number.parseInt(value) > 12) {
-			value = "12";
+			normalizedValue = "12";
 		}
 
 		if (part === "day" && value.length === 2 && Number.parseInt(value) > 31) {
-			value = "31";
+			normalizedValue = "31";
 		}
 
 		// Update the date part
-		setMemberDateOfBirth((prev) => ({ ...prev, [part]: value }));
+		setMemberDateOfBirth((prev) => ({ ...prev, [part]: normalizedValue }));
 
 		// Update the member DOB in the file state
 		const newDob =
 			part === "year"
-				? `${value}/${memberDateOfBirth.month}/${memberDateOfBirth.day}`
+				? `${normalizedValue}/${memberDateOfBirth.month}/${memberDateOfBirth.day}`
 				: part === "month"
-					? `${memberDateOfBirth.year}/${value}/${memberDateOfBirth.day}`
-					: `${memberDateOfBirth.year}/${memberDateOfBirth.month}/${value}`;
+					? `${memberDateOfBirth.year}/${normalizedValue}/${memberDateOfBirth.day}`
+					: `${memberDateOfBirth.year}/${memberDateOfBirth.month}/${normalizedValue}`;
 
 		setFile((prevFile) => {
 			if (!prevFile) return null;
@@ -221,7 +223,7 @@ export default function FileDataPage(): React.JSX.Element {
 		});
 
 		// Auto-focus to next field when max length is reached
-		if (value.length === maxLength && nextRef?.current) {
+		if (normalizedValue.length === maxLength && nextRef?.current) {
 			nextRef.current.focus();
 		}
 	};
@@ -346,15 +348,15 @@ export default function FileDataPage(): React.JSX.Element {
 				if (newName) {
 					// Split by spaces in case there's a middle name
 					const nameParts = newName.split(" ");
-					nameParts.forEach((part) => {
+					for (const part of nameParts) {
 						if (part.trim()) {
-							initials += part.charAt(0).toUpperCase() + ".";
+							initials += `${part.charAt(0).toUpperCase()}.`;
 						}
-					});
+					}
 				}
 
 				if (newSurname) {
-					initials += newSurname.charAt(0).toUpperCase() + ".";
+					initials += `${newSurname.charAt(0).toUpperCase()}.`;
 				}
 
 				return {
@@ -566,15 +568,15 @@ export default function FileDataPage(): React.JSX.Element {
 				if (newName) {
 					// Split by spaces in case there's a middle name
 					const nameParts = newName.split(" ");
-					nameParts.forEach((part) => {
+					for (const part of nameParts) {
 						if (part.trim()) {
-							initials += part.charAt(0).toUpperCase() + ".";
+							initials += `${part.charAt(0).toUpperCase()}.`;
 						}
-					});
+					}
 				}
 
 				if (newSurname) {
-					initials += newSurname.charAt(0).toUpperCase() + ".";
+					initials += `${newSurname.charAt(0).toUpperCase()}.`;
 				}
 
 				return {

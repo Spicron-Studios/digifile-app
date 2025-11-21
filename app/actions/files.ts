@@ -50,7 +50,7 @@ export async function getFiles(): Promise<FileListItem[]> {
 			and(eq(fileInfo.active, true), eq(fileInfo.orgid, session.user.orgId)),
 		);
 
-	const files: FileListItem[] = fileInfos.map(fi => ({
+	const files: FileListItem[] = fileInfos.map((fi) => ({
 		uid: fi.uid,
 		file_number: fi.file_number ?? "",
 		account_number: fi.account_number ?? "",

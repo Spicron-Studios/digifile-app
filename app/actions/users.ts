@@ -121,7 +121,7 @@ export async function getUserRole(userUid: string): Promise<Role | null> {
 
 	if (userWithRole.length > 0) {
 		const user = userWithRole[0];
-		if (user && user.roleId) {
+		if (user?.roleId) {
 			return {
 				uid: user.roleId,
 				role_name: user.roleName || "Unknown",

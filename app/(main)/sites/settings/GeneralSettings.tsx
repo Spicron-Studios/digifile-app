@@ -48,10 +48,16 @@ type OrganizationInfo = {
 // PracticeType imported from server action
 
 // Add Supabase client initialization
-const supabase = createClient(
-	process.env.NEXT_PUBLIC_SUPABASE_URL!,
-	process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+	throw new Error(
+		"Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY",
+	);
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const PUBLIC_ASSETS_BUCKET =
 	process.env.NEXT_PUBLIC_SUPABASE_ASSETS_BUCKET || "DigiFile_Public";
 
@@ -163,10 +169,13 @@ export function GeneralSettings() {
 
 	const handleInputChange = (field: keyof OrganizationInfo, value: string) => {
 		if (!orgInfo) return;
-		setOrgInfo((prev) => ({
-			...prev!,
-			[field]: value,
-		}));
+		setOrgInfo((prev) => {
+			if (!prev) return prev;
+			return {
+				...prev,
+				[field]: value,
+			};
+		});
 	};
 
 	const handleFileUpload = async (

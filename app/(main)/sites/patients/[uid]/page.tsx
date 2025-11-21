@@ -513,7 +513,10 @@ export default function PatientDetailPage(): React.JSX.Element {
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
+							role="img"
+							aria-label="Warning icon"
 						>
+							<title>Warning</title>
 							<path
 								strokeLinecap="round"
 								strokeLinejoin="round"

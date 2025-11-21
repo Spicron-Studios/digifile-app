@@ -1,11 +1,11 @@
 "use server";
 
 import { auth } from "@/app/lib/auth";
+import { logger } from "@/app/lib/foundation";
 import {
 	generateExpiringLink,
 	generateTabletLink,
 } from "@/app/lib/intake-tokens";
-import { logger } from "@/app/lib/foundation";
 import type {
 	CreatePatientData,
 	PaginatedPatients,
@@ -37,7 +37,7 @@ function calculateAge(
 		const year = Number.parseInt(dateParts[0] || "", 10);
 		const month = Number.parseInt(dateParts[1] || "", 10) - 1; // Month is 0-indexed
 		const day = Number.parseInt(dateParts[2] || "", 10);
-		if (isNaN(year) || isNaN(month) || isNaN(day)) {
+		if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
 			return null;
 		}
 		dobDate = new Date(year, month, day);
@@ -45,7 +45,7 @@ function calculateAge(
 		dobDate = new Date(dateOfBirth);
 	}
 
-	if (isNaN(dobDate.getTime())) {
+	if (Number.isNaN(dobDate.getTime())) {
 		return null;
 	}
 
@@ -454,11 +454,10 @@ export async function updatePatient(
 				success: true,
 				patient: patientWithFiles,
 			};
-		} else {
-			return {
-				success: true,
-			};
 		}
+		return {
+			success: true,
+		};
 	} catch (error) {
 		await logger.error(
 			"actions/patients.ts",

@@ -114,6 +114,7 @@ export default function SigninPage() {
 					Register
 				</Link>
 				<button
+					type="button"
 					onClick={() => setShowForgotPassword(true)}
 					className="text-purple-600 hover:underline"
 				>

@@ -225,9 +225,9 @@ export function UserCreationForm({
 					<p className="text-sm text-red-600">{errors.password[0]}</p>
 				)}
 				<ul className="text-sm text-muted-foreground ml-2 list-disc list-inside">
-					{passwordRequirements.map((req, index) => (
+					{passwordRequirements.map((req) => (
 						<li
-							key={index}
+							key={req.text}
 							className={
 								value.password
 									? req.valid

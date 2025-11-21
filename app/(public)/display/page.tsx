@@ -1,4 +1,4 @@
-export default async function DisplayPage({}): Promise<React.JSX.Element> {
+export default async function DisplayPage(): Promise<React.JSX.Element> {
 	return (
 		<div className="w-full h-full">
 			<h1 className="">This is an iframe</h1>
@@ -9,7 +9,7 @@ export default async function DisplayPage({}): Promise<React.JSX.Element> {
 				title="Embedded frame content"
 				className="w-full h-full"
 				sandbox="allow-scripts allow-same-origin"
-			></iframe>
+			/>
 		</div>
 	);
 }

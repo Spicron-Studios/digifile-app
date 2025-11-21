@@ -75,7 +75,7 @@ export function ExtraInfoForm({ value, onChange }: ExtraInfoFormProps) {
 			<div className="space-y-6">
 				{value.consents.map((consent, index) => (
 					<ConsentRow
-						key={index}
+						key={`consent-${index}-${consent.content ?? ""}`}
 						number={index + 1}
 						content={consent.content}
 						onUpload={handleConsentUpload(index)}

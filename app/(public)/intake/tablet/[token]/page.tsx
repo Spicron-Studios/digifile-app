@@ -62,7 +62,7 @@ export default function TabletIntakePage() {
 			setValidationErrors((prev) => {
 				const updated = { ...prev };
 				if (phoneValidation.valid) {
-					delete updated.cellPhone;
+					updated.cellPhone = undefined;
 				} else if (phoneValidation.error) {
 					updated.cellPhone = phoneValidation.error;
 				}
@@ -248,15 +248,17 @@ export default function TabletIntakePage() {
 					/>
 				</div>
 				<div>
-					<label>Surname</label>
+					<label htmlFor="surname">Surname</label>
 					<input
+						id="surname"
 						value={form.surname}
 						onChange={(e) => handleChange("surname", e.target.value)}
 					/>
 				</div>
 				<div>
-					<label>Date of Birth* (YYYY-MM-DD)</label>
+					<label htmlFor="dateOfBirth">Date of Birth* (YYYY-MM-DD)</label>
 					<input
+						id="dateOfBirth"
 						value={form.dateOfBirth}
 						onChange={(e) => handleChange("dateOfBirth", e.target.value)}
 						placeholder="YYYY-MM-DD"
@@ -284,8 +286,9 @@ export default function TabletIntakePage() {
 				</div>
 				{!form.isUnder18 && (
 					<div>
-						<label>ID Number*</label>
+						<label htmlFor="id">ID Number*</label>
 						<input
+							id="id"
 							value={form.id}
 							onChange={(e) => handleChange("id", e.target.value)}
 							required
@@ -301,22 +304,25 @@ export default function TabletIntakePage() {
 					</div>
 				)}
 				<div>
-					<label>Title</label>
+					<label htmlFor="title">Title</label>
 					<input
+						id="title"
 						value={form.title}
 						onChange={(e) => handleChange("title", e.target.value)}
 					/>
 				</div>
 				<div>
-					<label>Gender</label>
+					<label htmlFor="gender">Gender</label>
 					<input
+						id="gender"
 						value={form.gender}
 						onChange={(e) => handleChange("gender", e.target.value)}
 					/>
 				</div>
 				<div>
-					<label>Cell Phone</label>
+					<label htmlFor="cellPhone">Cell Phone</label>
 					<input
+						id="cellPhone"
 						value={form.cellPhone}
 						onChange={(e) => handleChange("cellPhone", e.target.value)}
 						type="tel"
@@ -332,8 +338,9 @@ export default function TabletIntakePage() {
 					)}
 				</div>
 				<div>
-					<label>Email</label>
+					<label htmlFor="email">Email</label>
 					<input
+						id="email"
 						type="email"
 						value={form.email}
 						onChange={(e) => handleChange("email", e.target.value)}
@@ -346,8 +353,9 @@ export default function TabletIntakePage() {
 					)}
 				</div>
 				<div>
-					<label>Address</label>
+					<label htmlFor="address">Address</label>
 					<textarea
+						id="address"
 						value={form.address}
 						onChange={(e) => handleChange("address", e.target.value)}
 					/>

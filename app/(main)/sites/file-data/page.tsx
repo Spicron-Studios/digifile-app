@@ -7,6 +7,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 function FileDataClient({
@@ -109,9 +110,9 @@ function FileDataClient({
 													window.dispatchEvent(event);
 												} catch (err) {
 													logger.error(
-															"app/(main)/sites/file-data/page.tsx",
-															`Error deleting file ${file.uid}: ${err instanceof Error ? err.message : "Unknown error"}`,
-														);
+														"app/(main)/sites/file-data/page.tsx",
+														`Error deleting file ${file.uid}: ${err instanceof Error ? err.message : "Unknown error"}`,
+													);
 													alert("Failed to delete file.");
 												}
 											}}
@@ -134,6 +135,7 @@ function FileDataClient({
 }
 
 export default function FileDataListPage(): React.JSX.Element {
+	const router = useRouter();
 	const [files, setFiles] = useState<FileListItem[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
@@ -184,7 +186,9 @@ export default function FileDataListPage(): React.JSX.Element {
 			<div className="flex justify-between items-center mb-6">
 				<h1 className="text-2xl font-bold">File Data</h1>
 				<Button
-					onClick={() => (window.location.href = "/sites/file-data/new-record")}
+					onClick={() => {
+						router.push("/sites/file-data/new-record");
+					}}
 				>
 					Create New
 				</Button>

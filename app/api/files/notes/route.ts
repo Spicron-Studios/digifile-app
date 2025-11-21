@@ -8,8 +8,15 @@ import { v4 as uuidv4 } from "uuid";
 export const runtime = "nodejs";
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+	throw new Error(
+		"Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY",
+	);
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: NextRequest): Promise<NextResponse> {

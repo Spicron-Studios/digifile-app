@@ -218,8 +218,7 @@ export default function TabletExamplePage(): React.JSX.Element {
 		e.preventDefault();
 		// Demo submit: log values
 		// In real flow, call an action to save the details
-		// eslint-disable-next-line no-console
-		console.log("Patient Demo Details:", patient);
+		// Patient details would be saved here
 	}
 
 	return (
