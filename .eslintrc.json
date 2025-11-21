@@ -1,21 +1,21 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"],
-  "rules": {
-    "no-unused-vars": "error",
-    "no-console": "warn",
-    "prefer-const": "error",
-    "no-var": "error",
-    "eqeqeq": "error",
-    "no-duplicate-imports": "error"
-  },
-  "overrides": [
-    {
-      "files": ["**/*.ts", "**/*.tsx"],
-      "rules": {
-        "@typescript-eslint/no-unused-vars": "error",
-        "@typescript-eslint/no-explicit-any": "warn",
-        "@typescript-eslint/prefer-as-const": "error"
-      }
-    }
-  ]
+	"extends": ["next/core-web-vitals", "next/typescript"],
+	"rules": {
+		"no-unused-vars": "error",
+		"no-console": "warn",
+		"prefer-const": "error",
+		"no-var": "error",
+		"eqeqeq": "error",
+		"no-duplicate-imports": "error"
+	},
+	"overrides": [
+		{
+			"files": ["**/*.ts", "**/*.tsx"],
+			"rules": {
+				"@typescript-eslint/no-unused-vars": "error",
+				"@typescript-eslint/no-explicit-any": "warn",
+				"@typescript-eslint/prefer-as-const": "error"
+			}
+		}
+	]
 }

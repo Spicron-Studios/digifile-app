@@ -157,11 +157,11 @@
  * ```
  */
 export function omitProperty<
-  T extends Record<string, unknown>,
-  K extends keyof T,
+	T extends Record<string, unknown>,
+	K extends keyof T,
 >(obj: T, key: K): Omit<T, K> {
-  const { [key]: _, ...rest } = obj;
-  return rest;
+	const { [key]: _, ...rest } = obj;
+	return rest;
 }
 
 /**
@@ -176,14 +176,14 @@ export function omitProperty<
  * ```
  */
 export function omitProperties<
-  T extends Record<string, unknown>,
-  K extends keyof T,
+	T extends Record<string, unknown>,
+	K extends keyof T,
 >(obj: T, keys: K[]): Omit<T, K> {
-  const result = { ...obj };
-  for (const key of keys) {
-    delete result[key];
-  }
-  return result as Omit<T, K>;
+	const result = { ...obj };
+	for (const key of keys) {
+		delete result[key];
+	}
+	return result as Omit<T, K>;
 }
 
 /**
@@ -202,13 +202,13 @@ export function omitProperties<
  * ```
  */
 export function setPropertyIf<
-  T extends Record<string, unknown>,
-  K extends keyof T,
+	T extends Record<string, unknown>,
+	K extends keyof T,
 >(obj: T, key: K, value: T[K], condition: boolean): T {
-  if (condition) {
-    return { ...obj, [key]: value };
-  }
-  return omitProperty(obj, key) as T;
+	if (condition) {
+		return { ...obj, [key]: value };
+	}
+	return omitProperty(obj, key) as T;
 }
 
 /**
@@ -227,18 +227,18 @@ export function setPropertyIf<
  * ```
  */
 export function updateStateWithOptional<T extends Record<string, unknown>>(
-  updater: (prev: T) => Partial<T>
+	updater: (prev: T) => Partial<T>,
 ): (prev: T) => T {
-  return (prev: T): T => {
-    const update = updater(prev);
-    const filtered: Partial<T> = {};
+	return (prev: T): T => {
+		const update = updater(prev);
+		const filtered: Partial<T> = {};
 
-    for (const key in update) {
-      if (update[key] !== undefined) {
-        filtered[key] = update[key];
-      }
-    }
+		for (const key in update) {
+			if (update[key] !== undefined) {
+				filtered[key] = update[key];
+			}
+		}
 
-    return { ...prev, ...filtered };
-  };
+		return { ...prev, ...filtered };
+	};
 }
