@@ -30,24 +30,8 @@ const serializeArgs = (args: unknown[]): string =>
 		})
 		.join(" ");
 
-let nodeCrypto: typeof import("crypto") | undefined;
-
 const createTraceId = (): string => {
-	if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-		return crypto.randomUUID();
-	}
-
-	if (typeof window === "undefined") {
-		if (!nodeCrypto) {
-			// eslint-disable-next-line @typescript-eslint/no-var-requires
-			nodeCrypto = require("node:crypto") as typeof import("crypto");
-		}
-		return nodeCrypto.randomUUID();
-	}
-
-	const random = Math.random().toString(16).slice(2);
-	const time = Date.now().toString(16);
-	return `${time}-${random}`;
+	return crypto.randomUUID();
 };
 
 const createLog =

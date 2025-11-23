@@ -71,7 +71,7 @@ export async function getPatients(
 ): Promise<PaginatedPatients> {
 	const session = await auth();
 	if (!session?.user?.orgId) {
-		await logger.warning("actions/patients.ts", "Unauthorized: missing orgId");
+		await logger.warn("actions/patients.ts", "Unauthorized: missing orgId");
 		return {
 			patients: [],
 			total: 0,
@@ -129,7 +129,7 @@ export async function getPatient(
 ): Promise<PatientWithFiles | null> {
 	const session = await auth();
 	if (!session?.user?.orgId) {
-		await logger.warning("actions/patients.ts", "Unauthorized: missing orgId");
+		await logger.warn("actions/patients.ts", "Unauthorized: missing orgId");
 		return null;
 	}
 
@@ -146,7 +146,7 @@ export async function getPatient(
 		);
 
 		if (!results || results.length === 0) {
-			await logger.warning(
+			await logger.warn(
 				"actions/patients.ts",
 				`Patient ${uid} not found or does not belong to organization ${session.user.orgId}`,
 			);
@@ -156,7 +156,7 @@ export async function getPatient(
 		// Extract patient data and files
 		const firstResult = results[0];
 		if (!firstResult) {
-			await logger.warning(
+			await logger.warn(
 				"actions/patients.ts",
 				`No patient data found for uid=${uid}`,
 			);
@@ -211,7 +211,7 @@ export async function createPatient(
 ): Promise<{ success: boolean; patient?: PatientWithFiles; error?: string }> {
 	const session = await auth();
 	if (!session?.user?.orgId) {
-		await logger.warning("actions/patients.ts", "Unauthorized: missing orgId");
+		await logger.warn("actions/patients.ts", "Unauthorized: missing orgId");
 		return { success: false, error: "Unauthorized" };
 	}
 
@@ -316,7 +316,7 @@ export async function updatePatient(
 ): Promise<{ success: boolean; patient?: PatientWithFiles; error?: string }> {
 	const session = await auth();
 	if (!session?.user?.orgId) {
-		await logger.warning("actions/patients.ts", "Unauthorized: missing orgId");
+		await logger.warn("actions/patients.ts", "Unauthorized: missing orgId");
 		return { success: false, error: "Unauthorized" };
 	}
 
@@ -333,7 +333,7 @@ export async function updatePatient(
 		);
 
 		if (!existing || existing.length === 0) {
-			await logger.warning(
+			await logger.warn(
 				"actions/patients.ts",
 				`Patient ${uid} not found or does not belong to organization ${session.user.orgId}`,
 			);
@@ -345,7 +345,7 @@ export async function updatePatient(
 
 		const existingPatient = existing[0]?.patient;
 		if (!existingPatient) {
-			await logger.warning(
+			await logger.warn(
 				"actions/patients.ts",
 				`No patient data found for uid=${uid}`,
 			);
@@ -363,7 +363,7 @@ export async function updatePatient(
 		const age = calculateAge(effectiveDateOfBirth);
 
 		if (age === null) {
-			await logger.warning(
+			await logger.warn(
 				"actions/patients.ts",
 				`Invalid dateOfBirth for patient uid=${uid}`,
 			);
@@ -381,7 +381,7 @@ export async function updatePatient(
 		if (age >= 18) {
 			// Patients 18+ must have an ID
 			if (!effectiveId || effectiveId.trim() === "") {
-				await logger.warning(
+				await logger.warn(
 					"actions/patients.ts",
 					`Patient uid=${uid} is 18+ but missing ID`,
 				);
@@ -394,7 +394,7 @@ export async function updatePatient(
 			// Patients under 18 must NOT have an ID
 			// If an ID is present (either in update or existing), return failure
 			if (effectiveId && effectiveId.trim() !== "") {
-				await logger.warning(
+				await logger.warn(
 					"actions/patients.ts",
 					`Patient uid=${uid} is under 18 but has ID`,
 				);
@@ -476,7 +476,7 @@ export async function generatePublicIntakeLink(
 ): Promise<{ url: string } | { error: string }> {
 	const session = await auth();
 	if (!session?.user?.orgId) {
-		await logger.warning(
+		await logger.warn(
 			"actions/patients.ts",
 			"Unauthorized: missing orgId for link generation",
 		);
@@ -503,7 +503,7 @@ export async function generateTabletIntakeLink(
 ): Promise<{ url: string } | { error: string }> {
 	const session = await auth();
 	if (!session?.user?.orgId) {
-		await logger.warning(
+		await logger.warn(
 			"actions/patients.ts",
 			"Unauthorized: missing orgId for tablet link generation",
 		);

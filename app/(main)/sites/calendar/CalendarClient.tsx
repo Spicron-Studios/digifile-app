@@ -357,9 +357,10 @@ export default function CalendarClient({
 							setEditing(editData);
 						}}
 						onSelectSlot={(slot) => {
-							if (selectedIds.length === 0) return;
+							const [firstSelectedId] = selectedIds;
+							if (!firstSelectedId) return;
 							setEditing({
-								userUid: selectedIds[0],
+								userUid: firstSelectedId,
 								date: slot.start.toISOString().slice(0, 10),
 								time: `${String(slot.start.getHours()).padStart(2, "0")}:00`,
 								endTime: `${String(slot.end.getHours()).padStart(2, "0")}:00`,
@@ -402,21 +403,27 @@ function MiniMonth({
 	const startWeekday = first.getDay();
 	const daysInMonth = new Date(year, month + 1, 0).getDate();
 	const days: Array<{
+		id: string;
 		d: Date;
 		label: string;
 		isToday: boolean;
 		isSelected: boolean;
 	}> = [];
-	for (let i = 0; i < startWeekday; i++)
+
+	for (let i = 0; i < startWeekday; i++) {
 		days.push({
+			id: `pad-${year}-${month}-${i}`,
 			d: new Date(Number.NaN),
 			label: "",
 			isToday: false,
 			isSelected: false,
 		});
+	}
+
 	for (let day = 1; day <= daysInMonth; day++) {
 		const d = new Date(year, month, day);
 		days.push({
+			id: `day-${year}-${month}-${day}`,
 			d,
 			label: String(day),
 			isToday: same(d, new Date()),
@@ -459,23 +466,23 @@ function MiniMonth({
 				<div>S</div>
 			</div>
 			<div className="grid grid-cols-7 gap-1">
-				{days.map((d) => (
+				{days.map((day) => (
 					<button
-						key={d.d.getTime()}
+						key={day.id}
 						type="button"
 						className={cn(
 							"p-2 text-center text-xs rounded-md h-8",
-							d.isSelected
+							day.isSelected
 								? "bg-indigo-600 text-white"
-								: d.isToday
+								: day.isToday
 									? "bg-indigo-200"
 									: "hover:bg-gray-100",
 						)}
 						onClick={() => {
-							if (!Number.isNaN(d.d.getTime())) onChange(d.d);
+							if (!Number.isNaN(day.d.getTime())) onChange(day.d);
 						}}
 					>
-						{d.label}
+						{day.label}
 					</button>
 				))}
 			</div>

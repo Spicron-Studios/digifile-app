@@ -31,10 +31,10 @@ export default function TabletIntakePage() {
 	const [success, setSuccess] = useState<string | null>(null);
 	const [tokenValid, setTokenValid] = useState<boolean | null>(null);
 	const [validationErrors, setValidationErrors] = useState<{
-		id?: string;
-		dateOfBirth?: string;
-		cellPhone?: string;
-		email?: string;
+		id?: string | undefined;
+		dateOfBirth?: string | undefined;
+		cellPhone?: string | undefined;
+		email?: string | undefined;
 	}>({});
 
 	useEffect(() => {

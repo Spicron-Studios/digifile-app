@@ -10,14 +10,12 @@ type ConsentModalProps = {
 	isOpen: boolean;
 	onClose: () => void;
 	consentNumber: number;
-	orgId: string;
 };
 
 export function ConsentModal({
 	isOpen,
 	onClose,
 	consentNumber,
-	orgId,
 }: ConsentModalProps) {
 	const [content, setContent] = useState<string>("");
 	const [error, setError] = useState<string | null>(null);

@@ -1,5 +1,5 @@
 import db from "@/app/lib/drizzle";
-import { and, eq } from "drizzle-orm";
+import { type SQL, and, eq } from "drizzle-orm";
 import { fileInfo, fileinfoPatient, patient, userRoles, users } from "./schema";
 
 // Common query patterns for better type safety and reusability
@@ -67,21 +67,25 @@ export const patientQueries = {
 		);
 
 		const offset = (page - 1) * limit;
-		const conditions = [eq(patient.orgid, orgid), eq(patient.active, true)];
+		const conditions: SQL<unknown>[] = [
+			eq(patient.orgid, orgid),
+			eq(patient.active, true),
+		];
 
 		// Search across multiple fields with fuzzy matching
 		if (searchTerm?.trim()) {
 			const trimmedSearch = searchTerm.trim();
 			const searchPattern = `%${trimmedSearch}%`;
-			conditions.push(
-				or(
-					like(patient.name, searchPattern),
-					like(patient.surname, searchPattern),
-					like(patient.email, searchPattern),
-					like(patient.id, searchPattern),
-					sql`CAST(${patient.dateOfBirth} AS TEXT) LIKE ${searchPattern}`,
-				),
+			const searchCondition = or(
+				like(patient.name, searchPattern),
+				like(patient.surname, searchPattern),
+				like(patient.email, searchPattern),
+				like(patient.id, searchPattern),
+				sql`CAST(${patient.dateOfBirth} AS TEXT) LIKE ${searchPattern}`,
 			);
+			if (searchCondition) {
+				conditions.push(searchCondition);
+			}
 		}
 
 		// Apply filters

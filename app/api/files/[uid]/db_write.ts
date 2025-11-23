@@ -88,7 +88,7 @@ export async function handleUpdateFile(
 		}
 
 		// Upsert the file_info record
-		let _upsertedFileInfo: unknown;
+		let _upsertedFileInfo: { uid: string };
 		if (existingRecord?.fileInfo) {
 			// Update existing
 			const updated = await db
@@ -102,6 +102,9 @@ export async function handleUpdateFile(
 				})
 				.where(eq(fileInfo.uid, fileUid))
 				.returning();
+			if (!updated[0]) {
+				throw new Error("Failed to update file info");
+			}
 			_upsertedFileInfo = updated[0];
 		} else {
 			// Create new
@@ -119,6 +122,9 @@ export async function handleUpdateFile(
 					lastEdit: new Date().toISOString(),
 				})
 				.returning();
+			if (!created[0]) {
+				throw new Error("Failed to create file info");
+			}
 			_upsertedFileInfo = created[0];
 		}
 

@@ -71,10 +71,10 @@ export default function PatientsClient({
 		address: "",
 	});
 	const [validationErrors, setValidationErrors] = useState<{
-		id?: string;
-		dateOfBirth?: string;
-		cellPhone?: string;
-		email?: string;
+		id?: string | undefined;
+		dateOfBirth?: string | undefined;
+		cellPhone?: string | undefined;
+		email?: string | undefined;
 	}>({});
 
 	// Debounce search input

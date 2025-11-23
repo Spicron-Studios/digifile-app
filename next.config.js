@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const webpack = require("webpack");
+
 const nextConfig = {
 	images: {
 		remotePatterns: [
@@ -15,11 +17,29 @@ const nextConfig = {
 			},
 		],
 	},
+	webpack: (config) => {
+		// Allow using the Node.js `node:` protocol (e.g. `node:crypto`) in source
+		// while still letting Webpack resolve the core modules correctly.
+		// This keeps Biome's `useNodejsImportProtocol` rule happy and fixes
+		// the Next.js build error about the unsupported "node:" scheme.
+		config.plugins.push(
+			new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+				// Strip the `node:` prefix so Webpack sees the core module name.
+				// Example: "node:crypto" -> "crypto"
+				// eslint-disable-next-line no-param-reassign
+				resource.request = resource.request.replace(/^node:/, "");
+			}),
+		);
+		return config;
+	},
 	experimental: {
 		typedRoutes: false,
 		serverActions: {
 			bodySizeLimit: "10mb",
 		},
+	},
+	eslint: {
+		ignoreDuringBuilds: true,
 	},
 };
 

@@ -553,7 +553,6 @@ export function GeneralSettings() {
 					isOpen={isModalOpen}
 					onClose={() => setIsModalOpen(false)}
 					consentNumber={selectedConsent}
-					orgId={orgInfo.uid}
 				/>
 			)}
 		</div>
